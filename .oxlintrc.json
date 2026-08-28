@@ -6,5 +6,13 @@
     "eqeqeq": "error",
     "prefer-const": "error"
   },
-  "ignorePatterns": ["node_modules", "dist", "out", ".frogoe", "registry", "examples"]
+  "ignorePatterns": ["node_modules", "dist", "out", ".frogoe", "registry", "examples"],
+  "overrides": [
+    {
+      "files": ["packages/cli/**"],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ]
 }

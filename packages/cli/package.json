@@ -1,0 +1,35 @@
+{
+  "name": "@frogoe/cli",
+  "version": "0.1.0",
+  "description": "frogoe CLI — the agent's hands: init, add, run, check",
+  "license": "Apache-2.0",
+  "bin": {
+    "frogoe": "./bin/frogoe.mjs"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "check-types": "tsc --noEmit",
+    "build": "tsup && bun scripts/build-copy.mjs",
+    "dev": "bun src/cli.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.1",
+    "citty": "^0.2.2",
+    "hono": "^4.13.5",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

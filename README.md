@@ -39,7 +39,8 @@ cd ../../registry/blocks/hud-score-card && bunx serve .   # each block has demo.
 | `skills/frogoe-creative/` | house style, palettes, game feel — taste lives here, not in code       |
 | `registry/blocks/`        | themeable HUD recipe blocks (score card, hearts, fuel, game-over)      |
 | `examples/flappy/`        | reference game: contract + blocks + brief, end to end                  |
-| `docs/spec/`              | bundler ("externals dissolve") and CLI specs — next up                 |
+| `packages/cli/`           | **frogoe init / add / run / check** — live (21 tests). bundle next     |
+| `docs/spec/`              | bundler ("externals dissolve") spec — next up                          |
 
 ## The rules that matter
 

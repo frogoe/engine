@@ -1,3 +1,4 @@
+// frogoe contract v0.1.0 (materialized by frogoe init — do not edit)
 /**
  * Materialized contract for this example (frogoe.json pins 0.1.0).
  * Normally frogoe init regenerates .frogoe/ — committed here so the

@@ -12,6 +12,9 @@
     },
     "frogoe-registry": {
       "files": 1
+    },
+    "frogoe-cli": {
+      "files": 1
     }
   }
 }
