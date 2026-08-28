@@ -1,5 +1,7 @@
 # Bundler spec — "externals dissolve"
 
+**Status: LIVE** (`frogoe bundle`).
+
 Author free, ship fat. The bundler turns a game FOLDER into ONE self-contained
 HTML file with zero runtime requests.
 

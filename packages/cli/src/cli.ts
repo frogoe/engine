@@ -26,6 +26,7 @@ Commands:
   add <block>   copy a registry HUD block into hud/
   run [dir]     serve with live reload + phone QR
   check [dir]   contract lint (stable finding codes; --json)
+  bundle [dir]  dissolve externals → one self-contained HTML
 
 Docs: skills/frogoe-core — the whole contract in five references.`;
 
@@ -33,6 +34,7 @@ const main = defineCommand({
   meta: { description: HELP },
   subCommands: {
     add: () => import("./commands/add.ts").then((m) => m.command),
+    bundle: () => import("./commands/bundle.ts").then((m) => m.command),
     check: () => import("./commands/check.ts").then((m) => m.command),
     init: () => import("./commands/init.ts").then((m) => m.command),
     run: () => import("./commands/run.ts").then((m) => m.command),

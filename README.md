@@ -40,7 +40,7 @@ cd ../../registry/blocks/hud-score-card && bunx serve .   # each block has demo.
 | `registry/blocks/`        | themeable HUD recipe blocks (score card, hearts, fuel, game-over)      |
 | `examples/flappy/`        | reference game: contract + blocks + brief, end to end                  |
 | `packages/cli/`           | **frogoe init / add / run / check** — live (21 tests). bundle next     |
-| `docs/spec/`              | bundler ("externals dissolve") spec — next up                          |
+| `docs/spec/`              | specs for the shipped CLI (bundler: LIVE)                              |
 
 ## The rules that matter
 
