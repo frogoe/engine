@@ -1,0 +1,104 @@
+<!doctype html>
+<!-- frogoe block source: hud-ready-hint — this file IS viewable in a browser (default
+     state on a neutral backdrop). Copy ONLY between the markers into your
+     game's hud/ layer; the interactive playground is demo.html. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>frogoe block — hud-ready-hint</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(120% 120% at 50% 0%, #182031 0%, #0d1220 60%, #080b13 100%);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ===================== COPY FROM HERE ===================== -->
+    <!--
+  frogoe block: hud-ready-hint
+  The living-ready-state affordance: a giant verb instruction that breathes
+  while it waits, and vanishes the moment play starts. This is what replaces
+  a start menu — the world is alive, this tells the player their one move.
+
+  Bind from game.js (vanilla, no helper):
+    const hint = document.querySelector("[data-hud-ready]");
+    hint.toggleAttribute("data-hidden", phase !== "ready");
+    hint.querySelector("[data-hud-verb]").textContent = "TAP"; // or HOLD / DRAG
+
+  Theme: --hud-accent, --hud-fg, --hud-outline, --hud-font.
+-->
+    <style>
+      .hud-ready {
+        --hud-accent: #ffd166;
+        --hud-fg: #fffdf7;
+        --hud-font: "Fredoka", "Baloo 2", system-ui, sans-serif;
+        --hud-outline: #26180a;
+
+        display: grid;
+        justify-items: center;
+        gap: 0.5em;
+        color: var(--hud-fg);
+        font-family: var(--hud-font);
+        text-align: center;
+        pointer-events: none;
+        -webkit-user-select: none;
+        user-select: none;
+        transition:
+          opacity 200ms ease,
+          scale 200ms ease;
+      }
+      .hud-ready[data-hidden] {
+        opacity: 0;
+        scale: 0.9;
+      }
+      .hud-ready__verb {
+        font-size: clamp(2.2rem, 11vmin, 4rem);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        line-height: 1.1; /* descender-safe for italics */
+        text-transform: uppercase;
+        text-shadow:
+          0 4px 0 var(--hud-outline),
+          0 8px 16px rgba(0, 0, 0, 0.35);
+      }
+      .hud-ready__sub {
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        opacity: 0.75;
+      }
+      /* the breath: motivated ambient motion — it signals "alive, waiting" */
+      .hud-ready:not([data-hidden]) .hud-ready__verb {
+        animation: hud-ready-breathe 1.8s ease-in-out infinite alternate;
+      }
+      @keyframes hud-ready-breathe {
+        from {
+          transform: scale(1);
+        }
+        to {
+          transform: scale(1.05);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .hud-ready:not([data-hidden]) .hud-ready__verb {
+          animation: none;
+        }
+        .hud-ready {
+          transition: none;
+        }
+      }
+    </style>
+
+    <div class="hud-ready" data-hud-ready>
+      <span class="hud-ready__verb" data-hud-verb>TAP</span>
+      <span class="hud-ready__sub" data-hud-sub>to start</span>
+    </div>
+    <!-- ===================== COPY TO HERE ======================= -->
+  </body>
+</html>

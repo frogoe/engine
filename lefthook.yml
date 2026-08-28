@@ -1,0 +1,13 @@
+pre-commit:
+  commands:
+    format:
+      run: bun run format:check
+    lint:
+      run: bun run lint
+    check-types:
+      run: bun run check-types
+
+commit-msg:
+  commands:
+    commitlint:
+      run: bunx commitlint --edit {1}

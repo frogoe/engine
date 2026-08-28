@@ -1,0 +1,106 @@
+<!doctype html>
+<!-- frogoe block source: hud-combo-counter — this file IS viewable in a browser (default
+     state on a neutral backdrop). Copy ONLY between the markers into your
+     game's hud/ layer; the interactive playground is demo.html. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>frogoe block — hud-combo-counter</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(120% 120% at 50% 0%, #182031 0%, #0d1220 60%, #080b13 100%);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ===================== COPY FROM HERE ===================== -->
+    <!--
+  frogoe block: hud-combo-counter
+  Streak/combo readout with escalation tiers — the number grows legs as the
+  streak climbs. Tiers are semantic (streak heat), licensed escalation.
+
+  Bind from game.js (vanilla, no helper):
+    const el = document.querySelector("[data-hud-combo]");
+    el.textContent = String(streak);
+    el.parentElement.dataset.tier = streak >= 12 ? "3" : streak >= 6 ? "2" : streak >= 3 ? "1" : "0";
+    el.parentElement.toggleAttribute("data-hot", streak >= 3);
+
+  Theme: --hud-accent (tier colors derive from it), --hud-fg, --hud-outline.
+-->
+    <style>
+      .hud-combo {
+        --hud-accent: #ffd166;
+        --hud-fg: #fffdf7;
+        --hud-font: "Fredoka", "Baloo 2", system-ui, sans-serif;
+        --hud-outline: #26180a;
+
+        display: grid;
+        justify-items: center;
+        line-height: 1;
+        color: var(--hud-fg);
+        font-family: var(--hud-font);
+        pointer-events: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .hud-combo__label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.4em;
+        text-transform: uppercase;
+        text-indent: 0.4em; /* optical center against tracking */
+        opacity: 0.75;
+      }
+      .hud-combo__value {
+        font-size: clamp(2rem, 9vmin, 3.2rem);
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 3px 0 var(--hud-outline);
+      }
+      .hud-combo__value[data-pop] {
+        animation: hud-combo-pop 240ms cubic-bezier(0.34, 1.8, 0.5, 1);
+      }
+      @keyframes hud-combo-pop {
+        from {
+          transform: scale(1.32) rotate(-2deg);
+        }
+      }
+      /* escalation tiers — derived from the single accent, saturation climbs */
+      .hud-combo[data-tier="1"] {
+        --hud-fg: color-mix(in srgb, var(--hud-accent) 45%, #fffdf7);
+      }
+      .hud-combo[data-tier="2"] {
+        --hud-fg: var(--hud-accent);
+      }
+      .hud-combo[data-tier="3"] {
+        --hud-fg: color-mix(in srgb, var(--hud-accent) 70%, #ff5d5d);
+        animation: hud-combo-hot 600ms ease-in-out infinite alternate;
+      }
+      @keyframes hud-combo-hot {
+        from {
+          scale: 1;
+        }
+        to {
+          scale: 1.06;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .hud-combo__value[data-pop],
+        .hud-combo[data-tier="3"] {
+          animation: none;
+        }
+      }
+    </style>
+
+    <div class="hud-combo" data-tier="0">
+      <span class="hud-combo__label">Combo</span>
+      <span class="hud-combo__value" data-hud-combo>0</span>
+    </div>
+    <!-- ===================== COPY TO HERE ======================= -->
+  </body>
+</html>

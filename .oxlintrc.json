@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "rules": {
+    "no-console": "error",
+    "no-unused-vars": "error",
+    "eqeqeq": "error",
+    "prefer-const": "error"
+  },
+  "ignorePatterns": ["node_modules", "dist", "out", ".frogoe", "registry", "examples"]
+}

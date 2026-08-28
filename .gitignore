@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.frogoe/
+*.log
+.DS_Store
+!examples/flappy/.frogoe/

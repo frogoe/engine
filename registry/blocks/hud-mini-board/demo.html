@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>frogoe block demo — hud-mini-board</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap"
+    />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(120% 120% at 80% 100%, #23324d 0%, #101828 55%, #090e18 100%);
+        cursor: pointer;
+      }
+      .hint {
+        position: absolute;
+        inset: auto 0 10vh;
+        text-align: center;
+        color: #b9c8e3;
+        font-family: system-ui, sans-serif;
+        font-size: 0.9rem;
+        opacity: 0.6;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ===== block copy starts here ===== -->
+    <style>
+      .hud-board {
+        --hud-accent: #ffd166;
+        --hud-chip: rgba(12, 16, 30, 0.55);
+        --hud-fg: #fffdf7;
+        --hud-font: "Fredoka", "Baloo 2", system-ui, sans-serif;
+        --hud-outline: #26180a;
+        display: grid;
+        gap: 2px;
+        min-width: 11rem;
+        padding: 0.7em 0.9em;
+        background: var(--hud-chip);
+        border: 2px solid rgba(255, 255, 255, 0.14);
+        border-radius: 1rem;
+        color: var(--hud-fg);
+        font-family: var(--hud-font);
+        pointer-events: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .hud-board__row {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: baseline;
+        gap: 0.6em;
+        padding: 0.25em 0.3em;
+        font-size: 0.95rem;
+      }
+      .hud-board__row + .hud-board__row {
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .hud-board__rank {
+        font-weight: 700;
+        opacity: 0.6;
+        font-variant-numeric: tabular-nums;
+      }
+      .hud-board__name {
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .hud-board__score {
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 1px 0 var(--hud-outline);
+      }
+      .hud-board__row[data-hud-board-you] {
+        background: color-mix(in srgb, var(--hud-accent) 16%, transparent);
+      }
+      .hud-board__row[data-hud-board-you] .hud-board__name {
+        color: var(--hud-accent);
+      }
+      .hud-board[data-fresh-best] .hud-board__row[data-hud-board-you] .hud-board__score {
+        animation: hud-board-best 700ms cubic-bezier(0.34, 1.8, 0.5, 1);
+      }
+      @keyframes hud-board-best {
+        from {
+          transform: scale(1.35);
+          color: var(--hud-accent);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .hud-board[data-fresh-best] .hud-board__row[data-hud-board-you] .hud-board__score {
+          animation: none;
+        }
+      }
+    </style>
+    <div class="hud-board" data-hud-board>
+      <div class="hud-board__row">
+        <span class="hud-board__rank">1</span>
+        <span class="hud-board__name" data-hud-board-r1-name>muja</span>
+        <span class="hud-board__score" data-hud-board-r1-score>1,283</span>
+      </div>
+      <div class="hud-board__row">
+        <span class="hud-board__rank">2</span>
+        <span class="hud-board__name" data-hud-board-r2-name>kiri</span>
+        <span class="hud-board__score" data-hud-board-r2-score>947</span>
+      </div>
+      <div class="hud-board__row" data-hud-board-you>
+        <span class="hud-board__rank">3</span>
+        <span class="hud-board__name" data-hud-board-r3-name>you</span>
+        <span class="hud-board__score" data-hud-board-r3-score>512</span>
+      </div>
+    </div>
+    <!-- ===== block copy ends here ===== -->
+    <p class="hint">tap — beat the board, climb a rank</p>
+
+    <script type="module">
+      const board = document.querySelector("[data-hud-board]");
+      const you = board.querySelector("[data-hud-board-you]");
+      const youScore = you.querySelector(".hud-board__score");
+      const rows = [...board.querySelectorAll(".hud-board__row")];
+      let yours = 512;
+      addEventListener("pointerdown", () => {
+        yours += 120 + Math.floor(Math.random() * 340); // organic, never round slop
+        // re-rank: bubble the you-row by score
+        const scores = rows.map((r) =>
+          Number(r.querySelector(".hud-board__score").textContent.replaceAll(",", "")),
+        );
+        scores[rows.indexOf(you)] = yours;
+        const order = scores.map((s, i) => [s, i]).sort((a, b) => b[0] - a[0]);
+        order.forEach(([score, idx], rank) => {
+          const row = rows[idx];
+          row.querySelector(".hud-board__rank").textContent = String(rank + 1);
+          row.querySelector(".hud-board__score").textContent = score.toLocaleString("en-US");
+        });
+        board.setAttribute("data-fresh-best", "");
+        void board.offsetWidth;
+      });
+    </script>
+  </body>
+</html>

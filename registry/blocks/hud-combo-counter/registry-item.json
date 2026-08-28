@@ -1,0 +1,18 @@
+{
+  "$schema": "../../schema/registry-item.schema.json",
+  "name": "hud-combo-counter",
+  "type": "frogoe:block",
+  "title": "Combo Counter",
+  "description": "Streak readout with three escalation tiers derived from one accent; pop on gain, hot pulse at max tier; themeable via --hud-*",
+  "tags": ["hud", "combo", "streak", "score"],
+  "files": [
+    {
+      "path": "hud-combo-counter.html",
+      "target": "hud/combo-counter.html",
+      "type": "frogoe:markup"
+    }
+  ],
+  "bindings": ["data-hud-combo"],
+  "placement": "overlay",
+  "preview": { "demo": "demo.html" }
+}

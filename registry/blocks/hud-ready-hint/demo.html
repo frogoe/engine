@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>frogoe block demo — hud-ready-hint</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap"
+    />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(120% 120% at 50% 100%, #1d3a2f 0%, #0d1c16 55%, #060f0b 100%);
+        cursor: pointer;
+        touch-action: none;
+      }
+      .world {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .world span {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #9be564;
+        opacity: 0.4;
+        animation: drift 6s linear infinite;
+      }
+      @keyframes drift {
+        to {
+          transform: translateY(-100vh);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .world span {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="world">
+      <script>
+        for (let i = 0; i < 24; i += 1) {
+          const s = document.createElement("span");
+          s.style.left = `${(i * 41) % 100}%`;
+          s.style.top = `${100 + ((i * 17) % 60)}vh`;
+          s.style.animationDelay = `${(i % 6) * -1}s`;
+          document.currentScript.parentElement.append(s);
+        }
+      </script>
+    </div>
+
+    <!-- ===== block copy starts here ===== -->
+    <style>
+      .hud-ready {
+        --hud-accent: #ffd166;
+        --hud-fg: #fffdf7;
+        --hud-font: "Fredoka", "Baloo 2", system-ui, sans-serif;
+        --hud-outline: #26180a;
+        display: grid;
+        justify-items: center;
+        gap: 0.5em;
+        color: var(--hud-fg);
+        font-family: var(--hud-font);
+        text-align: center;
+        pointer-events: none;
+        -webkit-user-select: none;
+        user-select: none;
+        transition:
+          opacity 200ms ease,
+          scale 200ms ease;
+      }
+      .hud-ready[data-hidden] {
+        opacity: 0;
+        scale: 0.9;
+      }
+      .hud-ready__verb {
+        font-size: clamp(2.2rem, 11vmin, 4rem);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        line-height: 1.1;
+        text-transform: uppercase;
+        text-shadow:
+          0 4px 0 var(--hud-outline),
+          0 8px 16px rgba(0, 0, 0, 0.35);
+      }
+      .hud-ready__sub {
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        opacity: 0.75;
+      }
+      .hud-ready:not([data-hidden]) .hud-ready__verb {
+        animation: hud-ready-breathe 1.8s ease-in-out infinite alternate;
+      }
+      @keyframes hud-ready-breathe {
+        from {
+          transform: scale(1);
+        }
+        to {
+          transform: scale(1.05);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .hud-ready:not([data-hidden]) .hud-ready__verb {
+          animation: none;
+        }
+        .hud-ready {
+          transition: none;
+        }
+      }
+    </style>
+    <div class="hud-ready" data-hud-ready>
+      <span class="hud-ready__verb" data-hud-verb>TAP</span>
+      <span class="hud-ready__sub" data-hud-sub>to start</span>
+    </div>
+    <!-- ===== block copy ends here ===== -->
+
+    <script type="module">
+      const hint = document.querySelector("[data-hud-ready]");
+      let phase = "ready";
+      addEventListener("pointerdown", () => {
+        if (phase === "ready") {
+          phase = "playing";
+          hint.toggleAttribute("data-hidden", true);
+          setTimeout(() => {
+            phase = "ready";
+            hint.toggleAttribute("data-hidden", false);
+          }, 1800);
+        }
+      });
+    </script>
+  </body>
+</html>

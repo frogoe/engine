@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://frogoe.com/schema/registry.schema.json",
+  "title": "frogoe registry index",
+  "type": "object",
+  "required": ["name", "items"],
+  "properties": {
+    "name": { "type": "string" },
+    "homepage": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "type"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "type": { "const": "frogoe:block" }
+        }
+      }
+    }
+  }
+}

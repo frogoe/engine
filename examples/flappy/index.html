@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Ember Glide</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #2b1b3d;
+        overflow: hidden;
+        touch-action: none;
+      }
+      #c {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      /* HUD layer + placement (frogoe-core → hud-bindings) */
+      .hud {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      .hud > * {
+        position: absolute;
+      }
+      .hud [data-pos="top-center"] {
+        top: calc(env(safe-area-inset-top) + 14px);
+        left: 50%;
+        translate: -50% 0;
+      }
+
+      /* theme ALL blocks from the BRIEF palette — one parent rule */
+      .hud {
+        --hud-accent: #ff9e5e;
+        --hud-fg: #ffedd8;
+        --hud-outline: #22102a;
+        --hud-font: "Fredoka", system-ui, sans-serif;
+      }
+
+      /* ===== registry block: hud-score-card (copied, themed above) ===== */
+      .hud-score-card {
+        --hud-size: clamp(2.4rem, 9vmin, 3.6rem);
+        color: var(--hud-fg);
+        font-family: var(--hud-font);
+        font-size: var(--hud-size);
+        font-weight: 700;
+        line-height: 1;
+        text-align: center;
+        pointer-events: none;
+      }
+      .hud-score-card__label {
+        display: block;
+        font-size: 0.32em;
+        font-weight: 600;
+        letter-spacing: 0.35em;
+        text-transform: uppercase;
+        opacity: 0.85;
+      }
+      .hud-score-card__value {
+        display: block;
+        font-variant-numeric: tabular-nums;
+        text-shadow:
+          0 0.09em 0 var(--hud-outline),
+          0 0.16em 0.24em rgba(0, 0, 0, 0.35);
+      }
+      .hud-score-card__value[data-bump] {
+        animation: hud-score-bump 240ms cubic-bezier(0.34, 1.8, 0.5, 1);
+      }
+      @keyframes hud-score-bump {
+        from {
+          transform: scale(1.28);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .hud-score-card__value[data-bump] {
+          animation: none;
+        }
+      }
+
+      /* ===== registry block: hud-game-over-card (copied, themed above) ===== */
+      .hud-game-over {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: rgba(10, 6, 16, 0.55);
+        font-family: var(--hud-font);
+        color: var(--hud-fg);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 220ms ease;
+      }
+      .hud-game-over[data-open] {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .hud-game-over__card {
+        display: grid;
+        justify-items: center;
+        gap: 0.35em;
+        min-width: min(78vw, 20rem);
+        padding: 2rem 2.4rem 2.2rem;
+        background: #241634;
+        border: 2px solid rgba(255, 255, 255, 0.12);
+        border-radius: 1.6rem;
+        box-shadow: 0 1.2rem 3rem rgba(0, 0, 0, 0.45);
+        text-align: center;
+      }
+      .hud-game-over[data-open] .hud-game-over__card {
+        animation: hud-card-in 320ms cubic-bezier(0.34, 1.56, 0.5, 1);
+      }
+      @keyframes hud-card-in {
+        from {
+          transform: translateY(1.2rem) scale(0.92);
+          opacity: 0;
+        }
+      }
+      .hud-game-over__title {
+        font-size: clamp(1.6rem, 7vmin, 2.4rem);
+        font-weight: 700;
+        text-shadow: 0 3px 0 var(--hud-outline);
+      }
+      .hud-game-over__subtitle {
+        font-size: 0.9rem;
+        font-weight: 600;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        opacity: 0.6;
+      }
+      .hud-game-over[data-new-best] .hud-game-over__subtitle {
+        color: var(--hud-accent);
+        opacity: 1;
+        animation: hud-best-pulse 800ms ease-in-out infinite alternate;
+      }
+      @keyframes hud-best-pulse {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0.55;
+        }
+      }
+      .hud-game-over__score {
+        font-size: clamp(2.6rem, 12vmin, 4rem);
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 4px 0 var(--hud-outline);
+      }
+      .hud-game-over__best {
+        font-size: 0.95rem;
+        font-weight: 600;
+        opacity: 0.75;
+      }
+      .hud-game-over__retry {
+        margin-top: 0.9em;
+        font-family: inherit;
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #241a06;
+        background: var(--hud-accent);
+        border: none;
+        border-radius: 999px;
+        padding: 0.85em 2.6em;
+        cursor: pointer;
+        box-shadow: 0 5px 0 rgba(0, 0, 0, 0.35);
+        transition:
+          transform 80ms ease,
+          box-shadow 80ms ease;
+      }
+      .hud-game-over__retry:active {
+        transform: translateY(4px);
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .hud-game-over[data-open] .hud-game-over__card {
+          animation: none;
+        }
+        .hud-game-over[data-new-best] .hud-game-over__subtitle {
+          animation: none;
+        }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "frogoe": "./.frogoe/contract.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div class="hud">
+      <div class="hud-score-card" data-pos="top-center">
+        <span class="hud-score-card__label">Score</span>
+        <span class="hud-score-card__value" data-hud-score>0</span>
+      </div>
+      <div class="hud-game-over" data-hud-gameover>
+        <div class="hud-game-over__card">
+          <span class="hud-game-over__title">Flame Out</span>
+          <span class="hud-game-over__subtitle" data-hud-subtitle>Score</span>
+          <span class="hud-game-over__score" data-hud-final>0</span>
+          <span class="hud-game-over__best">Best <b data-hud-best>0</b></span>
+          <button class="hud-game-over__retry" type="button" data-hud-retry>Retry</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="game.js"></script>
+  </body>
+</html>

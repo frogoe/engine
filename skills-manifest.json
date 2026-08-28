@@ -1,0 +1,17 @@
+{
+  "source": "frogoe/engine",
+  "skills": {
+    "frogoe": {
+      "files": 1
+    },
+    "frogoe-core": {
+      "files": 6
+    },
+    "frogoe-creative": {
+      "files": 5
+    },
+    "frogoe-registry": {
+      "files": 1
+    }
+  }
+}

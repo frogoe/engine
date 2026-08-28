@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://frogoe.com/schema/registry-item.schema.json",
+  "title": "frogoe registry item",
+  "type": "object",
+  "required": ["name", "type", "title", "description", "tags", "files", "placement"],
+  "properties": {
+    "name": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "type": { "const": "frogoe:block" },
+    "title": { "type": "string" },
+    "description": { "type": "string", "maxLength": 240 },
+    "tags": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "target", "type"],
+        "properties": {
+          "path": { "type": "string" },
+          "target": { "type": "string" },
+          "type": { "enum": ["frogoe:markup", "frogoe:style", "frogoe:script"] }
+        }
+      }
+    },
+    "bindings": { "type": "array", "items": { "type": "string", "pattern": "^data-hud-[a-z-]+$" } },
+    "placement": { "enum": ["overlay", "overlay-fullscreen"] },
+    "preview": {
+      "type": "object",
+      "properties": {
+        "poster": { "type": "string" },
+        "demo": { "type": "string" }
+      }
+    }
+  }
+}
