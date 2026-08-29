@@ -12,8 +12,8 @@ export const command = defineCommand({
     const dir = args.dir ? String(args.dir) : process.cwd();
     const result = checkProject(dir);
     if (args.live) {
-      const { collectLive } = await import("../live.ts");
-      console.log("  live pass: launching headless chrome…");
+      const { collectLive } = await import("../live/index.ts");
+      console.log("  live pass: boot → play → end → retry (headless chrome)…");
       const live = await collectLive({ dir });
       result.findings = [...result.findings, ...live.findings].sort(
         (a, b) => a.file.localeCompare(b.file) || (a.line ?? 0) - (b.line ?? 0),
