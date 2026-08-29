@@ -317,7 +317,9 @@ export const collectLive = async (options: LiveOptions): Promise<LiveResult> => 
           if (!c) return null;
           const g = c.getContext("2d");
           if (!g) return null;
-          const d = g.getImageData(0, 0, Math.min(c.width, 80), Math.min(c.height, 160)).data;
+          const cx = Math.floor(c.width * 0.25), cy = Math.floor(c.height * 0.25);
+            const cw = Math.floor(c.width * 0.5), ch = Math.floor(c.height * 0.5);
+            const d = g.getImageData(cx, cy, cw, ch).data;
           let hash = 0;
           for (let i = 0; i < d.length; i += 4) {
             hash = (hash * 31 + d[i] + d[i + 1] * 7 + d[i + 2] * 13) | 0;
@@ -337,7 +339,9 @@ export const collectLive = async (options: LiveOptions): Promise<LiveResult> => 
             if (!c) return null;
             const g = c.getContext("2d");
             if (!g) return null;
-            const d = g.getImageData(0, 0, Math.min(c.width, 80), Math.min(c.height, 160)).data;
+            const cx = Math.floor(c.width * 0.25), cy = Math.floor(c.height * 0.25);
+            const cw = Math.floor(c.width * 0.5), ch = Math.floor(c.height * 0.5);
+            const d = g.getImageData(cx, cy, cw, ch).data;
             let hash = 0;
             for (let i = 0; i < d.length; i += 4) {
               hash = (hash * 31 + d[i] + d[i + 1] * 7 + d[i + 2] * 13) | 0;

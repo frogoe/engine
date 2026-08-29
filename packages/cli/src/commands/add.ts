@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
 
-import { addBlock, placementHint } from "../add.ts";
+import { addBlock } from "../add.ts";
 
 export const command = defineCommand({
   args: {
@@ -11,10 +11,16 @@ export const command = defineCommand({
       throw new Error("frogoe add <block> — e.g. frogoe add hud-fuel-gauge");
     }
     const result = addBlock(String(args.block));
-    console.log(`frogoe add — ${result.block} → ${result.copiedTo}`);
+    console.log(`frogoe add — ${result.block}`);
+    if (result.injected) {
+      console.log(`  ✓ styles + markup injected into index.html (idempotent — re-add replaces)`);
+      console.log(`  ✓ source copied to hud/${result.block}.html (for custom edits)`);
+    } else {
+      console.log(`  ✓ source copied to hud/${result.block}.html`);
+      console.log(`  ⚠ could not inject into index.html — paste markup + styles manually`);
+    }
     console.log(`  bindings: ${result.bindings.join(", ") || "(none)"}`);
-    console.log(`\n${placementHint(result)}\n`);
-    console.log("  then drive it from game.js with vanilla one-liners (see the block's demo.html)");
+    console.log(`  drive it from game.js: document.querySelector('[data-hud-...]')`);
   },
   meta: { description: "copy a registry HUD block into hud/" },
 });

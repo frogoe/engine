@@ -1,4 +1,4 @@
-export { addBlock, placementHint } from "./add.ts";
+export { addBlock, parseBlock, injectIntoHtml } from "./add.ts";
 export {
   checkProject,
   contrastRatio,

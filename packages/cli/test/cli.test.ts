@@ -89,7 +89,9 @@ describe("frogoe add", () => {
     const parent = freshDir("add-ok");
     scaffold("g", { dir: parent });
     const result = addBlock("hud-score-card", { dir: path.join(parent, "g") });
-    expect(existsSync(result.copiedTo)).toBeTrue();
+    expect(result.block).toBe("hud-score-card");
+    expect(result.injected).toBeTrue();
+    expect(existsSync(path.join(parent, "g", "hud", "hud-score-card.html"))).toBeTrue();
     expect(result.bindings).toContain("data-hud-score");
   });
 
