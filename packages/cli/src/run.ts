@@ -115,7 +115,14 @@ export const startServer = async (dir: string, requestedPort = 0): Promise<DevSe
   const lan = ip ? `http://${ip}:${port}` : undefined;
 
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const watcher = watch(root, { recursive: true }, () => {
+  const watcher = watch(root, { recursive: true }, (_event, file) => {
+    // tool-owned output is not game source: the live sandbox writes
+    // screenshots into snapshots/, and a screenshot must never reload
+    // the dev page (it races real, button-driven reloads)
+    const first = file?.split(path.sep)[0];
+    if (first === "snapshots" || first === ".frogoe") {
+      return;
+    }
     clearTimeout(timer);
     timer = setTimeout(() => {
       const payload = new TextEncoder().encode("data: reload\n\n");

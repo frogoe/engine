@@ -221,6 +221,52 @@ describe("frogoe run", () => {
       server.stop();
     }
   });
+
+  test("snapshot writes are tool output — they must not reload the page", async () => {
+    const parent = freshDir("run-watch");
+    scaffold("g", { dir: parent });
+    const gameDir = path.join(parent, "g");
+    const server = await startServer(gameDir);
+    try {
+      // let the scaffold's own write-events drain through the watcher's
+      // 100ms debounce BEFORE connecting — otherwise scaffold noise reads
+      // as a snapshot-triggered reload
+      await new Promise((r) => setTimeout(r, 500));
+      const res = await fetch(`http://localhost:${server.port}/__frogoe/reload`);
+      const reader = res.body?.getReader();
+      expect(reader).toBeDefined();
+      const events: string[] = [];
+      const pump = (async () => {
+        try {
+          for (;;) {
+            const chunk = await reader?.read();
+            if (!chunk || chunk.done) break;
+            if (new TextDecoder().decode(chunk.value).includes("data: reload")) {
+              events.push("reload");
+            }
+          }
+        } catch {
+          /* stream closed by server.stop() */
+        }
+      })();
+
+      // the live sandbox writes screenshots mid-run: no reload may fire
+      mkdirSync(path.join(gameDir, "snapshots"), { recursive: true });
+      writeFileSync(path.join(gameDir, "snapshots", "live-mobile.png"), "png");
+      await new Promise((r) => setTimeout(r, 400));
+      expect(events).toEqual([]);
+
+      // a real game-file change still reloads
+      writeFileSync(path.join(gameDir, "game.js"), "// touch\n");
+      await new Promise((r) => setTimeout(r, 400));
+      expect(events).toEqual(["reload"]);
+
+      await reader?.cancel();
+      await pump;
+    } finally {
+      server.stop();
+    }
+  });
 });
 
 rmSync(tmpRoot, { recursive: true, force: true });
