@@ -11,19 +11,19 @@ The platform (`packages/contract`) has **zero visual opinion**. If a change make
 This repo ships AI agent skills via [vercel-labs/skills](https://github.com/vercel-labs/skills). Install them before writing games — they encode the contract, creative direction, and CLI dev loop that generic docs don't cover.
 
 ```bash
-npx skills add frogoe/engine    # install all skills
+npx skills add frogoe/engine    # install all 5 skills
 # or link locally:
 npx skills add ./engine         # from a sibling clone
 ```
 
-**Read the `frogoe` skill first.** It's the router that confirms the BRIEF (verb, mood, palette) up front, then routes to the domain skills.
+**`/frogoe` is the entry skill — read it first.** It's the router that confirms the BRIEF (verb, mood, palette) up front, then routes to the domain skills.
 
 ### Domain skills
 
-- `frogoe-core` — the technical contract: folder form, `defineGame` closure, four nouns (`stage/input/loop/finish`), `window.__frogoe` host handle, HUD bindings, external libraries and the bundler that dissolves them. Read before writing game code.
-- `frogoe-creative` — house style: three dials (VARIANCE/MOTION/DENSITY), lazy defaults to question, typography (banned fonts, voice-to-mood table), named palettes, game feel (motion, feedback, death). Read when choosing how a game looks.
-- `frogoe-cli` — CLI dev loop: init, add, run, check (static + live sandbox), bundle. Finding codes table.
-- `frogoe-registry` — HUD block catalog: how to find, evaluate, install, and author new blocks.
+- `/frogoe-core` — the technical contract: folder form, `defineGame` closure, four nouns (`stage/input/loop/finish`), `window.__frogoe` host handle, HUD bindings, external libraries and the bundler that dissolves them. Read before writing game code.
+- `/frogoe-creative` — house style: three dials (VARIANCE/MOTION/DENSITY), lazy defaults to question, typography (banned fonts, voice-to-mood table), named palettes, game feel (motion, feedback, death). Read when choosing how a game looks.
+- `/frogoe-cli` — CLI dev loop: init, add, run, check (static + live sandbox), bundle. Finding codes table.
+- `/frogoe-registry` — HUD block catalog: how to find, evaluate, install, and author new blocks.
 
 ### Skill catalog maintenance
 

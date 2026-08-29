@@ -40,8 +40,18 @@ export const scaffold = (name: string, options?: { force?: boolean; dir?: string
   mkdirSync(path.join(target, "hud"), { recursive: true });
 
   const contract = contractHeader(CONTRACT_VERSION) + readFileSync(CONTRACT_SOURCE, "utf-8");
+  const sharedDir = path.join(here, "templates/_shared");
+  const agentDocs = existsSync(path.join(sharedDir, "CLAUDE.md"))
+    ? readFileSync(path.join(sharedDir, "CLAUDE.md"), "utf-8")
+    : "";
+  const agentsDocs = existsSync(path.join(sharedDir, "AGENTS.md"))
+    ? readFileSync(path.join(sharedDir, "AGENTS.md"), "utf-8")
+    : "";
+
   const files: [string, string][] = [
     [".gitignore", gitignoreTemplate],
+    ...(agentDocs ? [["CLAUDE.md", agentDocs] as [string, string]] : []),
+    ...(agentsDocs ? [["AGENTS.md", agentsDocs] as [string, string]] : []),
     ["BRIEF.md", briefTemplate],
     ["frogoe.json", frogoeJsonTemplate(CONTRACT_VERSION)],
     ["index.html", indexTemplate],

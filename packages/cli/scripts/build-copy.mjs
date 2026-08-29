@@ -16,3 +16,7 @@ cpSync(
   path.resolve(here, "../../contract/src/contract.js"),
   path.join(out, "contract", "contract.js"),
 );
+// agent docs (CLAUDE.md + AGENTS.md) for frogoe init scaffolds
+cpSync(path.resolve(here, "../src/templates/_shared"), path.join(out, "templates/_shared"), {
+  recursive: true,
+});

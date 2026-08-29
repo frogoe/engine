@@ -1,0 +1,23 @@
+{
+  "name": "frogoe",
+  "owner": {
+    "name": "frogoe",
+    "url": "https://frogoe.com"
+  },
+  "plugins": [
+    {
+      "name": "frogoe",
+      "source": "./",
+      "description": "The frogoe game engine — /frogoe router, core contract, creative direction, CLI dev loop, registry blocks.",
+      "homepage": "https://frogoe.com",
+      "license": "Apache-2.0",
+      "skills": [
+        "./skills/frogoe",
+        "./skills/frogoe-core",
+        "./skills/frogoe-creative",
+        "./skills/frogoe-cli",
+        "./skills/frogoe-registry"
+      ]
+    }
+  ]
+}

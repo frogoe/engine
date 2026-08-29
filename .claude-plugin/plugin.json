@@ -1,0 +1,12 @@
+{
+  "name": "frogoe",
+  "description": "frogoe engine — write a closure, ship a game. Canvas sim layer, DOM HUD layer, one self-contained artifact.",
+  "version": "0.1.0",
+  "author": {
+    "name": "frogoe",
+    "url": "https://frogoe.com"
+  },
+  "homepage": "https://frogoe.com",
+  "repository": "https://github.com/frogoe/engine",
+  "license": "Apache-2.0"
+}

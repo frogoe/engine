@@ -43,6 +43,8 @@ describe("frogoe init", () => {
     const parent = freshDir("init-parent");
     const result = scaffold("my-game", { dir: parent });
     for (const file of [
+      "AGENTS.md",
+      "CLAUDE.md",
       "BRIEF.md",
       "frogoe.json",
       "index.html",
