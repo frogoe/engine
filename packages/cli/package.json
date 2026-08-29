@@ -21,6 +21,7 @@
     "dev": "bun src/cli.ts"
   },
   "dependencies": {
+    "@frogoe/lint": "workspace:*",
     "@hono/node-server": "^2.1.1",
     "@puppeteer/browsers": "^3.2.1",
     "citty": "^0.2.2",

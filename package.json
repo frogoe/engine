@@ -15,7 +15,7 @@
     "lint": "oxlint .",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
-    "check-types": "bun run --filter \"@frogoe/contract\" check-types && bun run --filter \"@frogoe/cli\" check-types",
+    "check-types": "bun run --filter \"@frogoe/lint\" check-types && bun run --filter \"@frogoe/contract\" check-types && bun run --filter \"@frogoe/cli\" check-types",
     "knip": "knip",
     "prepare": "lefthook install",
     "registry:check": "bun scripts/validate-registry.mjs",

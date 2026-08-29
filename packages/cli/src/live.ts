@@ -6,7 +6,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import type { Finding } from "./check.ts";
+import type { Finding } from "@frogoe/lint";
 
 export interface LiveResult {
   findings: Finding[];

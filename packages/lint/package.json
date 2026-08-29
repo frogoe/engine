@@ -1,0 +1,14 @@
+{
+  "name": "@frogoe/lint",
+  "version": "0.1.0",
+  "description": "frogoe static contract checks — pure, zero browser deps",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "test": "bun test"
+  }
+}

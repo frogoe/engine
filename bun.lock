@@ -23,6 +23,7 @@
         "frogoe": "./bin/frogoe.mjs",
       },
       "dependencies": {
+        "@frogoe/lint": "workspace:*",
         "@hono/node-server": "^2.1.1",
         "@puppeteer/browsers": "^3.2.1",
         "citty": "^0.2.2",
@@ -37,6 +38,10 @@
     },
     "packages/contract": {
       "name": "@frogoe/contract",
+      "version": "0.1.0",
+    },
+    "packages/lint": {
+      "name": "@frogoe/lint",
       "version": "0.1.0",
     },
   },
@@ -144,6 +149,8 @@
     "@frogoe/cli": ["@frogoe/cli@workspace:packages/cli"],
 
     "@frogoe/contract": ["@frogoe/contract@workspace:packages/contract"],
+
+    "@frogoe/lint": ["@frogoe/lint@workspace:packages/lint"],
 
     "@hono/node-server": ["@hono/node-server@2.1.1", "", { "peerDependencies": { "hono": "^4" } }, "sha512-ELuehkj5VCBdgEw9zs+ivkKwyzzUCSQuE96YmiPvn1ECBoZCczbFXJLeEGMTYjphP6gydh4pHMqEYPVMYUVgQg=="],
 

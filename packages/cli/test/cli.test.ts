@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import path from "node:path";
 
 import { addBlock } from "../src/add.ts";
-import { checkProject, parseBrief } from "../src/check.ts";
+import { checkProject, parseBrief } from "@frogoe/lint";
 import { scaffold } from "../src/init.ts";
 import { startServer } from "../src/run.ts";
 
