@@ -13,5 +13,12 @@ export default defineConfig({
   splitting: false,
   sourcemap: false,
   clean: true,
-  external: ["hono", "hono/*", "@hono/node-server", "qrcode-terminal"],
+  external: [
+    "hono",
+    "hono/*",
+    "@hono/node-server",
+    "qrcode-terminal",
+    "puppeteer-core",
+    "@puppeteer/browsers",
+  ],
 });

@@ -22,9 +22,11 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
+    "@puppeteer/browsers": "^3.2.1",
     "citty": "^0.2.2",
     "esbuild": "^0.28.2",
     "hono": "^4.13.5",
+    "puppeteer-core": "^25.9.0",
     "qrcode-terminal": "^0.12.0"
   },
   "devDependencies": {

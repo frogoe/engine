@@ -98,3 +98,9 @@ defineGame(({ stage, input, loop, finish }) => {
   };
 });
 `;
+
+export const gitignoreTemplate = `.frogoe/
+dist/
+snapshots/
+node_modules/
+`;

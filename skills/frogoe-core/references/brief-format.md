@@ -26,8 +26,10 @@ Combo heat when landing streaks. One life, best score is the loop.
 - `verb` — required, enum `tap|hold|steer|aim`. If you cannot pick one, the design
   is input soup; fix the design, not the enum.
 - `mood` — required, free text, one phrase. Drives palette and sound choices.
-- `palette` — required: `bg`, `fg`, `accent` hex. The HUD layer inherits these via
-  `--hud-*` custom properties; contrast is measured against them.
+- `palette` — required: `bg`, `fg`, `accent` hex; optional `outline` (the HUD
+  readability partner — when present, contrast is measured fg-vs-outline
+  instead of fg-vs-bg, matching how game HUD actually reads). The HUD layer
+  inherits these via `--hud-*` custom properties.
 - `fonts` — optional display font name; the bundler inlines it at build.
 
 ## What the gate does with it

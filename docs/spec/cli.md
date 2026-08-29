@@ -1,6 +1,6 @@
 # CLI spec — the agent's hands
 
-**Status: LIVE (init/add/run/check).** `bundle` remains specced.
+**Status: LIVE (init/add/run/check/bundle, check --live).**
 
 `frogoe <command>` — outcome-named, JSON-capable, zero config.
 

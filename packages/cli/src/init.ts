@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   briefTemplate,
+  gitignoreTemplate,
   contractHeader,
   CONTRACT_VERSION,
   frogoeJsonTemplate,
@@ -40,6 +41,7 @@ export const scaffold = (name: string, options?: { force?: boolean; dir?: string
 
   const contract = contractHeader(CONTRACT_VERSION) + readFileSync(CONTRACT_SOURCE, "utf-8");
   const files: [string, string][] = [
+    [".gitignore", gitignoreTemplate],
     ["BRIEF.md", briefTemplate],
     ["frogoe.json", frogoeJsonTemplate(CONTRACT_VERSION)],
     ["index.html", indexTemplate],

@@ -62,6 +62,7 @@ interface Brief {
   bg?: string;
   fg?: string;
   mood?: string;
+  outline?: string;
   title?: string;
   verb?: string;
 }
@@ -161,13 +162,27 @@ const checkBrief = (dir: string, findings: Finding[]): void => {
       severity: "error",
     });
   }
-  if (brief.bg && brief.fg && HEX.test(brief.bg) && HEX.test(brief.fg)) {
+  const outline = typeof brief.outline === "string" ? brief.outline : (brief.bg ?? "");
+  if (brief.fg && HEX.test(brief.fg) && HEX.test(outline) && outline !== brief.bg) {
+    // game-native: fg vs outline (the readability partner, not the sky)
+    const ratio = contrastRatio(brief.fg, outline);
+    if (ratio < 3) {
+      findings.push({
+        code: "brief/contrast",
+        file: "BRIEF.md",
+        fix: `fg/outline contrast is ${ratio.toFixed(2)}:1 — HUD floor is 3:1; the outline is the readability partner in games (not bg); brighten fg or darken outline`,
+        message: "declared palette fails the HUD readability floor",
+        severity: "error",
+      });
+    }
+  } else if (brief.bg && brief.fg && HEX.test(brief.bg) && HEX.test(brief.fg)) {
+    // no outline declared — fall back to fg vs bg (the non-game default)
     const ratio = contrastRatio(brief.fg, brief.bg);
     if (ratio < 3) {
       findings.push({
         code: "brief/contrast",
         file: "BRIEF.md",
-        fix: `declared fg/bg contrast is ${ratio.toFixed(2)}:1 — HUD floor is 3:1 (WCAG large text); pick a brighter fg or darker bg`,
+        fix: `declared fg/bg contrast is ${ratio.toFixed(2)}:1 — HUD floor is 3:1; games should declare palette.outline (the readability partner) in BRIEF.md`,
         message: "declared palette fails the HUD readability floor",
         severity: "error",
       });

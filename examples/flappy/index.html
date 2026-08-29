@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Ember Glide</title>
+    <title>Flappy Chick</title>
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap"
@@ -13,7 +13,7 @@
       body {
         margin: 0;
         height: 100%;
-        background: #2b1b3d;
+        background: #4ec0ca;
         overflow: hidden;
         touch-action: none;
       }
@@ -40,15 +40,15 @@
 
       /* theme ALL blocks from the BRIEF palette — one parent rule */
       .hud {
-        --hud-accent: #ff9e5e;
-        --hud-fg: #ffedd8;
-        --hud-outline: #22102a;
+        --hud-accent: #f8b733;
+        --hud-fg: #fafafa;
+        --hud-outline: #543847;
         --hud-font: "Fredoka", system-ui, sans-serif;
       }
 
       /* ===== registry block: hud-score-card (copied, themed above) ===== */
       .hud-score-card {
-        --hud-size: clamp(2.4rem, 9vmin, 3.6rem);
+        --hud-size: clamp(3rem, 12vmin, 4.5rem);
         color: var(--hud-fg);
         font-family: var(--hud-font);
         font-size: var(--hud-size);
@@ -64,6 +64,7 @@
         letter-spacing: 0.35em;
         text-transform: uppercase;
         opacity: 0.85;
+        text-shadow: 0 2px 0 var(--hud-outline);
       }
       .hud-score-card__value {
         display: block;
@@ -109,7 +110,7 @@
         gap: 0.35em;
         min-width: min(78vw, 20rem);
         padding: 2rem 2.4rem 2.2rem;
-        background: #241634;
+        background: #2b4a50;
         border: 2px solid rgba(255, 255, 255, 0.12);
         border-radius: 1.6rem;
         box-shadow: 0 1.2rem 3rem rgba(0, 0, 0, 0.45);
@@ -135,6 +136,7 @@
         letter-spacing: 0.28em;
         text-transform: uppercase;
         opacity: 0.6;
+        text-shadow: 0 2px 0 var(--hud-outline);
       }
       .hud-game-over[data-new-best] .hud-game-over__subtitle {
         color: var(--hud-accent);
@@ -159,6 +161,7 @@
         font-size: 0.95rem;
         font-weight: 600;
         opacity: 0.75;
+        text-shadow: 0 2px 0 var(--hud-outline);
       }
       .hud-game-over__retry {
         margin-top: 0.9em;
@@ -167,12 +170,13 @@
         font-weight: 700;
         letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: #241a06;
+        color: #2b4a50;
         background: var(--hud-accent);
         border: none;
         border-radius: 999px;
         padding: 0.85em 2.6em;
         cursor: pointer;
+        text-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
         box-shadow: 0 5px 0 rgba(0, 0, 0, 0.35);
         transition:
           transform 80ms ease,

@@ -36,6 +36,27 @@ Run commands as `bun packages/cli/src/bin.ts <cmd>` from the repo (published:
 | game/loop-update, game/loop-render                                                                                   | warning  | runtime will teach, fix first                |
 | hud/binding-orphan                                                                                                   | warning  | selector targets nothing (block not pasted?) |
 
+## check --live — the sandbox pass
+
+`frogoe check --live` adds a headless-browser pass (chrome-headless-shell,
+auto-downloaded + cached, pinned build): loads the real game on the run
+server, both viewports (mobile 390×844 + desktop 1280×800), and measures —
+
+| Code                                        | Severity | Meaning                                                                                                                          |
+| ------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| live/page-error                             | error    | uncaught exceptions in the page                                                                                                  |
+| live/console-error                          | warning  | console.error output                                                                                                             |
+| live/canvas-missing / live/canvas-unpainted | error    | no canvas / loop.render never drew                                                                                               |
+| live/contract-missing                       | error    | window.__frogoe absent — the contract never booted                                                                               |
+| live/hud-outline                            | error    | HUD text without outline/stroke — the GAME readability convention (backgrounds change every frame; the outline is the guarantee) |
+| live/layout-collapse                        | error    | HUD element with text but zero box (CSS collapse)                                                                                |
+| live/fps                                    | warning  | below 30 fps — heavy per-frame work (cache gradients, cut shadowBlur)                                                            |
+| live/no-input / live/not-playable           | error    | game never wired input / scripted taps changed nothing                                                                           |
+
+Snapshots land in `snapshots/live-{mobile,desktop}.png` — the human-eye
+evidence. Pure pixel/color math is unit-tested; the browser path runs real
+Chrome (no mocks — quality is measured, not simulated).
+
 ## bundle — externals dissolve
 
 `frogoe bundle` turns the folder into ONE self-contained HTML in dist/:

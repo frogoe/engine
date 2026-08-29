@@ -3,4 +3,5 @@ dist/
 .frogoe/
 *.log
 .DS_Store
-!examples/flappy/.frogoe/
+node_modules/.frogoe-browser/
+snapshots/
