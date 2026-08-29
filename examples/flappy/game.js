@@ -111,16 +111,18 @@ defineGame(({ stage, input, loop, finish }) => {
     speed: 150,
   };
 
-  const P = { rot: 0, vy: 0, y: 0 };
+  const P = { rot: 0, startY: 0, vy: 0, y: 0 };
   const pipes = [];
   const parts = [];
   let score = 0;
   let alive = true;
   let dying = false;
+  let started = false;
   let t = 0;
   let wingT = 0;
   let groundOff = 0;
   let shakeT = 0;
+  P.startY = P.y = stage.height * 0.42;
 
   // HUD bindings
   const scoreEl = document.querySelector("[data-block-score]");
@@ -175,7 +177,7 @@ defineGame(({ stage, input, loop, finish }) => {
   };
 
   const startDeath = () => {
-    if (dying || !alive) return;
+    if (dying || !alive || !started) return;
     dying = true;
     Sfx.smack();
     shakeT = 0.3;
@@ -204,6 +206,7 @@ defineGame(({ stage, input, loop, finish }) => {
   input.on("down", () => {
     Sfx.init();
     if (!alive || dying) return;
+    started = true;
     P.vy = T.flap;
     wingT = 1;
     Sfx.flap();
@@ -222,6 +225,14 @@ defineGame(({ stage, input, loop, finish }) => {
       return;
     }
     if (!dying) groundOff = (groundOff + T.speed * dt) % 24;
+
+    if (!started) {
+      // ready screen: bob at the start height — gravity, pipes and death
+      // all wait for the player's first tap (the ready-hint affordance)
+      P.y = P.startY + Math.sin(t * 3) * 6;
+      P.rot = 0;
+      return;
+    }
 
     if (dying) {
       P.vy = Math.min(P.vy + 1200 * dt, 700);
