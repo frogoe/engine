@@ -225,7 +225,10 @@ export const collectLive = async (options: LiveOptions): Promise<LiveResult> => 
           if (!c) return false;
           const g = c.getContext("2d");
           if (!g) return false;
-          const s = g.getImageData(0, 0, Math.min(c.width, 120), Math.min(c.height, 240)).data;
+          // center 50% sample — the top-left corner is empty on wide screens
+          const px = Math.floor(c.width * 0.25), py2 = Math.floor(c.height * 0.25);
+          const pw = Math.floor(c.width * 0.5), ph = Math.floor(c.height * 0.5);
+          const s = g.getImageData(px, py2, pw, ph).data;
           for (let i = 3; i < s.length; i += 4) { if (s[i] !== 0) return true; }
           return false;
         })()`)) as boolean;

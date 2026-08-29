@@ -48,19 +48,22 @@ export const scaffold = (name: string, options?: { force?: boolean; dir?: string
     ? readFileSync(path.join(sharedDir, "AGENTS.md"), "utf-8")
     : "";
 
-  const files: [string, string][] = [
-    [".gitignore", gitignoreTemplate],
-    ...(agentDocs ? [["CLAUDE.md", agentDocs] as [string, string]] : []),
-    ...(agentsDocs ? [["AGENTS.md", agentsDocs] as [string, string]] : []),
-    ["BRIEF.md", briefTemplate],
-    ["frogoe.json", frogoeJsonTemplate(CONTRACT_VERSION)],
-    ["index.html", indexTemplate],
-    ["game.js", gameTemplate],
-    [".frogoe/contract.js", contract],
-    ["blocks/.gitkeep", ""],
+  // --force rematerializes scaffold but NEVER overwrites user game code
+  const files: Array<[string, string, boolean]> = [
+    [".gitignore", gitignoreTemplate, true],
+    ...(agentDocs ? ([["CLAUDE.md", agentDocs, true]] as Array<[string, string, boolean]>) : []),
+    ...(agentsDocs ? ([["AGENTS.md", agentsDocs, true]] as Array<[string, string, boolean]>) : []),
+    ["BRIEF.md", briefTemplate, true],
+    ["frogoe.json", frogoeJsonTemplate(CONTRACT_VERSION), true],
+    ["index.html", indexTemplate, false],
+    ["game.js", gameTemplate, false],
+    [".frogoe/contract.js", contract, true],
+    ["blocks/.gitkeep", "", true],
   ];
-  for (const [rel, body] of files) {
-    writeFileSync(path.join(target, rel), body, "utf-8");
+  for (const [rel, body, overwrite] of files) {
+    const dest = path.join(target, rel);
+    if (!overwrite && existsSync(dest)) continue;
+    writeFileSync(dest, body, "utf-8");
   }
   return { dir: target, files: files.map(([rel]) => rel) };
 };
