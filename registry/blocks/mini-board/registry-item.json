@@ -1,0 +1,28 @@
+{
+  "$schema": "../../schema/registry-item.schema.json",
+  "name": "mini-board",
+  "type": "frogoe:block",
+  "title": "Mini Board",
+  "description": "Top-3 leaderboard chip with organic seed numbers, player-row highlight, and a fresh-best pop; themeable via --block-*",
+  "tags": [
+    "hud",
+    "leaderboard",
+    "scores",
+    "social-proof"
+  ],
+  "files": [
+    {
+      "path": "mini-board.html",
+      "target": "blocks/mini-board.html",
+      "type": "frogoe:markup"
+    }
+  ],
+  "bindings": [
+    "data-block-board",
+    "data-block-board-you"
+  ],
+  "placement": "overlay",
+  "preview": {
+    "demo": "demo.html"
+  }
+}

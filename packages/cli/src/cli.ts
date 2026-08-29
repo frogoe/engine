@@ -23,7 +23,7 @@ const HELP = `frogoe ${VERSION} — write a closure, ship a game
 
 Commands:
   init [name]   scaffold a runnable game folder
-  add <block>   copy a registry HUD block into hud/
+  add <block>   copy a registry HUD block into blocks/
   run [dir]     serve with live reload + phone QR
   check [dir]   contract lint (stable finding codes; --json)
   bundle [dir]  dissolve externals → one self-contained HTML

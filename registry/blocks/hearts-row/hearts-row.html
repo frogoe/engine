@@ -1,0 +1,92 @@
+<!doctype html>
+<!-- frogoe block source: hud-hearts-row — this file IS viewable in a browser (default
+     state on a neutral backdrop). Copy ONLY between the markers into your
+     game's hud/ layer; the interactive playground is demo.html. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>frogoe block — hud-hearts-row</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(120% 120% at 50% 0%, #182031 0%, #0d1220 60%, #080b13 100%);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ===================== COPY FROM HERE ===================== -->
+    <!--
+  frogoe block: hearts-row
+  Lives / health as a row of hearts. Filled hearts on the left, lost hearts
+  ghost on the right; a lost heart pops as it empties.
+
+  Bind from game.js (vanilla, no helper):
+    const row = document.querySelector("[data-block-hearts]");
+    row.dataset.value = String(lives);          // hearts shown as full
+    // data-block-hearts element carries: data-value (full), data-max (slots)
+
+  Theme: --block-heart (fill), --block-heart-empty (ghost), --block-outline.
+-->
+    <style>
+      .block-hearts-row {
+        --block-gap: 0.5em;
+        --block-heart: #ff4d6d;
+        --block-heart-empty: rgba(255, 255, 255, 0.18);
+        --block-outline: #33101d;
+        --block-size: clamp(1.4rem, 5vmin, 2rem);
+
+        display: flex;
+        gap: var(--block-gap);
+        pointer-events: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .block-hearts-row__heart {
+        width: var(--block-size);
+        height: var(--block-size);
+        background: var(--block-heart);
+        /* heart silhouette — no icon font, no image */
+        -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/></svg>")
+          center / contain no-repeat;
+        mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/></svg>")
+          center / contain no-repeat;
+        filter: drop-shadow(0 2px 0 var(--block-outline)) drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+        transition:
+          opacity 160ms ease,
+          transform 160ms ease;
+      }
+      .block-hearts-row__heart[aria-hidden="true"] {
+        background: var(--block-heart-empty);
+        filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.25));
+        transform: scale(0.86);
+        animation: hud-heart-pop 320ms cubic-bezier(0.34, 1.8, 0.5, 1);
+      }
+      @keyframes hud-heart-pop {
+        from {
+          transform: scale(1.35) rotate(-8deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .block-hearts-row__heart,
+        .block-hearts-row__heart[aria-hidden="true"] {
+          animation: none;
+          transition: none;
+        }
+      }
+    </style>
+
+    <div class="block-hearts-row" data-block-hearts data-value="3" data-max="3">
+      <span class="block-hearts-row__heart"></span>
+      <span class="block-hearts-row__heart"></span>
+      <span class="block-hearts-row__heart"></span>
+      <!-- hearts are managed by the game script: set data-value, then update
+       each child's aria-hidden (full: remove; lost: set). Demo shows the
+       six-line binder. More slots? Add more <span> children. -->
+    </div>
+    <!-- ===================== COPY TO HERE ======================= -->
+  </body>
+</html>

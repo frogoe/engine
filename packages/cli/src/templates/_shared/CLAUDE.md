@@ -56,7 +56,7 @@ frogoe run                  # serve with live reload + phone QR (safe-area only 
 frogoe check                # static contract lint (stable finding codes; --json for CI)
 frogoe check --live         # + headless Chrome: FPS, playability, HUD outline, screenshots
 frogoe bundle               # one self-contained HTML (externals dissolved, zero runtime requests)
-frogoe add <block>          # copy a HUD block into hud/ (score, hearts, fuel, game-over, etc.)
+frogoe add <block>          # copy a HUD block into blocks/ (score, hearts, fuel, game-over, etc.)
 ```
 
 > **Agents must run `frogoe check` after ANY code change** and fix all errors before
@@ -70,7 +70,7 @@ frogoe add <block>          # copy a HUD block into hud/ (score, hearts, fuel, g
 - `BRIEF.md` — the game's identity: verb, mood, palette (validated by `frogoe check`)
 - `frogoe.json` — contract version pin
 - `.frogoe/` — tool-owned, gitignored (the contract runtime — never edit)
-- `hud/` — HUD blocks copied from the registry (themed via `.hud` CSS custom properties)
+- `blocks/` — HUD blocks copied from the registry (themed via `.hud` CSS custom properties)
 - `dist/` — `frogoe bundle` output (single self-contained HTML)
 
 ## Check — ALWAYS RUN AFTER CHANGES
@@ -99,4 +99,4 @@ Fix all errors before presenting the result. Common findings:
 3. **Gameplay uses `stage.play`** (capped centered column: `left/right/center/width`), never raw `window.innerWidth` — identical challenge on every screen width.
 4. **Fixed furniture respects `stage.safe`** — notches cover screen edges. Score at fixed y=34 sits under the Dynamic Island on modern phones.
 5. **One page, zero runtime requests** after bundling. Author-time CDN dependencies are fine — `frogoe bundle` dissolves them (allowlist + pin + hash + inline).
-6. **`finish(score)`** ends the run. The results card is a HUD block (`hud-game-over-card`), never something the platform draws.
+6. **`finish(score)`** ends the run. The results card is a HUD block (`game-over-card`), never something the platform draws.

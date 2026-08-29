@@ -1,0 +1,29 @@
+{
+  "$schema": "../../schema/registry-item.schema.json",
+  "name": "objective-chip",
+  "type": "frogoe:block",
+  "title": "Objective Chip",
+  "description": "Corner chip for one watched resource (moves/balls/retries): big tabular number, label, data-low warning state; themeable via --block-*",
+  "tags": [
+    "hud",
+    "objective",
+    "moves",
+    "resource",
+    "chip"
+  ],
+  "files": [
+    {
+      "path": "objective-chip.html",
+      "target": "blocks/objective-chip.html",
+      "type": "frogoe:markup"
+    }
+  ],
+  "bindings": [
+    "data-block-objective",
+    "data-block-objective-value"
+  ],
+  "placement": "overlay",
+  "preview": {
+    "demo": "demo.html"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "$schema": "../../schema/registry-item.schema.json",
+  "name": "fuel-gauge",
+  "type": "frogoe:block",
+  "title": "Fuel Gauge",
+  "description": "Resource bar with fuel-can icon and numeric label; drains smoothly, pulses danger under 25% via data-low; themeable via --block-*",
+  "tags": [
+    "hud",
+    "fuel",
+    "bar",
+    "resource",
+    "timer"
+  ],
+  "files": [
+    {
+      "path": "fuel-gauge.html",
+      "target": "blocks/fuel-gauge.html",
+      "type": "frogoe:markup"
+    }
+  ],
+  "bindings": [
+    "data-block-fuel",
+    "data-block-fuel-label"
+  ],
+  "placement": "overlay",
+  "preview": {
+    "demo": "demo.html"
+  }
+}

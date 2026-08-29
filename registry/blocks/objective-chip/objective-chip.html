@@ -1,0 +1,101 @@
+<!doctype html>
+<!-- frogoe block source: hud-objective-chip — this file IS viewable in a browser (default
+     state on a neutral backdrop). Copy ONLY between the markers into your
+     game's hud/ layer; the interactive playground is demo.html. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>frogoe block — hud-objective-chip</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(120% 120% at 50% 0%, #182031 0%, #0d1220 60%, #080b13 100%);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ===================== COPY FROM HERE ===================== -->
+    <!--
+  frogoe block: objective-chip
+  Compact corner chip for one resource that must be WATCHED: moves left,
+  balls left, retries left. Big tabular number + label; warning state at
+  data-low. For anything less critical, use hud-coin-counter.
+
+  Bind from game.js (vanilla, no helper):
+    const chip = document.querySelector("[data-block-objective]");
+    chip.querySelector("[data-block-objective-value]").textContent = String(moves);
+    chip.toggleAttribute("data-low", moves <= 5);
+
+  Theme: --block-accent, --block-danger, --block-fg, --block-outline, --block-chip (bg).
+-->
+    <style>
+      .block-objective {
+        --block-accent: #ffd166;
+        --block-chip: rgba(12, 16, 30, 0.55);
+        --block-danger: #ff5d5d;
+        --block-fg: #fffdf7;
+        --block-font: "Fredoka", "Baloo 2", system-ui, sans-serif;
+        --block-outline: #26180a;
+        --block-value-color: var(--block-fg);
+
+        display: inline-flex;
+        align-items: baseline;
+        gap: 0.5em;
+        padding: 0.5em 1em;
+        background: var(--block-chip);
+        border: 2px solid rgba(255, 255, 255, 0.14);
+        border-radius: 999px;
+        color: var(--block-fg);
+        font-family: var(--block-font);
+        pointer-events: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .block-objective__value {
+        font-size: clamp(1.4rem, 6vmin, 2rem);
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+        color: var(--block-value-color);
+        text-shadow: 0 2px 0 var(--block-outline);
+      }
+      .block-objective__label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        opacity: 0.8;
+      }
+      .block-objective[data-low] {
+        --block-value-color: var(--block-danger);
+        border-color: color-mix(in srgb, var(--block-danger) 55%, transparent);
+      }
+      .block-objective[data-low] .block-objective__value {
+        animation: hud-objective-low 640ms ease-in-out infinite alternate;
+      }
+      @keyframes hud-objective-low {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0.6;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .block-objective[data-low] .block-objective__value {
+          animation: none;
+        }
+      }
+    </style>
+
+    <div class="block-objective" data-block-objective>
+      <span class="block-objective__value" data-block-objective-value>25</span>
+      <span class="block-objective__label">moves</span>
+    </div>
+    <!-- ===================== COPY TO HERE ======================= -->
+  </body>
+</html>

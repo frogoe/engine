@@ -23,7 +23,7 @@
         }
       }
     },
-    "bindings": { "type": "array", "items": { "type": "string", "pattern": "^data-hud-[a-z-]+$" } },
+    "bindings": { "type": "array", "items": { "type": "string", "pattern": "^data-block-[a-z-]+$" } },
     "placement": { "enum": ["overlay", "overlay-fullscreen"] },
     "preview": {
       "type": "object",

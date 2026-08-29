@@ -32,9 +32,9 @@ Derive two more tokens from the family (no new hues):
 
 ```css
 .hud {
-  --hud-accent: #ff7a3d; /* brief accent */
-  --hud-fg: #ffe9d4; /* brief fg */
-  --hud-outline: #241005; /* near-bg — sticker depth, never pure black */
+  --block-accent: #ff7a3d; /* brief accent */
+  --block-fg: #ffe9d4; /* brief fg */
+  --block-outline: #241005; /* near-bg — sticker depth, never pure black */
 }
 ```
 

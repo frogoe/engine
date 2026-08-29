@@ -17,7 +17,7 @@ Run commands as `bun packages/cli/src/bin.ts <cmd>` from the repo (published:
 1. **Scaffold:** `frogoe init my-game` — boots a runnable folder (living
    stub game, BRIEF stub, pinned .frogoe/). `cd my-game`.
 2. **Find the part:** before hand-writing HUD, look in the registry —
-   `frogoe add hud-fuel-gauge` copies a themeable block into hud/ and prints
+   `frogoe add fuel-gauge` copies a themeable block into blocks/ and prints
    its bindings + placement snippet. Hand-write only once nothing fits.
 3. **Iterate:** `frogoe run` — live reload on every save, QR for the phone
    (safe-area only exists on real devices; test there before shipping).
@@ -34,7 +34,7 @@ Run commands as `bun packages/cli/src/bin.ts <cmd>` from the repo (published:
 | input/incremental-drag                                                                                               | error    | the shipped wall-rocket bug (+= p.dx)        |
 | input/absolute-steering, layout/innerwidth-spawn                                                                     | warning  | thumb-ghosting / parity risks                |
 | game/loop-update, game/loop-render                                                                                   | warning  | runtime will teach, fix first                |
-| hud/binding-orphan                                                                                                   | warning  | selector targets nothing (block not pasted?) |
+| blocks/binding-orphan                                                                                                   | warning  | selector targets nothing (block not pasted?) |
 
 ## check --live — the sandbox pass
 

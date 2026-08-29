@@ -4,43 +4,43 @@
   "homepage": "https://frogoe.com",
   "items": [
     {
-      "name": "hud-score-card",
+      "name": "score-card",
       "type": "frogoe:block"
     },
     {
-      "name": "hud-coin-counter",
+      "name": "coin-counter",
       "type": "frogoe:block"
     },
     {
-      "name": "hud-combo-counter",
+      "name": "combo-counter",
       "type": "frogoe:block"
     },
     {
-      "name": "hud-hearts-row",
+      "name": "hearts-row",
       "type": "frogoe:block"
     },
     {
-      "name": "hud-fuel-gauge",
+      "name": "fuel-gauge",
       "type": "frogoe:block"
     },
     {
-      "name": "hud-timer-ring",
+      "name": "timer-ring",
       "type": "frogoe:block"
     },
     {
-      "name": "hud-objective-chip",
+      "name": "objective-chip",
       "type": "frogoe:block"
     },
     {
-      "name": "hud-mini-board",
+      "name": "mini-board",
       "type": "frogoe:block"
     },
     {
-      "name": "hud-ready-hint",
+      "name": "ready-hint",
       "type": "frogoe:block"
     },
     {
-      "name": "hud-game-over-card",
+      "name": "game-over-card",
       "type": "frogoe:block"
     }
   ]

@@ -37,7 +37,7 @@ export const scaffold = (name: string, options?: { force?: boolean; dir?: string
     }
   }
   mkdirSync(path.join(target, ".frogoe"), { recursive: true });
-  mkdirSync(path.join(target, "hud"), { recursive: true });
+  mkdirSync(path.join(target, "blocks"), { recursive: true });
 
   const contract = contractHeader(CONTRACT_VERSION) + readFileSync(CONTRACT_SOURCE, "utf-8");
   const sharedDir = path.join(here, "templates/_shared");
@@ -57,7 +57,7 @@ export const scaffold = (name: string, options?: { force?: boolean; dir?: string
     ["index.html", indexTemplate],
     ["game.js", gameTemplate],
     [".frogoe/contract.js", contract],
-    ["hud/.gitkeep", ""],
+    ["blocks/.gitkeep", ""],
   ];
   for (const [rel, body] of files) {
     writeFileSync(path.join(target, rel), body, "utf-8");

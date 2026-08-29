@@ -1,0 +1,28 @@
+{
+  "$schema": "../../schema/registry-item.schema.json",
+  "name": "timer-ring",
+  "type": "frogoe:block",
+  "title": "Timer Ring",
+  "description": "Circular countdown dial with smooth drain and a pulsing data-low danger state; themeable via --block-*",
+  "tags": [
+    "hud",
+    "timer",
+    "countdown",
+    "ring"
+  ],
+  "files": [
+    {
+      "path": "timer-ring.html",
+      "target": "blocks/timer-ring.html",
+      "type": "frogoe:markup"
+    }
+  ],
+  "bindings": [
+    "data-block-timer",
+    "data-block-timer-label"
+  ],
+  "placement": "overlay",
+  "preview": {
+    "demo": "demo.html"
+  }
+}

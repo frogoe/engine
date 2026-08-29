@@ -1,0 +1,30 @@
+{
+  "$schema": "../../schema/registry-item.schema.json",
+  "name": "game-over-card",
+  "type": "frogoe:block",
+  "title": "Game Over Card",
+  "description": "End-of-run overlay: title, score, best, NEW BEST state, chunky retry button with press feedback; themeable via --block-*",
+  "tags": [
+    "hud",
+    "game-over",
+    "results",
+    "retry"
+  ],
+  "files": [
+    {
+      "path": "game-over-card.html",
+      "target": "blocks/game-over-card.html",
+      "type": "frogoe:markup"
+    }
+  ],
+  "bindings": [
+    "data-block-gameover",
+    "data-block-final",
+    "data-block-best",
+    "data-block-retry"
+  ],
+  "placement": "overlay-fullscreen",
+  "preview": {
+    "demo": "demo.html"
+  }
+}

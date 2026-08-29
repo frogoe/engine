@@ -29,7 +29,7 @@ Combo heat when landing streaks. One life, best score is the loop.
 - `palette` — required: `bg`, `fg`, `accent` hex; optional `outline` (the HUD
   readability partner — when present, contrast is measured fg-vs-outline
   instead of fg-vs-bg, matching how game HUD actually reads). The HUD layer
-  inherits these via `--hud-*` custom properties.
+  inherits these via `--block-*` custom properties.
 - `fonts` — optional display font name; the bundler inlines it at build.
 
 ## What the gate does with it

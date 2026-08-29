@@ -10,7 +10,7 @@
 | `run`         | static server + QR for phone + reload on change                                                                      | —                                                    |
 | `check`       | contract lint + output measures (contrast vs BRIEF palette, verb-vs-handlers, canvas painted, zero runtime requests) | `--json` [{code, file, line, severity, fix, recipe}] |
 | `bundle`      | externals dissolve → dist/index.html (see bundler spec)                                                              | `--json` { artifact, bytes, hashes }                 |
-| `add <block>` | copy a registry block into hud/ + register bindings                                                                  | `--json` { files }                                   |
+| `add <block>` | copy a registry block into blocks/ + register bindings                                                                  | `--json` { files }                                   |
 
 ## Finding codes are stable and teach
 

@@ -69,5 +69,5 @@ defineGame(({ stage, input, loop, finish }) => {
 ## Editing existing games
 
 Read `BRIEF.md` first; its palette and verb are the game's identity. Keep block
-`--hud-*` theming on a single parent element. Never edit `.frogoe/` — it is
+`--block-*` theming on a single parent element. Never edit `.frogoe/` — it is
 regenerated from `frogoe.json`.

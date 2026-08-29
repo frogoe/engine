@@ -1,0 +1,27 @@
+{
+  "$schema": "../../schema/registry-item.schema.json",
+  "name": "coin-counter",
+  "type": "frogoe:block",
+  "title": "Coin Counter",
+  "description": "Machined coin icon + tabular count with a gain pop and coin spin; themeable via --block-*",
+  "tags": [
+    "hud",
+    "coins",
+    "currency",
+    "pickup"
+  ],
+  "files": [
+    {
+      "path": "coin-counter.html",
+      "target": "blocks/coin-counter.html",
+      "type": "frogoe:markup"
+    }
+  ],
+  "bindings": [
+    "data-block-coins"
+  ],
+  "placement": "overlay",
+  "preview": {
+    "demo": "demo.html"
+  }
+}

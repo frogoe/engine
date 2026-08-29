@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>frogoe block demo — hud-objective-chip</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap"
+    />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(120% 120% at 20% 0%, #46283c 0%, #211021 55%, #120812 100%);
+        cursor: pointer;
+      }
+      .hint {
+        position: absolute;
+        inset: auto 0 10vh;
+        text-align: center;
+        color: #e3c7d6;
+        font-family: system-ui, sans-serif;
+        font-size: 0.9rem;
+        opacity: 0.6;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ===== block copy starts here ===== -->
+    <style>
+      .block-objective {
+        --block-accent: #ffd166;
+        --block-chip: rgba(12, 16, 30, 0.55);
+        --block-danger: #ff5d5d;
+        --block-fg: #fffdf7;
+        --block-font: "Fredoka", "Baloo 2", system-ui, sans-serif;
+        --block-outline: #26180a;
+        --block-value-color: var(--block-fg);
+        display: inline-flex;
+        align-items: baseline;
+        gap: 0.5em;
+        padding: 0.5em 1em;
+        background: var(--block-chip);
+        border: 2px solid rgba(255, 255, 255, 0.14);
+        border-radius: 999px;
+        color: var(--block-fg);
+        font-family: var(--block-font);
+        pointer-events: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .block-objective__value {
+        font-size: clamp(1.4rem, 6vmin, 2rem);
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+        color: var(--block-value-color);
+        text-shadow: 0 2px 0 var(--block-outline);
+      }
+      .block-objective__label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        opacity: 0.8;
+      }
+      .block-objective[data-low] {
+        --block-value-color: var(--block-danger);
+        border-color: color-mix(in srgb, var(--block-danger) 55%, transparent);
+      }
+      .block-objective[data-low] .block-objective__value {
+        animation: hud-objective-low 640ms ease-in-out infinite alternate;
+      }
+      @keyframes hud-objective-low {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0.6;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .block-objective[data-low] .block-objective__value {
+          animation: none;
+        }
+      }
+    </style>
+    <div class="block-objective" data-block-objective>
+      <span class="block-objective__value" data-block-objective-value>25</span>
+      <span class="block-objective__label">moves</span>
+    </div>
+    <!-- ===== block copy ends here ===== -->
+    <p class="hint">tap to spend a move · refills at zero</p>
+
+    <script type="module">
+      const chip = document.querySelector("[data-block-objective]");
+      const value = chip.querySelector("[data-block-objective-value]");
+      let moves = 25;
+      addEventListener("pointerdown", () => {
+        moves = moves > 0 ? moves - 1 : 25;
+        value.textContent = String(moves);
+        chip.toggleAttribute("data-low", moves <= 5);
+      });
+    </script>
+  </body>
+</html>

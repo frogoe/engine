@@ -40,14 +40,14 @@ through safe-area-aware insets:
 
 ## Theming — one parent, three variables
 
-Blocks read `--hud-*` custom properties with sane defaults. Theme ALL of them from
+Blocks read `--block-*` custom properties with sane defaults. Theme ALL of them from
 the BRIEF palette in one place:
 
 ```css
 .hud {
-  --hud-accent: #ff7a3d; /* BRIEF palette.accent */
-  --hud-fg: #ffe9d4; /* BRIEF palette.fg */
-  --hud-outline: #241005; /* a very dark tint of bg — sticker depth */
+  --block-accent: #ff7a3d; /* BRIEF palette.accent */
+  --block-fg: #ffe9d4; /* BRIEF palette.fg */
+  --block-outline: #241005; /* a very dark tint of bg — sticker depth */
 }
 ```
 
@@ -59,15 +59,15 @@ Blocks that need more (fonts, danger color) document their extra variables inlin
 | -------------- | ---------------------------------------------------------------------------------------------- |
 | score-card     | `scoreEl.textContent = n; scoreEl.setAttribute("data-bump","")` (restart the pop by reflow)    |
 | hearts-row     | set `data-value`; toggle each heart's `aria-hidden` (six-line binder — see the demo)           |
-| fuel-gauge     | `fill.style.setProperty("--hud-fill", pct+"%")`, `gauge.toggleAttribute("data-low", pct < 25)` |
-| game-over-card | fill final/best, toggle `data-open` / `data-new-best`, wire `[data-hud-retry]`                 |
+| fuel-gauge     | `fill.style.setProperty("--block-fill", pct+"%")`, `gauge.toggleAttribute("data-low", pct < 25)` |
+| game-over-card | fill final/best, toggle `data-open` / `data-new-best`, wire `[data-block-retry]`                 |
 
 No binding helper ships on purpose: querySelector + dataset is the whole API —
 transparent to read, impossible to version-skip.
 
 ## Rules
 
-- Blocks are copied into `hud/`, never linked cross-origin — the bundled game must
+- Blocks are copied into `blocks/`, never linked cross-origin — the bundled game must
   be one file with zero runtime requests.
 - Canvas HUD text is for world-anchored popups only (combo at the actor's position).
 - Reduced-motion is the blocks' job (they all ship `prefers-reduced-motion` rules) —

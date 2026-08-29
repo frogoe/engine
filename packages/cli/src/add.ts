@@ -143,7 +143,7 @@ export const addBlock = (
     }
   }
 
-  // Copy block source to hud/ (for reference + custom editing)
+  // Copy block source to blocks/ (for reference + custom editing)
   mkdirSync(path.join(root, "hud"), { recursive: true });
   cpSync(markupFiles[0] ?? "", path.join(root, "hud", `${name}.html`));
 

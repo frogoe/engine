@@ -123,12 +123,12 @@ defineGame(({ stage, input, loop, finish }) => {
   let shakeT = 0;
 
   // HUD bindings
-  const scoreEl = document.querySelector("[data-hud-score]");
-  const card = document.querySelector("[data-hud-gameover]");
-  const subtitleEl = card.querySelector("[data-hud-subtitle]");
-  const finalEl = card.querySelector("[data-hud-final]");
-  const bestEl = card.querySelector("[data-hud-best]");
-  const retry = card.querySelector("[data-hud-retry]");
+  const scoreEl = document.querySelector("[data-block-score]");
+  const card = document.querySelector("[data-block-gameover]");
+  const subtitleEl = card.querySelector("[data-block-subtitle]");
+  const finalEl = card.querySelector("[data-block-final]");
+  const bestEl = card.querySelector("[data-block-best]");
+  const retry = card.querySelector("[data-block-retry]");
 
   const BEST_KEY = "frogoe:best:flappy-chick";
   let best = 0;

@@ -1,0 +1,27 @@
+{
+  "$schema": "../../schema/registry-item.schema.json",
+  "name": "hearts-row",
+  "type": "frogoe:block",
+  "title": "Hearts Row",
+  "description": "Lives as a row of hearts (clip-path silhouettes); lost hearts ghost with a pop, reduced-motion safe; themeable via --block-*",
+  "tags": [
+    "hud",
+    "lives",
+    "health",
+    "hearts"
+  ],
+  "files": [
+    {
+      "path": "hearts-row.html",
+      "target": "blocks/hearts-row.html",
+      "type": "frogoe:markup"
+    }
+  ],
+  "bindings": [
+    "data-block-hearts"
+  ],
+  "placement": "overlay",
+  "preview": {
+    "demo": "demo.html"
+  }
+}

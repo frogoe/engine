@@ -1,0 +1,29 @@
+{
+  "$schema": "../../schema/registry-item.schema.json",
+  "name": "ready-hint",
+  "type": "frogoe:block",
+  "title": "Ready Hint",
+  "description": "The living-ready-state verb affordance: breathing giant instruction that hides the instant play starts; replaces start menus",
+  "tags": [
+    "hud",
+    "ready",
+    "affordance",
+    "onboarding"
+  ],
+  "files": [
+    {
+      "path": "ready-hint.html",
+      "target": "blocks/ready-hint.html",
+      "type": "frogoe:markup"
+    }
+  ],
+  "bindings": [
+    "data-block-ready",
+    "data-block-verb",
+    "data-block-sub"
+  ],
+  "placement": "overlay",
+  "preview": {
+    "demo": "demo.html"
+  }
+}

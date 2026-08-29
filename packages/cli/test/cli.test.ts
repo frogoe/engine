@@ -50,7 +50,7 @@ describe("frogoe init", () => {
       "index.html",
       "game.js",
       ".frogoe/contract.js",
-      "hud/.gitkeep",
+      "blocks/.gitkeep",
     ]) {
       expect(existsSync(path.join(result.dir, file))).toBeTrue();
     }
@@ -88,16 +88,16 @@ describe("frogoe add", () => {
   test("copies a valid block and reports its bindings", () => {
     const parent = freshDir("add-ok");
     scaffold("g", { dir: parent });
-    const result = addBlock("hud-score-card", { dir: path.join(parent, "g") });
-    expect(result.block).toBe("hud-score-card");
+    const result = addBlock("score-card", { dir: path.join(parent, "g") });
+    expect(result.block).toBe("score-card");
     expect(result.injected).toBeTrue();
-    expect(existsSync(path.join(parent, "g", "hud", "hud-score-card.html"))).toBeTrue();
-    expect(result.bindings).toContain("data-hud-score");
+    expect(existsSync(path.join(parent, "g", "hud", "score-card.html"))).toBeTrue();
+    expect(result.bindings).toContain("data-block-score");
   });
 
   test("unknown block teaches what exists", () => {
     const dir = freshDir("add-unknown");
-    expect(() => addBlock("hud-teleporter", { dir })).toThrow(/hud-score-card/u);
+    expect(() => addBlock("hud-teleporter", { dir })).toThrow(/score-card/u);
   });
 });
 

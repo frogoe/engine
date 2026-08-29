@@ -268,11 +268,13 @@ const checkFolder = (dir: string, findings: Finding[]): void => {
       }
     }
   }
-  const wanted = new Set([...game.matchAll(/\[(data-hud-[a-z0-9-]+)\]/gu)].map((m) => m[1] ?? ""));
+  const wanted = new Set(
+    [...game.matchAll(/\[(data-block-[a-z0-9-]+)\]/gu)].map((m) => m[1] ?? ""),
+  );
   for (const binding of wanted) {
     if (binding && !markup.includes(binding)) {
       findings.push({
-        code: "hud/binding-orphan",
+        code: "blocks/binding-orphan",
         file: "game.js",
         fix: `no element carries ${binding} — paste the block markup (frogoe add) or drop the selector`,
         message: `selector ${binding} targets nothing`,

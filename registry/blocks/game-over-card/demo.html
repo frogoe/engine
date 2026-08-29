@@ -1,0 +1,200 @@
+<!doctype html>
+<!-- Demo for hud-game-over-card — die on tap, best persists in-memory. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>frogoe block demo — hud-game-over-card</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap"
+    />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(120% 120% at 50% 0%, #1b3a4b 0%, #0d1a24 60%, #070f16 100%);
+        color: #e8f2f7;
+        font-family: system-ui, sans-serif;
+        cursor: pointer;
+      }
+      .tap {
+        position: absolute;
+        inset: auto 0 12vh;
+        text-align: center;
+        opacity: 0.6;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <p class="tap">tap anywhere — end the run</p>
+
+    <!-- ===== block copy starts here (overlay sits above the page) ===== -->
+    <style>
+      .block-game-over {
+        --block-accent: #ffd166;
+        --block-card: #171d2e;
+        --block-cta: #ffcf3f;
+        --block-cta-label: #241a06;
+        --block-font: "Fredoka", "Baloo 2", system-ui, sans-serif;
+        --block-outline: #0a0e1a;
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: rgba(4, 6, 12, 0.55);
+        font-family: var(--block-font);
+        color: #fffdf7;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 220ms ease;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .block-game-over[data-open] {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .block-game-over__card {
+        display: grid;
+        justify-items: center;
+        gap: 0.35em;
+        min-width: min(78vw, 20rem);
+        padding: 2rem 2.4rem 2.2rem;
+        background: var(--block-card);
+        border: 2px solid rgba(255, 255, 255, 0.12);
+        border-radius: 1.6rem;
+        box-shadow: 0 1.2rem 3rem rgba(0, 0, 0, 0.45);
+        text-align: center;
+      }
+      .block-game-over[data-open] .block-game-over__card {
+        animation: hud-card-in 320ms cubic-bezier(0.34, 1.56, 0.5, 1);
+      }
+      @keyframes hud-card-in {
+        from {
+          transform: translateY(1.2rem) scale(0.92);
+          opacity: 0;
+        }
+      }
+      .block-game-over__title {
+        font-size: clamp(1.6rem, 7vmin, 2.4rem);
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-shadow: 0 3px 0 var(--block-outline);
+      }
+      .block-game-over__subtitle {
+        font-size: 0.9rem;
+        font-weight: 600;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        opacity: 0.6;
+      }
+      .block-game-over[data-new-best] .block-game-over__subtitle {
+        color: var(--block-accent);
+        opacity: 1;
+        animation: hud-best-pulse 800ms ease-in-out infinite alternate;
+      }
+      @keyframes hud-best-pulse {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0.55;
+        }
+      }
+      .block-game-over__score {
+        font-size: clamp(2.6rem, 12vmin, 4rem);
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.1;
+        text-shadow: 0 4px 0 var(--block-outline);
+      }
+      .block-game-over__best {
+        font-size: 0.95rem;
+        font-weight: 600;
+        opacity: 0.75;
+      }
+      .block-game-over__retry {
+        margin-top: 0.9em;
+        font-family: inherit;
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--block-cta-label);
+        background: var(--block-cta);
+        border: none;
+        border-radius: 999px;
+        padding: 0.85em 2.6em;
+        cursor: pointer;
+        box-shadow: 0 5px 0 color-mix(in srgb, var(--block-cta) 62%, black);
+        transition:
+          transform 80ms ease,
+          box-shadow 80ms ease;
+      }
+      .block-game-over__retry:active {
+        transform: translateY(4px);
+        box-shadow: 0 1px 0 color-mix(in srgb, var(--block-cta) 62%, black);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .block-game-over[data-open] .block-game-over__card {
+          animation: none;
+        }
+        .block-game-over[data-new-best] .block-game-over__subtitle {
+          animation: none;
+        }
+        .block-game-over {
+          transition: none;
+        }
+      }
+    </style>
+    <div class="block-game-over" data-block-gameover>
+      <div class="block-game-over__card">
+        <span class="block-game-over__title">Run Over</span>
+        <span class="block-game-over__subtitle" data-block-subtitle>Score</span>
+        <span class="block-game-over__score" data-block-final>0</span>
+        <span class="block-game-over__best">Best <b data-block-best>0</b></span>
+        <button class="block-game-over__retry" type="button" data-block-retry>Retry</button>
+      </div>
+    </div>
+    <!-- ===== block copy ends here ===== -->
+
+    <script type="module">
+      const card = document.querySelector("[data-block-gameover]");
+      const subtitle = card.querySelector("[data-block-subtitle]");
+      const final = card.querySelector("[data-block-final]");
+      const bestEl = card.querySelector("[data-block-best]");
+      const retry = card.querySelector("[data-block-retry]");
+      let best = 0;
+      let run = 1;
+
+      const endRun = () => {
+        const score = 40 + Math.floor(Math.random() * 240);
+        const isNewBest = score > best;
+        if (isNewBest) {
+          best = score;
+        }
+        final.textContent = String(score);
+        bestEl.textContent = String(best);
+        subtitle.textContent = isNewBest ? "New Best!" : "Score";
+        card.toggleAttribute("data-new-best", isNewBest);
+        card.toggleAttribute("data-open", true);
+      };
+      const restart = () => {
+        card.toggleAttribute("data-open", false);
+        run += 1;
+      };
+
+      addEventListener("pointerdown", (e) => {
+        if (card.hasAttribute("data-open") && !e.target.closest("[data-block-retry]")) {
+          return; // during the card, only the retry button acts
+        }
+        if (!card.hasAttribute("data-open")) {
+          endRun();
+        }
+      });
+      retry.addEventListener("click", restart);
+    </script>
+  </body>
+</html>

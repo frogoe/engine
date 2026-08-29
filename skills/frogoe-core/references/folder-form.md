@@ -7,7 +7,7 @@ my-game/
   BRIEF.md      intent: title, verb, mood, palette (frontmatter — schema'd)
   index.html    entry shell: <canvas id="c"> + import map + HUD layer div
   game.js       defineGame(...) — the whole simulation
-  hud/          registry blocks copied here (markup + their <style>)
+  blocks/          registry blocks copied here (markup + their <style>)
   assets/       sprites, audio, fonts (referenced by relative path)
   frogoe.json   { "contract": "0.1.0" } — the ONE version source of truth
   .frogoe/      tool-owned, gitignored, never edited (contract + import map)
@@ -49,5 +49,5 @@ Visible read-only files are a DX smell: if the tool owns it, the tool hides it.
 
 ## Minimal form
 
-A game with no assets and no HUD may skip `assets/` and `hud/`. Never skip
+A game with no assets and no HUD may skip `assets/` and `blocks/`. Never skip
 `BRIEF.md`, `index.html`, `game.js`, `frogoe.json`.

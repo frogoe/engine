@@ -49,9 +49,9 @@ export const indexTemplate = `<!doctype html>
 
     /* theme every block from the BRIEF palette — one parent rule */
     .hud {
-      --hud-accent: #ffd166;
-      --hud-fg: #fffdf7;
-      --hud-outline: #0a0e18;
+      --block-accent: #ffd166;
+      --block-fg: #fffdf7;
+      --block-outline: #0a0e18;
     }
   </style>
   <script type="importmap">
@@ -65,7 +65,7 @@ export const indexTemplate = `<!doctype html>
 <body>
   <canvas id="c"></canvas>
   <div class="hud">
-    <!-- registry blocks land here (frogoe add hud-score-card) -->
+    <!-- registry blocks land here (frogoe add score-card) -->
   </div>
   <script type="module" src="game.js"></script>
 </body>
