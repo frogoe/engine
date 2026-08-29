@@ -1,12 +1,12 @@
 <!doctype html>
-<!-- frogoe block source: hud-mini-board — this file IS viewable in a browser (default
+<!-- frogoe block source: mini-board — this file IS viewable in a browser (default
      state on a neutral backdrop). Copy ONLY between the markers into your
-     game's hud/ layer; the interactive playground is demo.html. -->
+     game's blocks/ layer; the interactive playground is demo.html. -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>frogoe block — hud-mini-board</title>
+    <title>frogoe block — mini-board</title>
     <style>
       body {
         margin: 0;
@@ -88,9 +88,9 @@
         color: var(--block-accent);
       }
       .block-board[data-fresh-best] .block-board__row[data-block-board-you] .block-board__score {
-        animation: hud-board-best 700ms cubic-bezier(0.34, 1.8, 0.5, 1);
+        animation: block-board-best 700ms cubic-bezier(0.34, 1.8, 0.5, 1);
       }
-      @keyframes hud-board-best {
+      @keyframes block-board-best {
         from {
           transform: scale(1.35);
           color: var(--block-accent);

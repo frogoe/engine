@@ -20,5 +20,7 @@ export default defineConfig({
     "qrcode-terminal",
     "puppeteer-core",
     "@puppeteer/browsers",
+    "esbuild",
   ],
+  noExternal: ["@frogoe/lint", "@frogoe/contract"],
 });

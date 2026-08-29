@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- Demo for hud-fuel-gauge — hold anywhere to burn fuel, release to refuel. -->
+<!-- Demo for fuel-gauge — hold anywhere to burn fuel, release to refuel. -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>frogoe block demo — hud-fuel-gauge</title>
+    <title>frogoe block demo — fuel-gauge</title>
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap"
@@ -94,9 +94,9 @@
         --block-fill-color: var(--block-danger);
       }
       .block-fuel-gauge[data-low] .block-fuel-gauge__fill {
-        animation: hud-fuel-low 640ms ease-in-out infinite alternate;
+        animation: block-fuel-low 640ms ease-in-out infinite alternate;
       }
-      @keyframes hud-fuel-low {
+      @keyframes block-fuel-low {
         from {
           opacity: 1;
         }

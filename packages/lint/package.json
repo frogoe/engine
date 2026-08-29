@@ -4,11 +4,16 @@
   "description": "frogoe static contract checks — pure, zero browser deps",
   "license": "Apache-2.0",
   "type": "module",
+  "main": "./src/index.ts",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": "./src/index.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit",
     "test": "bun test"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1"
   }
 }

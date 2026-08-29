@@ -3,7 +3,11 @@
   "version": "0.1.0",
   "description": "The frogoe platform contract — one closure, four nouns, zero taste",
   "license": "Apache-2.0",
+  "files": [
+    "src"
+  ],
   "type": "module",
+  "main": "./src/contract.js",
   "exports": {
     ".": "./src/contract.js"
   },

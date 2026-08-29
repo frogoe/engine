@@ -1,7 +1,7 @@
 {
-  "name": "@frogoe/cli",
+  "name": "frogoe",
   "version": "0.1.0",
-  "description": "frogoe CLI — the agent's hands: init, add, run, check",
+  "description": "froge CLI — the agent's hands: init, add, run, check, bundle",
   "license": "Apache-2.0",
   "bin": {
     "frogoe": "./bin/frogoe.mjs"
@@ -12,7 +12,10 @@
   ],
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "import": "./dist/cli.js",
+      "types": "./dist/cli.d.ts"
+    }
   },
   "scripts": {
     "test": "bun test",
@@ -21,7 +24,6 @@
     "dev": "bun src/cli.ts"
   },
   "dependencies": {
-    "@frogoe/lint": "workspace:*",
     "@hono/node-server": "^2.1.1",
     "@puppeteer/browsers": "^3.2.1",
     "citty": "^0.2.2",
@@ -31,6 +33,7 @@
     "qrcode-terminal": "^0.12.0"
   },
   "devDependencies": {
+    "@frogoe/lint": "workspace:*",
     "tsup": "^8.5.1"
   },
   "engines": {

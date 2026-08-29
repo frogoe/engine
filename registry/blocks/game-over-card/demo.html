@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- Demo for hud-game-over-card — die on tap, best persists in-memory. -->
+<!-- Demo for game-over-card — die on tap, best persists in-memory. -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>frogoe block demo — hud-game-over-card</title>
+    <title>frogoe block demo — game-over-card</title>
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap"
@@ -69,9 +69,9 @@
         text-align: center;
       }
       .block-game-over[data-open] .block-game-over__card {
-        animation: hud-card-in 320ms cubic-bezier(0.34, 1.56, 0.5, 1);
+        animation: block-card-in 320ms cubic-bezier(0.34, 1.56, 0.5, 1);
       }
-      @keyframes hud-card-in {
+      @keyframes block-card-in {
         from {
           transform: translateY(1.2rem) scale(0.92);
           opacity: 0;
@@ -93,9 +93,9 @@
       .block-game-over[data-new-best] .block-game-over__subtitle {
         color: var(--block-accent);
         opacity: 1;
-        animation: hud-best-pulse 800ms ease-in-out infinite alternate;
+        animation: block-best-pulse 800ms ease-in-out infinite alternate;
       }
-      @keyframes hud-best-pulse {
+      @keyframes block-best-pulse {
         from {
           opacity: 1;
         }

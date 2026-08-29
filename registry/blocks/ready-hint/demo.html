@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>frogoe block demo — hud-ready-hint</title>
+    <title>frogoe block demo — ready-hint</title>
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap"
@@ -99,9 +99,9 @@
         opacity: 0.75;
       }
       .block-ready:not([data-hidden]) .block-ready__verb {
-        animation: hud-ready-breathe 1.8s ease-in-out infinite alternate;
+        animation: block-ready-breathe 1.8s ease-in-out infinite alternate;
       }
-      @keyframes hud-ready-breathe {
+      @keyframes block-ready-breathe {
         from {
           transform: scale(1);
         }

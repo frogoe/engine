@@ -1,12 +1,12 @@
 <!doctype html>
-<!-- frogoe block source: hud-score-card — this file IS viewable in a browser (default
+<!-- frogoe block source: score-card — this file IS viewable in a browser (default
      state on a neutral backdrop). Copy ONLY between the markers into your
-     game's hud/ layer; the interactive playground is demo.html. -->
+     game's blocks/ layer; the interactive playground is demo.html. -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>frogoe block — hud-score-card</title>
+    <title>frogoe block — score-card</title>
     <style>
       body {
         margin: 0;
@@ -66,9 +66,9 @@
       }
       .block-score-card__value[data-bump] {
         /* score changed this frame — game toggles the attribute to fire the pop */
-        animation: hud-score-bump 240ms cubic-bezier(0.34, 1.8, 0.5, 1);
+        animation: block-score-bump 240ms cubic-bezier(0.34, 1.8, 0.5, 1);
       }
-      @keyframes hud-score-bump {
+      @keyframes block-score-bump {
         from {
           transform: scale(1.28);
         }

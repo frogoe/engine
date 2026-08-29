@@ -1,12 +1,12 @@
 <!doctype html>
-<!-- frogoe block source: hud-coin-counter — this file IS viewable in a browser (default
+<!-- frogoe block source: coin-counter — this file IS viewable in a browser (default
      state on a neutral backdrop). Copy ONLY between the markers into your
-     game's hud/ layer; the interactive playground is demo.html. -->
+     game's blocks/ layer; the interactive playground is demo.html. -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>frogoe block — hud-coin-counter</title>
+    <title>frogoe block — coin-counter</title>
     <style>
       body {
         margin: 0;
@@ -66,17 +66,17 @@
         min-width: 3ch;
       }
       .block-coin-counter[data-gain] .block-coin-counter__value {
-        animation: hud-coin-gain 260ms cubic-bezier(0.34, 1.8, 0.5, 1);
+        animation: block-coin-gain 260ms cubic-bezier(0.34, 1.8, 0.5, 1);
       }
       .block-coin-counter[data-gain] .block-coin-counter__coin {
-        animation: hud-coin-spin 420ms cubic-bezier(0.34, 1.56, 0.5, 1);
+        animation: block-coin-spin 420ms cubic-bezier(0.34, 1.56, 0.5, 1);
       }
-      @keyframes hud-coin-gain {
+      @keyframes block-coin-gain {
         from {
           transform: scale(1.3);
         }
       }
-      @keyframes hud-coin-spin {
+      @keyframes block-coin-spin {
         40% {
           transform: rotateY(180deg) scale(1.12);
         }

@@ -1,12 +1,12 @@
 <!doctype html>
-<!-- frogoe block source: hud-ready-hint — this file IS viewable in a browser (default
+<!-- frogoe block source: ready-hint — this file IS viewable in a browser (default
      state on a neutral backdrop). Copy ONLY between the markers into your
-     game's hud/ layer; the interactive playground is demo.html. -->
+     game's blocks/ layer; the interactive playground is demo.html. -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>frogoe block — hud-ready-hint</title>
+    <title>frogoe block — ready-hint</title>
     <style>
       body {
         margin: 0;
@@ -75,9 +75,9 @@
       }
       /* the breath: motivated ambient motion — it signals "alive, waiting" */
       .block-ready:not([data-hidden]) .block-ready__verb {
-        animation: hud-ready-breathe 1.8s ease-in-out infinite alternate;
+        animation: block-ready-breathe 1.8s ease-in-out infinite alternate;
       }
-      @keyframes hud-ready-breathe {
+      @keyframes block-ready-breathe {
         from {
           transform: scale(1);
         }

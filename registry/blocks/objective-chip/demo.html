@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>frogoe block demo — hud-objective-chip</title>
+    <title>frogoe block demo — objective-chip</title>
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap"
@@ -72,9 +72,9 @@
         border-color: color-mix(in srgb, var(--block-danger) 55%, transparent);
       }
       .block-objective[data-low] .block-objective__value {
-        animation: hud-objective-low 640ms ease-in-out infinite alternate;
+        animation: block-objective-low 640ms ease-in-out infinite alternate;
       }
-      @keyframes hud-objective-low {
+      @keyframes block-objective-low {
         from {
           opacity: 1;
         }

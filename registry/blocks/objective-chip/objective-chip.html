@@ -1,12 +1,12 @@
 <!doctype html>
-<!-- frogoe block source: hud-objective-chip — this file IS viewable in a browser (default
+<!-- frogoe block source: objective-chip — this file IS viewable in a browser (default
      state on a neutral backdrop). Copy ONLY between the markers into your
-     game's hud/ layer; the interactive playground is demo.html. -->
+     game's blocks/ layer; the interactive playground is demo.html. -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>frogoe block — hud-objective-chip</title>
+    <title>frogoe block — objective-chip</title>
     <style>
       body {
         margin: 0;
@@ -23,7 +23,7 @@
   frogoe block: objective-chip
   Compact corner chip for one resource that must be WATCHED: moves left,
   balls left, retries left. Big tabular number + label; warning state at
-  data-low. For anything less critical, use hud-coin-counter.
+  data-low. For anything less critical, use coin-counter.
 
   Bind from game.js (vanilla, no helper):
     const chip = document.querySelector("[data-block-objective]");
@@ -75,9 +75,9 @@
         border-color: color-mix(in srgb, var(--block-danger) 55%, transparent);
       }
       .block-objective[data-low] .block-objective__value {
-        animation: hud-objective-low 640ms ease-in-out infinite alternate;
+        animation: block-objective-low 640ms ease-in-out infinite alternate;
       }
-      @keyframes hud-objective-low {
+      @keyframes block-objective-low {
         from {
           opacity: 1;
         }

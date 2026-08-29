@@ -1,12 +1,12 @@
 <!doctype html>
-<!-- frogoe block source: hud-fuel-gauge — this file IS viewable in a browser (default
+<!-- frogoe block source: fuel-gauge — this file IS viewable in a browser (default
      state on a neutral backdrop). Copy ONLY between the markers into your
-     game's hud/ layer; the interactive playground is demo.html. -->
+     game's blocks/ layer; the interactive playground is demo.html. -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>frogoe block — hud-fuel-gauge</title>
+    <title>frogoe block — fuel-gauge</title>
     <style>
       body {
         margin: 0;
@@ -98,9 +98,9 @@
         --block-fill-color: var(--block-danger);
       }
       .block-fuel-gauge[data-low] .block-fuel-gauge__fill {
-        animation: hud-fuel-low 640ms ease-in-out infinite alternate;
+        animation: block-fuel-low 640ms ease-in-out infinite alternate;
       }
-      @keyframes hud-fuel-low {
+      @keyframes block-fuel-low {
         from {
           opacity: 1;
         }

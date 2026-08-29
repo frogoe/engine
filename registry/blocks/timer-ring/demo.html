@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>frogoe block demo — hud-timer-ring</title>
+    <title>frogoe block demo — timer-ring</title>
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap"
@@ -86,9 +86,9 @@
         --block-ring-color: var(--block-danger);
       }
       .block-timer-ring[data-low] .block-timer-ring__label {
-        animation: hud-ring-low 640ms ease-in-out infinite alternate;
+        animation: block-ring-low 640ms ease-in-out infinite alternate;
       }
-      @keyframes hud-ring-low {
+      @keyframes block-ring-low {
         from {
           opacity: 1;
         }

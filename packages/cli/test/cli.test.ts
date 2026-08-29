@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import path from "node:path";
 
 import { addBlock } from "../src/add.ts";
-import { checkProject, parseBrief } from "@frogoe/lint";
+import { checkProject, parseBrief, type Finding } from "@frogoe/lint";
 import { scaffold } from "../src/init.ts";
 import { startServer } from "../src/run.ts";
 
@@ -126,7 +126,7 @@ describe("frogoe check", () => {
       path.join(dir, "BRIEF.md"),
       '---\ntitle: TODO game\nverb: fly\nmood: \npalette:\n  bg: "#111"\n---\nx\n',
     );
-    let codes = checkProject(dir).findings.map((f) => f.code);
+    let codes = checkProject(dir).findings.map((f: Finding) => f.code);
     expect(codes).toContain("brief/todo");
     expect(codes).toContain("brief/frontmatter");
 
@@ -136,7 +136,7 @@ describe("frogoe check", () => {
       path.join(dir, "BRIEF.md"),
       '---\ntitle: Low\nverb: tap\nmood: dim\npalette:\n  bg: "#121212"\n  fg: "#1a1a1a"\n  accent: "#ff9e5e"\n---\nx\n',
     );
-    codes = checkProject(dir).findings.map((f) => f.code);
+    codes = checkProject(dir).findings.map((f: Finding) => f.code);
     expect(codes).toContain("brief/contrast");
     fillBrief(dir);
 
@@ -149,7 +149,7 @@ describe("frogoe check", () => {
         .replace("viewport-fit=cover", "")
         .replace(/"frogoe":[^,}]+/u, '"frogoe": "./wrong.js"'),
     );
-    codes = checkProject(dir).findings.map((f) => f.code);
+    codes = checkProject(dir).findings.map((f: Finding) => f.code);
     expect(codes).toContain("folder/canvas");
     expect(codes).toContain("folder/viewport-fit");
     expect(codes).toContain("folder/importmap");
@@ -160,14 +160,14 @@ describe("frogoe check", () => {
       gameFile,
       readFileSync(gameFile, "utf-8") + '\ninput.on("drag", (p) => { x += p.dx * 1.15; });\n',
     );
-    codes = checkProject(dir).findings.map((f) => f.code);
+    codes = checkProject(dir).findings.map((f: Finding) => f.code);
     expect(codes).toContain("input/incremental-drag");
     scaffold("g", { dir: parent, force: true });
     fillBrief(dir);
 
     // folder/contract-pin drift
     writeFileSync(pinFile, JSON.stringify({ contract: "9.9.9" }));
-    codes = checkProject(dir).findings.map((f) => f.code);
+    codes = checkProject(dir).findings.map((f: Finding) => f.code);
     expect(codes).toContain("folder/contract-pin");
   });
 
