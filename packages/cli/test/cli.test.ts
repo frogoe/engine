@@ -91,7 +91,7 @@ describe("frogoe add", () => {
     const result = addBlock("score-card", { dir: path.join(parent, "g") });
     expect(result.block).toBe("score-card");
     expect(result.injected).toBeTrue();
-    expect(existsSync(path.join(parent, "g", "hud", "score-card.html"))).toBeTrue();
+    expect(existsSync(path.join(parent, "g", "blocks", "score-card.html"))).toBeTrue();
     expect(result.bindings).toContain("data-block-score");
   });
 

@@ -258,13 +258,13 @@ const checkFolder = (dir: string, findings: Finding[]): void => {
     });
   }
 
-  // hud binding orphans: selectors in game.js must exist in markup
-  const hudDir = path.join(dir, "hud");
+  // block binding orphans: selectors in game.js must exist in markup
+  const blocksDir = path.join(dir, "blocks");
   let markup = index;
-  if (existsSync(hudDir)) {
-    for (const f of readdirSync(hudDir)) {
+  if (existsSync(blocksDir)) {
+    for (const f of readdirSync(blocksDir)) {
       if (f.endsWith(".html")) {
-        markup += read(path.join(hudDir, f));
+        markup += read(path.join(blocksDir, f));
       }
     }
   }
