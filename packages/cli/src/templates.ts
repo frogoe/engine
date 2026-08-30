@@ -35,7 +35,9 @@ export const indexTemplate = `<!doctype html>
   <title>My Game</title>
   <style>
     html, body { margin: 0; height: 100%; overflow: hidden; touch-action: none;
-      background: var(--game-bg, #101418); }
+      background: var(--game-bg, #101418);
+      /* phones are the primary device: no long-press selection, no callout */
+      -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
     #c { display: block; width: 100vw; height: 100vh; }
 
     /* HUD layer + safe-area-aware placement (frogoe-core → hud-bindings) */

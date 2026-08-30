@@ -157,6 +157,15 @@ const checkFolder = (dir: string, findings: Finding[]): void => {
       severity: "error",
     });
   }
+  if (!/(?:-webkit-)?user-select:\s*none/u.test(index)) {
+    findings.push({
+      code: "folder/touch-select",
+      file: "index.html",
+      fix: "phones are the primary device — add `-webkit-user-select: none; user-select: none; -webkit-touch-callout: none;` on html/body or a long-press summons the text-selection UI mid-game on iOS and Android alike (frogoe-core → references/audio.md)",
+      message: "long-press can summon the phone selection UI",
+      severity: "error",
+    });
+  }
   const mapMatch = /<script[^>]*type="importmap"[^>]*>([\s\S]*?)<\/script>/u.exec(index);
   const mapping = mapMatch?.[1];
   if (!mapping) {
@@ -254,6 +263,21 @@ const checkFolder = (dir: string, findings: Finding[]): void => {
       line: spawnLine,
       message: "spawn uses raw innerWidth",
       recipe: "frogoe-core → contract",
+      severity: "warning",
+    });
+  }
+
+  // the exact signature of the shipped iOS silence bug: gating resume on
+  // suspended alone leaves non-standard "interrupted" contexts silent
+  const suspendedLine = gameLine(/\.state\s*(?:===|==)\s*["']suspended["']/u);
+  if (suspendedLine !== undefined && /AudioContext/u.test(game)) {
+    findings.push({
+      code: "audio/suspended-only",
+      file: "game.js",
+      fix: 'resume when state !== "running" — iOS reports a non-standard "interrupted" state (lock, call, tab switch) that === "suspended" silently misses (frogoe-core → references/audio.md)',
+      line: suspendedLine,
+      message: "audio resume gates on suspended only — interrupted contexts stay silent",
+      recipe: "frogoe-core → references/audio.md",
       severity: "warning",
     });
   }

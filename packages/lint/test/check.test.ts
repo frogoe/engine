@@ -52,6 +52,7 @@ One tap flaps.
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>html, body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }</style>
 <script type="importmap">{"imports":{"frogoe":"./.frogoe/contract.js"}}</script>
 </head><body>
 <canvas id="c"></canvas>
@@ -102,11 +103,12 @@ describe("frogoe check", () => {
     expect(codes).toContain("brief/frontmatter");
     writeGame(dir);
 
-    // folder/canvas + viewport-fit + importmap
+    // folder/canvas + viewport-fit + touch-select + importmap
     const originalHtml = `<!doctype html>
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>html, body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }</style>
 <script type="importmap">{"imports":{"frogoe":"./.frogoe/contract.js"}}</script>
 </head><body>
 <canvas id="c"></canvas>
@@ -116,11 +118,13 @@ describe("frogoe check", () => {
       originalHtml
         .replace(/<canvas[^>]*>/u, "")
         .replace("viewport-fit=cover", "")
+        .replace(/<style>.*<\/style>/su, "")
         .replace(/"frogoe":[^,}]+/u, '"frogoe": "./wrong.js"'),
     );
     codes = checkProject(dir).findings.map((f) => f.code);
     expect(codes).toContain("folder/canvas");
     expect(codes).toContain("folder/viewport-fit");
+    expect(codes).toContain("folder/touch-select");
     expect(codes).toContain("folder/importmap");
     writeFileSync(path.join(dir, "index.html"), originalHtml);
 
@@ -136,6 +140,20 @@ describe("frogoe check", () => {
     );
     codes = checkProject(dir).findings.map((f) => f.code);
     expect(codes).toContain("input/incremental-drag");
+    writeGame(dir);
+
+    // audio/suspended-only (the shipped iOS silence bug)
+    writeFileSync(
+      path.join(dir, "game.js"),
+      `const Sfx = { ctx: null, init() { this.ctx ??= new AudioContext(); if (this.ctx.state === "suspended") void this.ctx.resume(); } };
+defineGame(({ input, loop }) => {
+  loop.update = (dt) => {};
+  loop.render = (ctx) => {};
+});
+`,
+    );
+    codes = checkProject(dir).findings.map((f) => f.code);
+    expect(codes).toContain("audio/suspended-only");
     writeGame(dir);
 
     // folder/contract-pin drift
