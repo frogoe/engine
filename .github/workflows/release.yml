@@ -112,7 +112,7 @@ jobs:
         run: |
           TAG="v${VERSION}"
           EXPECTED="$(git rev-parse HEAD)"
-          for i in $(seq 1 12); do
+          for _ in $(seq 1 12); do
             git fetch --force --no-tags origin "+refs/tags/${TAG}:refs/tags/${TAG}" 2>/dev/null || true
             if git rev-parse "${TAG}^{commit}" >/dev/null 2>&1; then break; fi
             echo "waiting for the bot to create ${TAG}…"
@@ -138,6 +138,42 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run verify
 
+      # the tarball ships dist/ — tests run from src and pass without it,
+      # so the build must happen here, explicitly, and the packed artifact
+      # is verified BEFORE it can ever reach npm (verify:packed-manifests,
+      # the HyperFrames lesson — a gutted tarball is worse than a failed
+      # release: unpublish windows are narrow)
+      - run: bun run build
+        working-directory: packages/cli
+      - name: Packed tarball must carry the built CLI
+        working-directory: packages/cli
+        run: |
+          npm pack --dry-run > /tmp/pack.log 2>&1 || { cat /tmp/pack.log; exit 1; }
+          cat /tmp/pack.log
+          for must in "dist/cli.js" "dist/contract/contract.js" "bin/frogoe.mjs"; do
+            if ! grep -q " $must" /tmp/pack.log; then
+              echo "::error::packed tarball is missing ${must} — build or pack path broken"
+              exit 1
+            fi
+          done
+          FILES=$(awk '/total files:/ {print $NF}' /tmp/pack.log)
+          if [ "${FILES:-0}" -lt 20 ]; then
+            echo "::error::packed tarball has only ${FILES} files — expected the full CLI bundle"
+            exit 1
+          fi
+
+      # trusted publishing (OIDC) landed in npm 11.5.1 — runner-bundled
+      # npm predates it and answers ENEEDAUTH because there is, by design,
+      # no token in this workflow
+      - name: npm with trusted-publishing support
+        run: |
+          npm install -g npm@latest >/dev/null
+          echo "npm $(npm --version)"
+          if [ "$(printf '%s\n' "11.5.1" "$(npm --version)" | sort -V | head -1)" != "11.5.1" ]; then
+            echo "::error::npm $(npm --version) predates trusted publishing (needs >= 11.5.1)"
+            exit 1
+          fi
+
       - name: Already published? (idempotent retries)
         id: published
         env:
@@ -162,7 +198,7 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          for i in 1 2 3 4 5; do
+          for _ in 1 2 3 4 5; do
             if npm view "frogoe@${VERSION}" version >/dev/null 2>&1; then
               echo "frogoe@${VERSION} is live"
               exit 0
