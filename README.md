@@ -39,12 +39,13 @@ The skills teach agents the frogoe production loop: confirm the BRIEF (verb, moo
 ### Manually with the CLI
 
 ```bash
-frogoe init my-game
+npx frogoe init my-game     # or: npm i -g frogoe
 cd my-game
-frogoe run             # serve with live reload + phone QR
-frogoe check           # static contract lint
-frogoe check --live    # + headless Chrome: FPS, playability, HUD outline
-frogoe bundle          # one self-contained HTML (zero runtime requests)
+frogoe run                  # live reload + phone QR; --tunnel works on any network
+frogoe report               # last playtest: fps dips, errors, lock-screens — with timestamps
+frogoe check                # static contract lint
+frogoe check --live         # + headless Chrome: FPS, playability, audio recovery, phone-class throttle
+frogoe bundle               # one self-contained HTML (zero runtime requests)
 ```
 
 **Requirements:** bun or Node.js 22+
@@ -144,30 +145,34 @@ Each block is themeable via `--block-*` custom properties from your BRIEF palett
 
 - **Agent-native:** agents already write HTML and JS; the CLI is non-interactive by default; skills teach the patterns generic docs miss.
 - **Zero taste:** the contract draws nothing, sounds nothing, styles nothing. Your game owns the look; the registry owns the building blocks.
-- **Measured quality:** `frogoe check --live` runs your game in headless Chrome — runtime errors, FPS, playability, HUD outline. Screenshots are the gate that matters.
+- **Measured quality:** `frogoe check --live` runs your game in headless Chrome through the full lifecycle — boot → play → death → retry, twice — measuring FPS, playability, audio recovery after an injected interruption, and a 4x phone-class CPU-throttle replay. Screenshots are the evidence.
 - **One artifact:** `frogoe bundle` dissolves CDN dependencies into a single self-contained HTML — zero runtime requests, no link rot, verified == played.
 - **Open source:** Apache 2.0, no per-game fees.
 
 ## Packages
 
-| Package            | Description                                                                                 |
-| ------------------ | ------------------------------------------------------------------------------------------- |
-| `@frogoe/contract` | The whole platform (~190 lines, zero taste): defineGame, four nouns, `__frogoe` host handle |
-| `@frogoe/lint`     | Pure static contract checks, zero browser deps — importable by server/pipeline              |
-| `@frogoe/cli`      | `init`, `add`, `run`, `check` (static + live sandbox), `bundle`                             |
-| `skills/`          | 5 AI agent skills (router, core, creative, cli, registry)                                   |
-| `registry/blocks/` | 10 themeable HUD blocks with demos                                                          |
-| `examples/flappy/` | Reference game: Flappy Chick at Flappy Bird quality                                         |
+| Package                                                | Description                                                                                                                                    |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`frogoe`](https://www.npmjs.com/package/frogoe) (npm) | The CLI: `init`, `add`, `run` (+ `--tunnel`), `check` (static + live sandbox), `report`, `bundle`                                              |
+| `@frogoe/contract`                                     | The whole platform (~190 lines, zero taste): defineGame, four nouns, `__frogoe` host handle — workspace-internal, materialized into every game |
+| `@frogoe/lint`                                         | Pure static contract checks, zero browser deps — bundled into the CLI                                                                          |
+| `skills/`                                              | 5 AI agent skills (router, core, creative, cli, registry)                                                                                      |
+| `registry/blocks/`                                     | Themeable HUD blocks with demos — the catalog grows                                                                                            |
+| `examples/flappy/`                                     | Reference game: Flappy Chick at Flappy Bird quality                                                                                            |
 
 ## Development
 
 ```bash
 bun install             # Install dependencies (NOT pnpm)
 bun run verify          # Full gauntlet: format + lint + types + tests + knip + registry
-bun test                # 40 tests across lint + contract + CLI
+bun test
 ```
 
-Uses **oxlint** and **oxfmt** (not eslint, not prettier). Commits are conventional (`feat:`, `fix:`, `docs:`, `chore:`) via lefthook + commitlint.
+Uses **oxlint** and **oxfmt** (not eslint, not prettier). Commits are conventional (`feat:`, `fix:`, `docs:`, `chore:`) via lefthook + commitlint — and they are the entire release discipline: the release-please bot turns them into a running release PR, and merging it publishes to npm automatically (provenance-signed, no tokens anywhere). Prerelease channels ship by pushing hyphenated tags (`v0.2.3-beta.1`). See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Acknowledgments
+
+The release pipeline's guardrails — immutable release checkouts, packed-manifest verification, release-PR-only stable channels — and the held-failure severity model in the live sandbox were learned by reading [HyperFrames](https://github.com/heygen-com/hyperframes)' workflows. Their example set the bar; go star it.
 
 ## License
 
