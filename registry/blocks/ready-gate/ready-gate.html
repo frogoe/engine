@@ -1,0 +1,124 @@
+<!doctype html>
+<!-- frogoe block source: ready-gate — this file IS viewable in a browser (default
+     state on a neutral backdrop). Copy ONLY between the markers into your
+     game's blocks/ layer; the interactive playground is demo.html. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>frogoe block — ready-gate</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(120% 120% at 50% 0%, #182031 0%, #0d1220 60%, #080b13 100%);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ===================== COPY FROM HERE ===================== -->
+    <!--
+  frogoe block: ready-gate
+  The tap-to-start overlay: a full-screen dim + title + chunky CTA that
+  gates the run behind ONE discrete tap. That tap is the audio unlock
+  (iOS honors a discrete tap best) and the run start — the first swipe
+  of the game already sounds and counts.
+
+  Bind from game.js (vanilla, no helper):
+    const gate = document.querySelector("[data-block-gate]");
+    let started = false;
+    input.on("down", () => {
+      if (started) return;
+      started = true;                      // gate physics/spawning on this
+      gate.setAttribute("data-hidden", ""); // fades out; remove after 320ms
+      gate.querySelector("[data-block-cta]").textContent = "TAP"; // your verb
+
+  Theme: --block-accent, --block-fg, --block-font, --block-outline,
+  --block-cta, --block-cta-label, --block-cta-shadow, --block-gate-bg.
+-->
+    <style>
+      .block-ready-gate {
+        --block-accent: #ffd166;
+        --block-cta: #ffd166;
+        --block-cta-label: #26180a;
+        --block-cta-shadow: #a8842c;
+        --block-fg: #fffdf7;
+        --block-font: "Fredoka", "Baloo 2", system-ui, sans-serif;
+        --block-gate-bg: rgba(10, 12, 16, 0.66);
+        --block-outline: #26180a;
+
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: var(--block-gate-bg);
+        backdrop-filter: blur(8px);
+        color: var(--block-fg);
+        font-family: var(--block-font);
+        cursor: pointer;
+        transition: opacity 260ms ease;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .block-ready-gate[data-hidden] {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .block-ready-gate__inner {
+        display: grid;
+        justify-items: center;
+        padding: 1rem 2rem;
+        text-align: center;
+      }
+      .block-ready-gate__title {
+        font-size: clamp(1.8rem, 8vmin, 2.8rem);
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-shadow: 0 3px 0 var(--block-outline);
+      }
+      .block-ready-gate__cta {
+        margin-top: 0.9em;
+        font-family: inherit;
+        font-size: clamp(0.95rem, 3.4vmin, 1.2rem);
+        font-weight: 700;
+        letter-spacing: 0.3em;
+        text-indent: 0.3em;
+        text-transform: uppercase;
+        color: var(--block-cta-label);
+        background: var(--block-cta);
+        text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+        border: none;
+        border-radius: 999px;
+        padding: 0.8em 2.4em;
+        box-shadow: 0 5px 0 var(--block-cta-shadow);
+        animation: block-gate-breathe 1.4s ease-in-out infinite alternate;
+      }
+      @keyframes block-gate-breathe {
+        from {
+          transform: translateY(0);
+        }
+        to {
+          transform: translateY(-6px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .block-ready-gate__cta {
+          animation: none;
+        }
+        .block-ready-gate {
+          transition: none;
+        }
+      }
+    </style>
+
+    <div class="block-ready-gate" data-block-gate>
+      <div class="block-ready-gate__inner">
+        <div class="block-ready-gate__title">Game Title</div>
+        <button class="block-ready-gate__cta" type="button" data-block-cta>Tap to Play</button>
+      </div>
+    </div>
+    <!-- ===================== COPY TO HERE ======================= -->
+  </body>
+</html>

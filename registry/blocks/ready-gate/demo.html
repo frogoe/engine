@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>frogoe block demo — ready-gate</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap"
+    />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(120% 120% at 50% 100%, #1d3a2f 0%, #0d1c16 55%, #060f0b 100%);
+        cursor: pointer;
+        touch-action: none;
+      }
+      .world {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .world span {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #9be564;
+        opacity: 0.4;
+        animation: drift 6s linear infinite;
+      }
+      @keyframes drift {
+        to {
+          transform: translateY(-100vh);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .world span {
+          animation: none;
+        }
+      }
+      /* the block, rethemed warm for the demo */
+      .block-ready-gate {
+        --block-accent: #ff8c42;
+        --block-cta: #ff8c42;
+        --block-cta-label: #26140a;
+        --block-cta-shadow: #a34d16;
+        --block-outline: #26140a;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="world" aria-hidden="true">
+      <span style="left: 12%; bottom: -4px; animation-delay: -1s"></span>
+      <span style="left: 28%; bottom: -4px; animation-delay: -3s"></span>
+      <span style="left: 47%; bottom: -4px; animation-delay: -2s"></span>
+      <span style="left: 63%; bottom: -4px; animation-delay: -5s"></span>
+      <span style="left: 81%; bottom: -4px; animation-delay: -0.5s"></span>
+      <span style="left: 92%; bottom: -4px; animation-delay: -4s"></span>
+    </div>
+
+    <!-- the ready-gate markup, verbatim from ready-gate.html -->
+    <style>
+      .block-ready-gate {
+        --block-accent: #ffd166;
+        --block-cta: #ffd166;
+        --block-cta-label: #26180a;
+        --block-cta-shadow: #a8842c;
+        --block-fg: #fffdf7;
+        --block-font: "Fredoka", "Baloo 2", system-ui, sans-serif;
+        --block-gate-bg: rgba(10, 12, 16, 0.66);
+        --block-outline: #26180a;
+
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: var(--block-gate-bg);
+        backdrop-filter: blur(8px);
+        color: var(--block-fg);
+        font-family: var(--block-font);
+        cursor: pointer;
+        transition: opacity 260ms ease;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .block-ready-gate[data-hidden] {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .block-ready-gate__inner {
+        display: grid;
+        justify-items: center;
+        padding: 1rem 2rem;
+        text-align: center;
+      }
+      .block-ready-gate__title {
+        font-size: clamp(1.8rem, 8vmin, 2.8rem);
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-shadow: 0 3px 0 var(--block-outline);
+      }
+      .block-ready-gate__cta {
+        margin-top: 0.9em;
+        font-family: inherit;
+        font-size: clamp(0.95rem, 3.4vmin, 1.2rem);
+        font-weight: 700;
+        letter-spacing: 0.3em;
+        text-indent: 0.3em;
+        text-transform: uppercase;
+        color: var(--block-cta-label);
+        background: var(--block-cta);
+        text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+        border: none;
+        border-radius: 999px;
+        padding: 0.8em 2.4em;
+        box-shadow: 0 5px 0 var(--block-cta-shadow);
+        animation: block-gate-breathe 1.4s ease-in-out infinite alternate;
+      }
+      @keyframes block-gate-breathe {
+        from {
+          transform: translateY(0);
+        }
+        to {
+          transform: translateY(-6px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .block-ready-gate__cta {
+          animation: none;
+        }
+        .block-ready-gate {
+          transition: none;
+        }
+      }
+    </style>
+
+    <div class="block-ready-gate" data-block-gate>
+      <div class="block-ready-gate__inner">
+        <div class="block-ready-gate__title">Ready Gate</div>
+        <button class="block-ready-gate__cta" type="button" data-block-cta>Tap to Play</button>
+      </div>
+    </div>
+
+    <script>
+      // the demo interaction: one tap gates the run — try it
+      document.addEventListener("pointerdown", () => {
+        const gate = document.querySelector("[data-block-gate]");
+        if (!gate || gate.hasAttribute("data-hidden")) return;
+        gate.setAttribute("data-hidden", "");
+        setTimeout(() => gate.removeAttribute("data-hidden"), 2200);
+      });
+    </script>
+  </body>
+</html>

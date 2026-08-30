@@ -40,6 +40,10 @@
       "type": "frogoe:block"
     },
     {
+      "name": "ready-gate",
+      "type": "frogoe:block"
+    },
+    {
       "name": "game-over-card",
       "type": "frogoe:block"
     }

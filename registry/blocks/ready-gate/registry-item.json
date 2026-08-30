@@ -1,0 +1,28 @@
+{
+  "$schema": "../../schema/registry-item.schema.json",
+  "name": "ready-gate",
+  "type": "frogoe:block",
+  "title": "Ready Gate",
+  "description": "Tap-to-start overlay: one discrete tap unlocks audio (the gesture iOS honors best) and starts the run — the first swipe already sounds; themeable via --block-*",
+  "tags": [
+    "hud",
+    "ready",
+    "start",
+    "audio-unlock"
+  ],
+  "files": [
+    {
+      "path": "ready-gate.html",
+      "target": "blocks/ready-gate.html",
+      "type": "frogoe:markup"
+    }
+  ],
+  "bindings": [
+    "data-block-gate",
+    "data-block-cta"
+  ],
+  "placement": "overlay-fullscreen",
+  "preview": {
+    "demo": "demo.html"
+  }
+}

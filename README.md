@@ -128,6 +128,7 @@ frogoe add hearts-row       # lives with pop on damage
 frogoe add fuel-gauge       # resource bar with danger state
 frogoe add game-over-card   # end-of-run results + retry button
 frogoe add ready-hint       # verb affordance (replaces start menus)
+frogoe add ready-gate       # tap-to-start overlay — the audio-unlock tap
 frogoe add timer-ring       # circular countdown
 ```
 
