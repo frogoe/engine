@@ -67,6 +67,9 @@ export interface LiveDriver {
    *  (reload) follows within timeoutMs. Returns false when the button
    *  is absent or the click produces no reload. */
   clickRetryAwaitReload(timeoutMs: number): Promise<boolean>;
+  /** Emulate a slower CPU (rate 4 ≈ mid-range phone, the Lighthouse
+   *  mobile anchor); rate 1 restores the host. */
+  setCpuThrottling(rate: number): Promise<void>;
   screenshot(): Promise<Uint8Array>;
   viewport(): { height: number; width: number };
 }
@@ -192,6 +195,9 @@ export const createPuppeteerDriver = ({ page, size }: PuppeteerDriverOptions): L
       }
       await button.click();
       return await navigated;
+    },
+    async setCpuThrottling(rate: number) {
+      await page.emulateCPUThrottling(rate === 1 ? null : rate);
     },
     async screenshot() {
       return await page.screenshot({ encoding: "binary" });

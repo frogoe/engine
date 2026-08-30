@@ -10,6 +10,7 @@ import {
   FPS_FLOOR,
   fpsFinding,
   fpsSustainedFinding,
+  fpsThrottledFinding,
   frozenFrameFinding,
   FROZEN_STREAK,
   neverEndsFinding,
@@ -244,5 +245,22 @@ describe("audio unlock decisions", () => {
     expect(finding?.phase).toBe("play");
     expect(finding?.recipe).toContain("audio.md");
     expect(finding?.fix).toContain("interruption");
+  });
+});
+
+describe("phone-class throttle decisions", () => {
+  test("clearing half the floor under 4x throttle is fine", () => {
+    expect(fpsThrottledFinding([18, 20, 17], "mobile")).toBeNull();
+    expect(fpsThrottledFinding([60, 59], "mobile")).toBeNull();
+  });
+  test("collapse under throttle warns with the device context", () => {
+    const finding = fpsThrottledFinding([9, 11, 8], "mobile");
+    expect(finding?.code).toBe("live/fps-throttled");
+    expect(finding?.severity).toBe("warning");
+    expect(finding?.fix).toContain("4x cpu throttle");
+    expect(finding?.fix).toContain("mid-range phones");
+  });
+  test("no buckets sampled is no verdict", () => {
+    expect(fpsThrottledFinding([], "mobile")).toBeNull();
   });
 });

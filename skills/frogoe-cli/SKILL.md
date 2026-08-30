@@ -26,6 +26,11 @@ Run commands as `bun packages/cli/src/bin.ts <cmd>` from the repo (published:
    SSE-less proxies via a version poll — ≤2s). `frogoe run` itself starts
    the tunnel automatically when the lan looks unreachable (firewall
    blocking, vpn-routed, no lan address) and says so in the banner.
+   Playtests are telemetered: fps dips, page errors and lock-screens
+   print live in the terminal and persist to `.frogoe/sessions/*.jsonl`
+   (local only — nothing leaves the machine). After a session:
+   `frogoe report` — duration, fps mean, dips below 30 with their
+   wall-clock moment, errors, hidden periods.
 4. **Gate:** `frogoe check` — exit 1 on errors. In agent loops use
    `frogoe check --json`; every finding carries {code, file, line, severity,
    fix, recipe} — read the fix, apply, re-run. One iteration heals.
@@ -66,6 +71,7 @@ held across a window it is an error.
 | live/layout-collapse                        | error    | HUD element with text but zero box (CSS collapse)                                                                                |
 | live/fps                                    | warning  | mean fps below 30 — heavy per-frame work (cache gradients, cut shadowBlur)                                                       |
 | live/fps-sustained                          | error    | low fps held 3s+ — consistently slow, not jittering (cut allocations, shrink offscreen canvases)                                |
+| live/fps-throttled                          | warning  | collapse under 4x cpu throttle (the Lighthouse mobile anchor) — mid-range phones will feel it; cut per-frame work              |
 | live/frozen-frame                           | warning  | canvas held the same frame 3 samples while playing — loop.render stopped or draws a static scene                                |
 | live/paused                                 | warning  | state read "paused" during scripted play — pause() without resume()                                                              |
 | live/state-corrupt                          | error    | state outside the contract's set — game code mutating window.__frogoe directly                                                    |

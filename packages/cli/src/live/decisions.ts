@@ -346,6 +346,27 @@ export const noGameoverCardFinding = (): LiveFinding =>
     severity: "warning",
   });
 
+/** The Lighthouse-mobile throttle (4x) is the industry anchor for a
+ *  mid-range phone. Under it, gameplay should still clear half the
+ *  floor — a warning, because it is predictive of weaker devices, not
+ *  measured on one. */
+export const THROTTLE_RATE = 4;
+export const THROTTLED_FPS_FLOOR = 15;
+
+export const fpsThrottledFinding = (buckets: number[], viewport: string): LiveFinding | null => {
+  if (buckets.length === 0) return null;
+  const mean = buckets.reduce((a, b) => a + b, 0) / buckets.length;
+  if (mean >= THROTTLED_FPS_FLOOR) return null;
+  return finding({
+    code: "live/fps-throttled",
+    file: "game.js",
+    fix: `fps ${mean.toFixed(0)} under ${THROTTLE_RATE}x cpu throttle (${viewport}) — mid-range phones will feel this: cache gradients/patterns, cut per-frame allocations, shrink offscreen canvases, cap particles`,
+    message: "cpu-bound collapse under phone-class throttle",
+    phase: "play",
+    severity: "warning",
+  });
+};
+
 export const noRetryFinding = (): LiveFinding =>
   finding({
     code: "live/no-retry",

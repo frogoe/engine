@@ -14,6 +14,7 @@ import {
   finishEventFinding,
   fpsFinding,
   fpsSustainedFinding,
+  fpsThrottledFinding,
   frozenFrameFinding,
   neverEndsFinding,
   noGameoverCardFinding,
@@ -26,6 +27,7 @@ import {
   retryDeadFinding,
   stateCorruptFinding,
   stateStuckFinding,
+  THROTTLE_RATE,
 } from "./decisions.ts";
 import type { LifecycleMetrics, LiveFinding, Playability } from "./types.ts";
 
@@ -385,6 +387,31 @@ export const runLifecycle = async (
         canRetry = await verifyDeath(driver, ctx, findings, cycle + 1);
       }
     }
+  }
+
+  // PHONE-CLASS THROTTLE — the dev machine lies about hardware: replay
+  // the ladder under 4x cpu throttle (the Lighthouse mobile anchor) and
+  // require gameplay to still clear half the floor
+  const throttleMark = await driver.fpsMark();
+  await driver.setCpuThrottling(THROTTLE_RATE);
+  await runStartBurst(driver, ctx);
+  for (let step = 0; step < PLAY_STEPS; step++) {
+    const x = Math.round(ctx.viewport.width / 2 + jitterX(step));
+    const y = Math.round(ctx.viewport.height / 2 + jitterY(step));
+    if (step === HOLD_STEP_INDEX) {
+      await driver.hold(x, y, HOLD_MS);
+    } else if (step === DRAG_STEP_INDEX) {
+      await driver.drag(x - DRAG_SPAN, y, x + DRAG_SPAN, y);
+    } else {
+      await driver.tap(x, y);
+    }
+    await doSleep(PLAY_STEP_MS);
+  }
+  const throttledBuckets = await driver.fpsSince(throttleMark);
+  await driver.setCpuThrottling(1);
+  const throttled = fpsThrottledFinding(throttledBuckets, name);
+  if (throttled) {
+    findings.push(throttled);
   }
 
   return {

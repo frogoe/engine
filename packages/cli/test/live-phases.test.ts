@@ -26,6 +26,8 @@ export interface FakeWorld {
   finishAtDeath: boolean;
   /** per-second fps buckets surfaced by fpsSince. */
   fpsBuckets: number[];
+  /** buckets while cpu-throttled (defaults to fpsBuckets). */
+  fpsThrottled?: number[];
   /** canvas hash per canvasHash() call — change = alive canvas. */
   hash: () => number;
   /** [data-block-gameover] overlay present. */
@@ -70,6 +72,7 @@ export class FakeDriver implements LiveDriver {
   private deaths = 0;
   private finishEvents_: FinishEvent[] = [];
   private interrupted = false;
+  throttleRates: number[] = [];
   taps = 0;
   holds = 0;
   drags = 0;
@@ -144,7 +147,12 @@ export class FakeDriver implements LiveDriver {
   }
 
   async fpsSince(): Promise<number[]> {
-    return this.world.fpsBuckets;
+    const last = this.throttleRates[this.throttleRates.length - 1] ?? 1;
+    return last > 1 ? (this.world.fpsThrottled ?? this.world.fpsBuckets) : this.world.fpsBuckets;
+  }
+
+  async setCpuThrottling(rate: number): Promise<void> {
+    this.throttleRates.push(rate);
   }
 
   async hudMeasures(): Promise<
@@ -214,10 +222,13 @@ describe("live lifecycle: healthy game", () => {
     expect(outcome.lifecycle).toEqual({ ends: true, retryReloads: 2 });
     expect(outcome.mobileFps).toBe(60);
     // input ladder ran: 7 steps (one hold, one drag sweep) + a 3-tap
-    // restart burst after the first retry
-    expect(driver.taps).toBe(8);
-    expect(driver.holds).toBe(1);
-    expect(driver.drags).toBe(1);
+    // restart burst after the first retry + the SAME ladder again under
+    // cpu throttle (phone-class replay, with its own 3-tap burst)
+    expect(driver.taps).toBe(16);
+    expect(driver.holds).toBe(2);
+    expect(driver.drags).toBe(2);
+    // throttle engaged and restored around the phone-class replay
+    expect(driver.throttleRates).toEqual([4, 1]);
     // evidence: boot, over, retry, over-2, retry-2
     expect(driver.shots).toEqual([
       "live-mobile.png",
@@ -353,5 +364,15 @@ describe("live lifecycle: broken games", () => {
   test("audio recovered by the game's wiring stays clean", async () => {
     const { outcome } = await run(healthyWorld({ audio: { count: 1, everRan: true, running: 1 } }));
     expect(codes(outcome.findings)).not.toContain("live/audio-locked");
+  });
+
+  test("cpu-bound collapse under phone-class throttle warns", async () => {
+    const { outcome } = await run(healthyWorld({ fpsThrottled: [9, 10, 8, 10, 9, 10, 8] }));
+    expect(codes(outcome.findings)).toContain("live/fps-throttled");
+  });
+
+  test("healthy fps under throttle stays clean", async () => {
+    const { outcome } = await run(healthyWorld({ fpsThrottled: [55, 58, 56, 57, 55, 58, 56] }));
+    expect(codes(outcome.findings)).not.toContain("live/fps-throttled");
   });
 });
