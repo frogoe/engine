@@ -1,8 +1,15 @@
 {
   "name": "frogoe",
-  "version": "0.2.0",
+  "version": "0.1.0",
   "description": "froge CLI — the agent's hands: init, add, run, check, bundle",
+  "homepage": "https://github.com/frogoe/engine#readme",
+  "bugs": "https://github.com/frogoe/engine/issues",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/frogoe/engine.git",
+    "directory": "packages/cli"
+  },
   "bin": {
     "frogoe": "bin/frogoe.mjs"
   },
