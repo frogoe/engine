@@ -2,17 +2,25 @@ name: Publish to npm
 
 # Zero-memory release pipeline (guardrails in the HyperFrames tradition):
 #   conventional commits (commitlint-enforced) → release-please PR → merge
-#   → tag vX.Y.Z → THIS workflow → npm (trusted publishing, no tokens).
+#   → THIS workflow → npm (trusted publishing, no tokens).
 #
-# Stable tags (vX.Y.Z) come only from release-please merges and must sit
-# on a commit reachable from main. Hyphenated tags (vX.Y.Z-beta.1) are
-# the prerelease channel: they publish with the matching npm dist-tag.
+# TRIGGER DESIGN (the load-bearing detail): tags pushed by release-please
+# use GITHUB_TOKEN, and GitHub deliberately never triggers workflows from
+# GITHUB_TOKEN events — a tag trigger would fire only for HUMAN-pushed
+# tags. So stable publishes ride the release-PR merge event; hyphenated
+# prerelease tags (pushed by humans) keep the tag trigger; workflow_dispatch
+# is the recovery hatch for anything the automatisms miss.
 permissions: {}
 
 on:
   push:
     tags:
-      - "v*"
+      # Prerelease channels only: hyphenated versions, human-pushed.
+      - "v*-*"
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch: {}
 
 jobs:
   publish:
@@ -25,17 +33,32 @@ jobs:
     permissions:
       contents: read
       id-token: write # npm trusted publishing (OIDC) — no NPM_TOKEN secret
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
+      (github.event.pull_request.merged == true &&
+       startsWith(github.event.pull_request.head.ref, 'release-please--'))
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
+          # pin to the exact release commit: main may advance before this
+          # job starts, and merge events expose a moving github.ref
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || github.sha }}
 
       - name: Resolve version + channel
         id: version
         env:
+          EVENT_NAME: ${{ github.event_name }}
           REF_NAME: ${{ github.ref_name }}
         run: |
-          VERSION="${REF_NAME#v}"
+          if [ "$EVENT_NAME" = "push" ]; then
+            VERSION="${REF_NAME#v}"
+          else
+            # release-PR merge / dispatch: the bump already lives in the
+            # tree at this exact commit
+            VERSION="$(node -p "require('./packages/cli/package.json').version")"
+          fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "dist_tag=latest" >> "$GITHUB_OUTPUT"
@@ -44,39 +67,40 @@ jobs:
             echo "dist_tag=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
             echo "channel=prerelease" >> "$GITHUB_OUTPUT"
           else
-            echo "::error::tag '${REF_NAME}' is not a version"
+            echo "::error::resolved '${VERSION}' is not a version"
             exit 1
           fi
 
-      # Stable releases may only come from reviewed release-please merges:
-      # the tag must point at (or descend from) a commit ON main. Direct
-      # stable-tag pushes from random branches are rejected.
-      - name: Stable tags must be reachable from main
+      # The release tag must exist and point at exactly this commit. The
+      # bot normally creates it seconds after the merge; wait out the race
+      # instead of needing write permissions to create it ourselves.
+      - name: Release tag must point at this commit
         if: steps.version.outputs.channel == 'stable'
-        run: |
-          git fetch --no-tags origin main
-          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
-            echo "::error::stable tag points outside main — publish stable releases through the release PR"
-            exit 1
-          fi
-
-      - name: package.json must match the tag
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          PKG_VERSION="$(node -p "require('./packages/cli/package.json').version")"
-          if [ "$PKG_VERSION" != "$VERSION" ]; then
-            echo "::error::package.json is ${PKG_VERSION} but tag says ${VERSION} — the release PR bumps both; never tag by hand"
+          TAG="v${VERSION}"
+          EXPECTED="$(git rev-parse HEAD)"
+          for i in $(seq 1 12); do
+            git fetch --force --no-tags origin "+refs/tags/${TAG}:refs/tags/${TAG}" 2>/dev/null || true
+            if git rev-parse "${TAG}^{commit}" >/dev/null 2>&1; then break; fi
+            echo "waiting for the bot to create ${TAG}…"
+            sleep 10
+          done
+          ACTUAL="$(git rev-parse "${TAG}^{commit}" 2>/dev/null || true)"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::tag ${TAG} points at '${ACTUAL:-<absent>}' but this release is ${EXPECTED}"
             exit 1
           fi
 
-      # Immutable release checkout: publish exactly what was tagged, even
-      # if main advances between tag and this job (HyperFrames lesson).
+      # Immutable release checkout: publish exactly what was released, even
+      # if main advances between merge and this job (HyperFrames lesson).
       - name: Verify immutable release checkout
         run: |
           ACTUAL="$(git rev-parse HEAD)"
-          if [ "$ACTUAL" != "$GITHUB_SHA" ]; then
-            echo "::error::expected $GITHUB_SHA, checked out $ACTUAL"
+          EXPECTED="${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || github.sha }}"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::expected $EXPECTED, checked out $ACTUAL"
             exit 1
           fi
 
@@ -85,6 +109,7 @@ jobs:
       - run: bun run verify
 
       - name: Already published? (idempotent retries)
+        id: published
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
@@ -92,7 +117,6 @@ jobs:
             echo "frogoe@${VERSION} already on npm — nothing to do"
             echo "skip_publish=true" >> "$GITHUB_OUTPUT"
           fi
-        id: published
 
       - name: Publish (provenance-signed, trusted publishing)
         if: steps.published.outputs.skip_publish != 'true'
