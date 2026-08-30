@@ -1,15 +1,24 @@
 /** frogoe run — serve the game folder with live reload + phone QR.
- *  Hono app on Bun.serve; a tiny EventSource script is injected into HTML
- *  responses; fs.watch broadcasts reloads. */
+ *  Hono app on a node server; a tiny script is injected into HTML
+ *  responses. Reload is transport-adaptive: EventSource for instant
+ *  pushes, plus a /__frogoe/version poll every 2s as the universal
+ *  fallback — quick tunnels and buffering proxies cannot kill reload. */
 import { existsSync, readFileSync, statSync, watch } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 import { createAdaptorServer } from "@hono/node-server";
+import { getConnInfo } from "@hono/node-server/conninfo";
 import { Hono } from "hono";
 
-const RELOAD_SCRIPT =
-  '<script>(function(){var es=new EventSource("/__frogoe/reload");es.onmessage=function(){location.reload()};})();</script>';
+import { isLoopback, resolveLan, selfAddresses } from "./net/ip.ts";
+
+/** v is baked per response — a poll that sees a different v reloads. */
+const buildReloadScript = (version: number): string =>
+  `<script>(function(){var v="${String(version)}";` +
+  'try{var es=new EventSource("/__frogoe/reload");es.onmessage=function(){location.reload()};es.onerror=function(){es.close()};}catch(e){}' +
+  'setInterval(function(){fetch("/__frogoe/version",{cache:"no-store"}).then(function(r){return r.text()}).then(function(t){if(t!==v)location.reload()}).catch(function(){})},2000);' +
+  "})();</script>";
 
 const MIME: Record<string, string> = {
   css: "text/css; charset=utf-8",
@@ -29,20 +38,13 @@ const MIME: Record<string, string> = {
 
 export interface DevServer {
   port: number;
+  /** last non-loopback client address (the phone), once one has connected */
+  remote: () => string | undefined;
+  /** true once any non-loopback client reached the server (a phone) */
+  sawRemote: () => boolean;
   stop: () => void;
   urls: { lan?: string; local: string };
 }
-
-const lanIp = (): string | undefined => {
-  for (const ifaces of Object.values(os.networkInterfaces())) {
-    for (const iface of ifaces ?? []) {
-      if (iface.family === "IPv4" && !iface.internal) {
-        return iface.address;
-      }
-    }
-  }
-  return undefined;
-};
 
 export const startServer = async (dir: string, requestedPort = 0): Promise<DevServer> => {
   const root = path.resolve(dir);
@@ -51,8 +53,26 @@ export const startServer = async (dir: string, requestedPort = 0): Promise<DevSe
   }
 
   const clients = new Set<ReadableStreamDefaultController<Uint8Array>>();
+  let version = 0;
+  let remoteSeen = false;
+  let lastRemote = "";
+  // snapshot at start: a self-curl over the lan ip must not read as a phone
+  const own = selfAddresses(os.networkInterfaces());
 
   const app = new Hono();
+  // phone-connect tracking: any request from beyond this machine counts
+  app.use("*", async (c, next) => {
+    try {
+      const address = getConnInfo(c).remote.address;
+      if (address && !isLoopback(address) && !own.has(address)) {
+        remoteSeen = true;
+        lastRemote = address;
+      }
+    } catch {
+      // non-socket context — tracking is best effort
+    }
+    await next();
+  });
   app.get("/__frogoe/reload", (c) => {
     const stream = new ReadableStream<Uint8Array>({
       cancel() {
@@ -71,6 +91,9 @@ export const startServer = async (dir: string, requestedPort = 0): Promise<DevSe
       },
     });
   });
+  app.get("/__frogoe/version", (c) =>
+    c.text(String(version), 200, { "cache-control": "no-store" }),
+  );
   app.get("*", (c) => {
     const raw = decodeURIComponent(new URL(c.req.url).pathname);
     const safe = path.normalize(raw).replaceAll("\\", "/");
@@ -90,17 +113,22 @@ export const startServer = async (dir: string, requestedPort = 0): Promise<DevSe
     if (ext === "html" || ext === "htm") {
       const html = body.toString("utf-8");
       const injected = /<\/body>/iu.test(html)
-        ? html.replace(/<\/body>/iu, `${RELOAD_SCRIPT}</body>`)
-        : html + RELOAD_SCRIPT;
-      return c.body(injected, 200, { "content-type": type });
+        ? html.replace(/<\/body>/iu, `${buildReloadScript(version)}</body>`)
+        : html + buildReloadScript(version);
+      return c.body(injected, 200, {
+        "cache-control": "no-store",
+        "content-type": type,
+      });
     }
     return c.body(body, 200, { "content-type": type });
   });
 
+  // explicit 0.0.0.0: the phone path is ipv4 lan — a bare :: bind leaves
+  // lsof showing ipv6-only and muddies the firewall prompt
   const server = createAdaptorServer({ fetch: app.fetch });
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
-    server.listen(requestedPort, () => resolve());
+    server.listen(requestedPort, "0.0.0.0", () => resolve());
   });
   const address = server.address();
   const port = typeof address === "object" && address ? address.port : 0;
@@ -111,8 +139,8 @@ export const startServer = async (dir: string, requestedPort = 0): Promise<DevSe
     throw new Error("frogoe run: server failed to bind a port");
   }
   const local = `http://localhost:${port}`;
-  const ip = lanIp();
-  const lan = ip ? `http://${ip}:${port}` : undefined;
+  const lanInfo = resolveLan();
+  const lan = lanInfo.ip ? `http://${lanInfo.ip}:${port}` : undefined;
 
   let timer: ReturnType<typeof setTimeout> | undefined;
   const watcher = watch(root, { recursive: true }, (_event, file) => {
@@ -125,6 +153,7 @@ export const startServer = async (dir: string, requestedPort = 0): Promise<DevSe
     }
     clearTimeout(timer);
     timer = setTimeout(() => {
+      version += 1;
       const payload = new TextEncoder().encode("data: reload\n\n");
       for (const client of clients) {
         try {
@@ -138,6 +167,8 @@ export const startServer = async (dir: string, requestedPort = 0): Promise<DevSe
 
   return {
     port,
+    sawRemote: () => remoteSeen,
+    remote: () => (remoteSeen ? lastRemote : undefined),
     stop() {
       clearTimeout(timer);
       watcher.close();
@@ -146,24 +177,4 @@ export const startServer = async (dir: string, requestedPort = 0): Promise<DevSe
     },
     urls: { lan, local },
   };
-};
-
-export const printBanner = (urls: { lan?: string; local: string }): void => {
-  console.log(`\n  frogoe run — serving game`);
-  console.log(`  local  ${urls.local}`);
-  if (urls.lan) {
-    console.log(`  lan    ${urls.lan}   (phone: safe-area only exists on real devices)`);
-    import("qrcode-terminal")
-      .then((mod) => {
-        // CJS interop: named exports are not statically detected under node
-        const qrcode = (mod as unknown as { default?: typeof mod }).default ?? mod;
-        qrcode.generate(urls.lan ?? "", { small: true }, (qr: string) => {
-          console.log(qr);
-        });
-      })
-      .catch(() => {
-        console.log("  (qr unavailable — open the lan url directly)");
-      });
-  }
-  console.log("  reload on file change — ctrl+c to stop\n");
 };

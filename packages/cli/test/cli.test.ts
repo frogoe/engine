@@ -267,6 +267,51 @@ describe("frogoe run", () => {
       server.stop();
     }
   });
+
+  test("version endpoint bumps on change and the reload script polls it", async () => {
+    const parent = freshDir("run-version");
+    scaffold("g", { dir: parent });
+    const gameDir = path.join(parent, "g");
+    // settle scaffold writes BEFORE the watcher exists
+    await new Promise((r) => setTimeout(r, 500));
+    const server = await startServer(gameDir);
+    try {
+      const before = await fetch(`http://localhost:${server.port}/__frogoe/version`);
+      expect(before.headers.get("cache-control")).toBe("no-store");
+      expect(await before.text()).toBe("0");
+
+      const page = await fetch(`http://localhost:${server.port}/`);
+      const html = await page.text();
+      expect(page.headers.get("cache-control")).toBe("no-store");
+      // adaptive transport: SSE for instant push, version poll for proxies
+      expect(html).toContain('new EventSource("/__frogoe/reload")');
+      expect(html).toContain('fetch("/__frogoe/version"');
+      expect(html).toContain('var v="0"');
+
+      writeFileSync(path.join(gameDir, "game.js"), "// touch\n");
+      await new Promise((r) => setTimeout(r, 400));
+      const after = await fetch(`http://localhost:${server.port}/__frogoe/version`);
+      expect(await after.text()).toBe("1");
+    } finally {
+      server.stop();
+    }
+  });
+
+  test("loopback clients never count as a connected phone", async () => {
+    const parent = freshDir("run-remote");
+    scaffold("g", { dir: parent });
+    const server = await startServer(path.join(parent, "g"));
+    try {
+      const lan = server.urls.lan ?? `http://localhost:${server.port}`;
+      await fetch(`http://localhost:${server.port}/`);
+      await fetch(lan); // self-curl over the lan ip is not a phone either
+      await fetch(`http://localhost:${server.port}/__frogoe/version`);
+      expect(server.sawRemote()).toBeFalse();
+      expect(server.remote()).toBeUndefined();
+    } finally {
+      server.stop();
+    }
+  });
 });
 
 rmSync(tmpRoot, { recursive: true, force: true });
