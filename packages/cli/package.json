@@ -4,7 +4,7 @@
   "description": "froge CLI — the agent's hands: init, add, run, check, bundle",
   "license": "Apache-2.0",
   "bin": {
-    "frogoe": "./bin/frogoe.mjs"
+    "frogoe": "bin/frogoe.mjs"
   },
   "files": [
     "bin",
