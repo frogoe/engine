@@ -1,6 +1,6 @@
 {
   "name": "frogoe",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "froge CLI — the agent's hands: init, add, run, check, bundle",
   "homepage": "https://github.com/frogoe/engine#readme",
   "bugs": "https://github.com/frogoe/engine/issues",
