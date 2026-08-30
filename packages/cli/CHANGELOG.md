@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/frogoe/engine/compare/v0.2.0...v0.2.1) (2026-08-30)
+
+
+### Bug Fixes
+
+* **cli:** package metadata for provenance — repository, bugs, homepage ([9c4c307](https://github.com/frogoe/engine/commit/9c4c3076a4cd524e9d11d43842222715887f8b4c))
+
 ## [0.2.0](https://github.com/frogoe/engine/compare/v0.1.0...v0.2.0) (2026-08-30)
 
 
