@@ -48,6 +48,7 @@ defineGame(({ stage, input, loop, finish }) => {
 | `references/contract.md`     | every platform guarantee and teaching error in one table           |
 | `references/hud-bindings.md` | place, theme, and bind registry HUD blocks to game state           |
 | `references/externals.md`    | use three.js / gsap / web fonts and how the bundler dissolves them |
+| `references/audio.md`        | make sound that survives phones (gesture unlock, interrupted state, no selection UI — iOS + Android) |
 
 ## Non-negotiable rules (silent bugs the eye misses)
 
@@ -65,6 +66,12 @@ defineGame(({ stage, input, loop, finish }) => {
   inline. Author-time externals are fine; the bundler dissolves them.
 - **`finish(score)` ends the run** — report once; the game-over CARD is a registry
   block you show yourself, never something the platform draws.
+- **WebAudio unlocks only inside a user gesture** — `input.on("down"/"up")`
+  both qualify (the contract fires them inside the native pointer events).
+  Resume when `state !== "running"` (iOS has an extra `"interrupted"` state),
+  play a 1-sample silent buffer to hard-unlock, and never check only
+  `"suspended"` — that ships the "sound randomly goes quiet" bug. Full
+  recipe: `references/audio.md`.
 
 ## Editing existing games
 

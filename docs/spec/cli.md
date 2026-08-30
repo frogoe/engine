@@ -7,7 +7,7 @@
 | Command       | Does                                                                                                                 | Machine output                                       |
 | ------------- | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
 | `init [name]` | scaffold the folder: BRIEF stub, index.html, game.js, .frogoe/ (from frogoe.json pin)                                | `--json` { path }                                    |
-| `run`         | static server + QR for phone + reload on change                                                                      | —                                                    |
+| `run`         | static server + QR for phone + reload on change; `--tunnel` adds a public cloudflared URL (phone on any network; reload survives SSE-less proxies via a version poll) | —                                                    |
 | `check`       | contract lint + output measures (contrast vs BRIEF palette, verb-vs-handlers, canvas painted, zero runtime requests) | `--json` [{code, file, line, severity, fix, recipe}] |
 | `bundle`      | externals dissolve → dist/index.html (see bundler spec)                                                              | `--json` { artifact, bytes, hashes }                 |
 | `add <block>` | copy a registry block into blocks/ + register bindings                                                                  | `--json` { files }                                   |

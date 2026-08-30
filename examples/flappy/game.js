@@ -54,7 +54,18 @@ const Sfx = {
   init() {
     try {
       this.ctx ??= new AudioContext();
-      if (this.ctx.state === "suspended") void this.ctx.resume();
+      // interruptions (lock, call, tab switch, headphone unplug) suspend
+      // the context on every platform — and iOS additionally reports a
+      // non-standard "interrupted" state — so resume anything not
+      // running, from inside this gesture
+      if (this.ctx.state === "running") return;
+      void this.ctx.resume();
+      // resume() alone is not always honored on phones — a 1-sample
+      // silent buffer played in the gesture hard-unlocks the audio route
+      const src = this.ctx.createBufferSource();
+      src.buffer = this.ctx.createBuffer(1, 1, 22050);
+      src.connect(this.ctx.destination);
+      src.start(0);
     } catch {
       /* optional */
     }
@@ -62,9 +73,18 @@ const Sfx = {
   tone(freq, dur, vol, type = "sine", slide = 0) {
     if (!this.ctx) return;
     try {
+      let lookahead = 0;
+      if (this.ctx.state !== "running") {
+        // repair inside this gesture, then schedule anyway: a small
+        // lookahead makes the UNLOCKING tap itself audible — the note
+        // fires the moment resume() lands in the same gesture
+        this.init();
+        if (!this.ctx) return;
+        lookahead = 0.08;
+      }
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-      const t0 = this.ctx.currentTime;
+      const t0 = this.ctx.currentTime + lookahead;
       osc.type = type;
       osc.frequency.setValueAtTime(freq, t0);
       if (slide > 0) osc.frequency.exponentialRampToValueAtTime(slide, t0 + dur);
@@ -210,6 +230,29 @@ defineGame(({ stage, input, loop, finish }) => {
     P.vy = T.flap;
     wingT = 1;
     Sfx.flap();
+  });
+  input.on("up", () => {
+    Sfx.init(); // touchend is the gesture iOS trusts most for activation
+  });
+
+  // belt-and-braces: iOS honors these native paths most reliably for the
+  // audio unlock (some builds ignore resume() from pointerdown/up alone) —
+  // the same set Howler uses, keydown included for desktop
+  for (const type of ["touchend", "click", "keydown"]) {
+    document.addEventListener(type, () => Sfx.init(), { capture: true, passive: true });
+  }
+
+  // visibility kick (battle-tested by Phaser for iOS 17/18): returning
+  // from background can leave the context zombie-suspended — a
+  // suspend+resume pair ~100ms after becoming visible snaps it back
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible" || !Sfx.ctx) return;
+    setTimeout(() => {
+      try {
+        void Sfx.ctx?.suspend();
+        void Sfx.ctx?.resume();
+      } catch {}
+    }, 100);
   });
   retry.addEventListener("click", () => location.reload());
 

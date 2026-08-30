@@ -21,6 +21,11 @@ Run commands as `bun packages/cli/src/bin.ts <cmd>` from the repo (published:
    its bindings + placement snippet. Hand-write only once nothing fits.
 3. **Iterate:** `frogoe run` — live reload on every save, QR for the phone
    (safe-area only exists on real devices; test there before shipping).
+   Phone on another network / strict wifi? `frogoe run --tunnel` serves a
+   public cloudflared URL (auto-downloaded once, cached; reload survives
+   SSE-less proxies via a version poll — ≤2s). `frogoe run` itself starts
+   the tunnel automatically when the lan looks unreachable (firewall
+   blocking, vpn-routed, no lan address) and says so in the banner.
 4. **Gate:** `frogoe check` — exit 1 on errors. In agent loops use
    `frogoe check --json`; every finding carries {code, file, line, severity,
    fix, recipe} — read the fix, apply, re-run. One iteration heals.
@@ -30,9 +35,10 @@ Run commands as `bun packages/cli/src/bin.ts <cmd>` from the repo (published:
 | Code                                                                                                                 | Severity | Meaning                                      |
 | -------------------------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------- |
 | brief/missing, brief/frontmatter, brief/todo, brief/contrast                                                         | error    | intent undeclared or incomplete              |
-| folder/index-missing, folder/canvas, folder/viewport-fit, folder/importmap, folder/game-missing, folder/contract-pin | error    | shell/pin broken                             |
+| folder/index-missing, folder/canvas, folder/viewport-fit, folder/touch-select, folder/importmap, folder/game-missing, folder/contract-pin | error    | shell/pin broken (touch-select: phone long-press summons text selection — iOS + Android) |
 | input/incremental-drag                                                                                               | error    | the shipped wall-rocket bug (+= p.dx)        |
 | input/absolute-steering, layout/innerwidth-spawn                                                                     | warning  | thumb-ghosting / parity risks                |
+| audio/suspended-only                                                                                                  | warning  | resume gated on === "suspended" — iOS "interrupted" contexts stay silent (frogoe-core → audio.md) |
 | game/loop-update, game/loop-render                                                                                   | warning  | runtime will teach, fix first                |
 | blocks/binding-orphan                                                                                                   | warning  | selector targets nothing (block not pasted?) |
 
@@ -64,6 +70,7 @@ held across a window it is an error.
 | live/paused                                 | warning  | state read "paused" during scripted play — pause() without resume()                                                              |
 | live/state-corrupt                          | error    | state outside the contract's set — game code mutating window.__frogoe directly                                                    |
 | live/no-input / live/not-playable           | error    | game never wired input / scripted taps changed nothing                                                                           |
+| live/audio-locked                           | error    | audio stayed suspended after an INJECTED interruption + real input — the game lacks gesture-scoped resume wiring (frogoe-core → references/audio.md) |
 | live/never-ends                             | warning  | no death within 45s of passive play — fine for endless games; feed games are short loops                                          |
 | live/finish-event-missing                   | error    | "over" without frogoe:finish, or the event without "over" — forged state machine                                                 |
 | live/no-gameover-card                       | warning  | ended without a [data-block-gameover] overlay — install game-over-card                                                           |

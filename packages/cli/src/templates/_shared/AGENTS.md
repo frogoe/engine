@@ -52,7 +52,8 @@ The platform draws NOTHING. Everything visible is your code + HUD blocks from th
 ## Commands
 
 ```bash
-frogoe run                  # serve with live reload + phone QR (safe-area only on real devices)
+frogoe run                  # serve with live reload + phone QR (safe-area only exists on real devices)
+frogoe run --tunnel         # + public URL — phone works on any network (cloudflared, auto-downloaded once)
 frogoe check                # static contract lint (stable finding codes; --json for CI)
 frogoe check --live         # + headless Chrome: FPS, playability, HUD outline, screenshots
 frogoe bundle               # one self-contained HTML (externals dissolved, zero runtime requests)
@@ -84,13 +85,15 @@ frogoe check --live      # browser: runtime errors, canvas painted, FPS, playabi
 
 Fix all errors before presenting the result. Common findings:
 
-| Code                     | Meaning                             | Fix                                               |
-| ------------------------ | ----------------------------------- | ------------------------------------------------- |
-| `brief/todo`             | BRIEF.md still has TODO markers     | Fill in verb, mood, palette                       |
-| `input/incremental-drag` | `x += p.dx` (wall-rocket bug)       | Use `x = grabX + p.dx` or track lastX             |
-| `live/hud-outline`       | HUD text missing text-shadow/stroke | Add `text-shadow: 0 2px 0 <dark>`                 |
-| `live/fps`               | Below 30fps                         | Cache gradients, reduce shadowBlur, cut particles |
-| `live/not-playable`      | Scripted taps changed nothing       | Wire `input.on("down")` to actual game logic      |
+| Code                     | Meaning                                                 | Fix                                                                                          |
+| ------------------------ | ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `brief/todo`             | BRIEF.md still has TODO markers                         | Fill in verb, mood, palette                                                                  |
+| `input/incremental-drag` | `x += p.dx` (wall-rocket bug)                           | Use `x = grabX + p.dx` or track lastX                                                        |
+| `folder/touch-select`    | Phone long-press summons text selection (iOS + Android) | Add `-webkit-user-select: none; user-select: none; -webkit-touch-callout: none` on html/body |
+| `audio/suspended-only`   | Resume gated on `=== "suspended"` (iOS silent bug)      | Resume when `state !== "running"` — see frogoe-core `references/audio.md`                    |
+| `live/hud-outline`       | HUD text missing text-shadow/stroke                     | Add `text-shadow: 0 2px 0 <dark>`                                                            |
+| `live/fps`               | Below 30fps                                             | Cache gradients, reduce shadowBlur, cut particles                                            |
+| `live/not-playable`      | Scripted taps changed nothing                           | Wire `input.on("down")` to actual game logic                                                 |
 
 ## Key rules
 
