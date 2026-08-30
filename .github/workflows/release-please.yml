@@ -1,0 +1,38 @@
+name: Release bot
+
+# release-please turns the conventional commits commitlint already
+# enforces into a running "release PR" (version bump + changelog).
+# Merging that PR is the ONLY human act in the whole release pipeline.
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  # A merged release PR = a published tag; publish is tag-driven in
+  # release.yml (single source of trigger truth).
+  publish-trigger:
+    if: needs.release-please.outputs.release_created == 'true'
+    needs: release-please
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger publish
+        run: echo "tag ${{ needs.release-please.outputs.tag_name }} created — release.yml picks it up"

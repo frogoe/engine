@@ -1,18 +1,44 @@
-name: ci
+name: CI
+
+permissions:
+  contents: read
+
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
-  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verify:
+    name: Verify (format, lint, types, tests, knip, registry)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
       - run: bun install --frozen-lockfile
-      - run: bun run format:check
-      - run: bun run lint
-      - run: bun run check-types
-      - run: bun test
-      - run: bun run knip
+      - run: bun run verify
+
+  # The flagship gate runs against the real browser path too — the unit
+  # suite drives a FakeDriver; this proves the chrome-headless-shell road
+  # end to end (boot → play → retry → audio injection → throttle replay).
+  live:
+    name: Live sandbox (real headless chrome)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      - run: bun install --frozen-lockfile
+      - name: Cache chrome-headless-shell
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          key: chrome-headless-shell-131.0.6778.204
+          path: node_modules/.frogoe-browser
+      - run: bun packages/cli/src/cli.ts check examples/flappy
+      - run: bun packages/cli/src/cli.ts check --live examples/flappy
