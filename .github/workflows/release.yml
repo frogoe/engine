@@ -71,6 +71,37 @@ jobs:
             exit 1
           fi
 
+      # Recovery dispatch: main may have advanced past the release commit —
+      # pin the run to the commit the release tag actually points at (the
+      # version's true content), after verifying it belongs to this branch.
+      - name: Recovery dispatch pins to the release commit
+        if: github.event_name == 'workflow_dispatch' && steps.version.outputs.channel == 'stable'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          TAG="v${VERSION}"
+          git fetch --force --no-tags origin "+refs/tags/${TAG}:refs/tags/${TAG}"
+          COMMIT="$(git rev-parse "${TAG}^{commit}" 2>/dev/null || true)"
+          if [ -z "$COMMIT" ]; then
+            echo "::error::${TAG} does not exist — nothing to recover"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$COMMIT" HEAD; then
+            echo "::error::${TAG} is not on this branch"
+            exit 1
+          fi
+          git checkout --detach "$COMMIT"
+          echo "RELEASE_SHA=$COMMIT" >> "$GITHUB_ENV"
+
+      - name: Expected release sha
+        run: |
+          if [ -n "${RELEASE_SHA:-}" ]; then :
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "RELEASE_SHA=${{ github.event.pull_request.merge_commit_sha }}" >> "$GITHUB_ENV"
+          else
+            echo "RELEASE_SHA=${{ github.sha }}" >> "$GITHUB_ENV"
+          fi
+
       # The release tag must exist and point at exactly this commit. The
       # bot normally creates it seconds after the merge; wait out the race
       # instead of needing write permissions to create it ourselves.
@@ -98,9 +129,8 @@ jobs:
       - name: Verify immutable release checkout
         run: |
           ACTUAL="$(git rev-parse HEAD)"
-          EXPECTED="${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || github.sha }}"
-          if [ "$ACTUAL" != "$EXPECTED" ]; then
-            echo "::error::expected $EXPECTED, checked out $ACTUAL"
+          if [ "$ACTUAL" != "${RELEASE_SHA}" ]; then
+            echo "::error::expected ${RELEASE_SHA}, checked out $ACTUAL"
             exit 1
           fi
 
