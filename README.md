@@ -1,6 +1,8 @@
 <p align="center"><b>frogoe</b></p>
 
 <p align="center">
+  <a href="https://www.npmjs.com/package/frogoe"><img src="https://img.shields.io/npm/v/frogoe.svg?style=flat" alt="npm version"></a>
+  <a href="https://github.com/frogoe/engine/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/frogoe/engine/ci.yml?branch=main" alt="CI"></a>
   <a href="https://github.com/frogoe/engine"><img src="https://img.shields.io/badge/repo-frogoe/engine-blue" alt="repo"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D22-brightgreen" alt="Node.js"></a>

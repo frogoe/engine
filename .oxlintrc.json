@@ -9,7 +9,7 @@
   "ignorePatterns": ["node_modules", "dist", "out", ".frogoe", "registry", "examples"],
   "overrides": [
     {
-      "files": ["packages/cli/**"],
+      "files": ["packages/cli/**", "scripts/**"],
       "rules": {
         "no-console": "off"
       }

@@ -59,17 +59,9 @@ jobs:
             # tree at this exact commit
             VERSION="$(node -p "require('./packages/cli/package.json').version")"
           fi
+          RESOLVED="$(node scripts/release-guards.mjs resolve "$VERSION")"
+          echo "$RESOLVED" | tee -a "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "dist_tag=latest" >> "$GITHUB_OUTPUT"
-            echo "channel=stable" >> "$GITHUB_OUTPUT"
-          elif [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-([0-9A-Za-z-]+) ]]; then
-            echo "dist_tag=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
-            echo "channel=prerelease" >> "$GITHUB_OUTPUT"
-          else
-            echo "::error::resolved '${VERSION}' is not a version"
-            exit 1
-          fi
 
       # Recovery dispatch: main may have advanced past the release commit —
       # pin the run to the commit the release tag actually points at (the
@@ -149,18 +141,7 @@ jobs:
         working-directory: packages/cli
         run: |
           npm pack --dry-run > /tmp/pack.log 2>&1 || { cat /tmp/pack.log; exit 1; }
-          cat /tmp/pack.log
-          for must in "dist/cli.js" "dist/contract/contract.js" "bin/frogoe.mjs"; do
-            if ! grep -q " $must" /tmp/pack.log; then
-              echo "::error::packed tarball is missing ${must} — build or pack path broken"
-              exit 1
-            fi
-          done
-          FILES=$(awk '/total files:/ {print $NF}' /tmp/pack.log)
-          if [ "${FILES:-0}" -lt 20 ]; then
-            echo "::error::packed tarball has only ${FILES} files — expected the full CLI bundle"
-            exit 1
-          fi
+          node "$GITHUB_WORKSPACE/scripts/release-guards.mjs" pack /tmp/pack.log
 
       # trusted publishing (OIDC) landed in npm 11.5.1 — runner-bundled
       # npm predates it and answers ENEEDAUTH because there is, by design,
@@ -168,11 +149,7 @@ jobs:
       - name: npm with trusted-publishing support
         run: |
           npm install -g npm@latest >/dev/null
-          echo "npm $(npm --version)"
-          if [ "$(printf '%s\n' "11.5.1" "$(npm --version)" | sort -V | head -1)" != "11.5.1" ]; then
-            echo "::error::npm $(npm --version) predates trusted publishing (needs >= 11.5.1)"
-            exit 1
-          fi
+          node "$GITHUB_WORKSPACE/scripts/release-guards.mjs" npm-floor "$(npm --version)"
 
       - name: Already published? (idempotent retries)
         id: published
