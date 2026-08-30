@@ -2,7 +2,11 @@
  *  Hono app on a node server; a tiny script is injected into HTML
  *  responses. Reload is transport-adaptive: EventSource for instant
  *  pushes, plus a /__frogoe/version poll every 2s as the universal
- *  fallback — quick tunnels and buffering proxies cannot kill reload. */
+ *  fallback — quick tunnels and buffering proxies cannot kill reload.
+ *  The same injection carries the playtest sampler: per-second fps
+ *  buckets, page errors, visibility — beaconed to /__frogoe/metrics.
+ *  Dev-only by construction: the bundler reads files raw, so shipped
+ *  artifacts carry none of this. */
 import { existsSync, readFileSync, statSync, watch } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -12,12 +16,39 @@ import { getConnInfo } from "@hono/node-server/conninfo";
 import { Hono } from "hono";
 
 import { isLoopback, resolveLan, selfAddresses } from "./net/ip.ts";
+import { beaconToRecords, type BeaconPayload } from "./telemetry/records.ts";
+import { createSessionStore } from "./telemetry/session.ts";
+
+export interface TelemetryOptions {
+  /** printable lines surface here as they happen (the run command prints) */
+  onEvent?: (text: string) => void;
+}
 
 /** v is baked per response — a poll that sees a different v reloads. */
-const buildReloadScript = (version: number): string =>
+const buildDevScript = (version: number): string =>
   `<script>(function(){var v="${String(version)}";` +
   'try{var es=new EventSource("/__frogoe/reload");es.onmessage=function(){location.reload()};es.onerror=function(){es.close()};}catch(e){}' +
   'setInterval(function(){fetch("/__frogoe/version",{cache:"no-store"}).then(function(r){return r.text()}).then(function(t){if(t!==v)location.reload()}).catch(function(){})},2000);' +
+  // playtest sampler: fps buckets + errors + visibility → the dev server
+  "var fps=[],cnt=0,sec=performance.now(),evs=[],up0=performance.now();" +
+  "function up(){return (performance.now()-up0)/1000}" +
+  "function tick(){cnt++;var n=performance.now();if(n-sec>=1000){fps.push(cnt);cnt=0;sec=n}requestAnimationFrame(tick)}" +
+  "requestAnimationFrame(tick);" +
+  'addEventListener("error",function(e){evs.push({type:"error",msg:String(e.message||e).slice(0,200),up:up()})});' +
+  'addEventListener("unhandledrejection",function(e){evs.push({type:"rejection",msg:String(e.reason).slice(0,200),up:up()})});' +
+  'document.addEventListener("visibilitychange",function(){evs.push({type:document.hidden?"hidden":"visible",up:up()})});' +
+  "function flush(beacon){" +
+  "var p={v:1,up:up(),fps:fps.splice(0),events:evs.splice(0)};" +
+  "if(performance.memory)p.mem=Math.round(performance.memory.usedJSHeapSize/1048576);" +
+  "var b=JSON.stringify(p);" +
+  'if(beacon&&navigator.sendBeacon){navigator.sendBeacon("/__frogoe/metrics",new Blob([b],{type:"application/json"}));return}' +
+  'fetch("/__frogoe/metrics",{method:"POST",body:b,headers:{"content-type":"application/json"},keepalive:true}).catch(function(){});' +
+  "}" +
+  'document.addEventListener("visibilitychange",function(){if(document.hidden)flush(true)});' +
+  // retry reloads are the house pattern — buffered events must survive
+  // the navigation; sendBeacon on pagehide is the reliable path
+  'addEventListener("pagehide",function(){flush(true)});' +
+  "setInterval(function(){flush(false)},5000);" +
   "})();</script>";
 
 const MIME: Record<string, string> = {
@@ -46,7 +77,11 @@ export interface DevServer {
   urls: { lan?: string; local: string };
 }
 
-export const startServer = async (dir: string, requestedPort = 0): Promise<DevServer> => {
+export const startServer = async (
+  dir: string,
+  requestedPort = 0,
+  telemetry?: TelemetryOptions,
+): Promise<DevServer> => {
   const root = path.resolve(dir);
   if (!existsSync(path.join(root, "index.html"))) {
     throw new Error(`frogoe run: no index.html in ${root} — is this a game folder?`);
@@ -58,6 +93,7 @@ export const startServer = async (dir: string, requestedPort = 0): Promise<DevSe
   let lastRemote = "";
   // snapshot at start: a self-curl over the lan ip must not read as a phone
   const own = selfAddresses(os.networkInterfaces());
+  const session = telemetry ? createSessionStore(root, Date.now()) : undefined;
 
   const app = new Hono();
   // phone-connect tracking: any request from beyond this machine counts
@@ -94,6 +130,24 @@ export const startServer = async (dir: string, requestedPort = 0): Promise<DevSe
   app.get("/__frogoe/version", (c) =>
     c.text(String(version), 200, { "cache-control": "no-store" }),
   );
+  app.post("/__frogoe/metrics", async (c) => {
+    try {
+      // explicit text→parse: runtime json() helpers swallow bad bodies
+      // differently everywhere — JSON.parse throws, always
+      const payload = JSON.parse(await c.req.text()) as BeaconPayload;
+      // no telemetry config (check --live, library use) → accept + discard:
+      // the sampler never knows, pages stay identical
+      if (!session) return c.body(null, 204);
+      const lines = beaconToRecords(payload, Date.now());
+      session.write(lines.map((l) => l.record));
+      for (const line of lines) {
+        if (line.text) telemetry?.onEvent?.(line.text);
+      }
+      return c.body(null, 204);
+    } catch {
+      return c.body(null, 400);
+    }
+  });
   app.get("*", (c) => {
     const raw = decodeURIComponent(new URL(c.req.url).pathname);
     const safe = path.normalize(raw).replaceAll("\\", "/");
@@ -113,8 +167,8 @@ export const startServer = async (dir: string, requestedPort = 0): Promise<DevSe
     if (ext === "html" || ext === "htm") {
       const html = body.toString("utf-8");
       const injected = /<\/body>/iu.test(html)
-        ? html.replace(/<\/body>/iu, `${buildReloadScript(version)}</body>`)
-        : html + buildReloadScript(version);
+        ? html.replace(/<\/body>/iu, `${buildDevScript(version)}</body>`)
+        : html + buildDevScript(version);
       return c.body(injected, 200, {
         "cache-control": "no-store",
         "content-type": type,

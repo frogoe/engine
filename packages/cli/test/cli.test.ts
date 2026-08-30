@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 /** Behavioral tests for frogoe CLI: init, add, check, run. Fixtures live in
  *  temp dirs; the reference game (examples/flappy) is dogfooded by check. */
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { addBlock } from "../src/add.ts";
@@ -308,6 +308,59 @@ describe("frogoe run", () => {
       await fetch(`http://localhost:${server.port}/__frogoe/version`);
       expect(server.sawRemote()).toBeFalse();
       expect(server.remote()).toBeUndefined();
+    } finally {
+      server.stop();
+    }
+  });
+
+  test("telemetry beacons persist a session and surface live lines", async () => {
+    const parent = freshDir("run-telemetry");
+    scaffold("g", { dir: parent });
+    const gameDir = path.join(parent, "g");
+    const events: string[] = [];
+    const { startServer: startWithTelemetry } = await import("../src/run.ts");
+    const server = await startWithTelemetry(gameDir, 0, {
+      onEvent: (text) => events.push(text),
+    });
+    try {
+      // sampler ships with every html response
+      const page = await fetch(`http://localhost:${server.port}/`);
+      const html = await page.text();
+      expect(html).toContain('fetch("/__frogoe/version"');
+      expect(html).toContain("/__frogoe/metrics");
+
+      const post = (body: unknown): Promise<Response> =>
+        fetch(`http://localhost:${server.port}/__frogoe/metrics`, {
+          body: JSON.stringify(body),
+          headers: { "content-type": "application/json" },
+          method: "POST",
+        });
+      // a dip prints one line; errors print their own
+      const ok = await post({ fps: [60, 18, 20, 60], up: 40 });
+      expect(ok.status).toBe(204);
+      const bad = await post({
+        events: [{ msg: "TypeError: boom", type: "error", up: 41 }],
+        up: 42,
+      });
+      expect(bad.status).toBe(204);
+      // raw invalid body (the post() helper stringifies — bypass it)
+      const raw = await fetch(`http://localhost:${server.port}/__frogoe/metrics`, {
+        body: "{not json",
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
+      expect(raw.status).toBe(400);
+      expect(events.length).toBe(2);
+      expect(events[0]).toContain("fps 18 — dip 2s");
+      expect(events[1]).toContain("page error: TypeError: boom");
+
+      // the session landed in .frogoe/sessions/ as jsonl
+      const sessionsDir = path.join(gameDir, ".frogoe", "sessions");
+      const file = existsSync(sessionsDir)
+        ? readFileSync(path.join(sessionsDir, (readdirSync(sessionsDir) ?? [])[0] ?? ""), "utf-8")
+        : "";
+      expect(file).toContain('"type":"fps"');
+      expect(file).toContain('"type":"error"');
     } finally {
       server.stop();
     }

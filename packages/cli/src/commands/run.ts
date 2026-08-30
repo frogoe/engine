@@ -42,7 +42,11 @@ export const command = defineCommand({
     if (!Number.isInteger(port) || port < 0) {
       throw new Error(`frogoe run: invalid port "${String(args.port)}"`);
     }
-    const server = await startServer(dir, port);
+    // playtest telemetry: session jsonl + live terminal lines (the "when
+    // and where" of every lag dip, error and lock-screen)
+    const server = await startServer(dir, port, {
+      onEvent: (text) => console.log(`  ${text}`),
+    });
 
     const lan = resolveLan();
     const lanUrl = server.urls.lan;
