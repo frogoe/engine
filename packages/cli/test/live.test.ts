@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 /** Pure decision logic for the game-native live pass. Browser path runs
  *  real Chrome (no mocks); these tests cover the decisions. */
 import {
+  audioLockedFinding,
   collapseFinding,
   consoleErrorFinding,
   earlyDeathFinding,
@@ -225,5 +226,23 @@ describe("live: end + retry affordances", () => {
     expect(finding?.code).toBe("live/state-corrupt");
     expect(finding?.fix).toContain("vibes");
     expect(pausedFinding()?.severity).toBe("warning");
+  });
+});
+
+describe("audio unlock decisions", () => {
+  test("no contexts at all means no audio and no finding", () => {
+    expect(audioLockedFinding({ count: 0, running: 0 })).toBeNull();
+  });
+  test("contexts running after the interruption recovered", () => {
+    expect(audioLockedFinding({ count: 2, running: 1 })).toBeNull();
+    expect(audioLockedFinding({ count: 1, running: 1 })).toBeNull();
+  });
+  test("contexts still suspended after interruption + input are locked", () => {
+    const finding = audioLockedFinding({ count: 1, running: 0 });
+    expect(finding?.code).toBe("live/audio-locked");
+    expect(finding?.severity).toBe("error");
+    expect(finding?.phase).toBe("play");
+    expect(finding?.recipe).toContain("audio.md");
+    expect(finding?.fix).toContain("interruption");
   });
 });

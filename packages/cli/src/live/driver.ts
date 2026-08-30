@@ -6,6 +6,7 @@ import type { Page } from "puppeteer-core";
 
 import type { CollapseMeasure, FinishEvent, OutlineMeasure } from "./types.ts";
 import {
+  AUDIO_STATES_SCRIPT,
   CANVAS_HASH_SCRIPT,
   CANVAS_PAINTED_SCRIPT,
   DOM_PROBE_SCRIPT,
@@ -13,6 +14,7 @@ import {
   FPS_MARK_SCRIPT,
   GAME_STATE_SCRIPT,
   HUD_MEASURE_SCRIPT,
+  INTERRUPT_AUDIO_SCRIPT,
   PROBE_SCRIPT,
   RETRY_PRESENCE_SCRIPT,
   fpsSinceScript,
@@ -22,6 +24,15 @@ export interface DomProbe {
   canvasPresent: boolean;
   hudPresent: boolean;
   state: string;
+}
+
+export interface AudioStates {
+  /** contexts the game created (0 = no audio, which is fine) */
+  count: number;
+  /** any context ever reached "running" */
+  everRan: boolean;
+  /** contexts running right now */
+  running: number;
 }
 
 export interface RetryPresence {
@@ -34,6 +45,10 @@ export interface LiveDriver {
   errors(): string[];
   /** console.error output, accumulated across navigations. */
   consoleErrors(): string[];
+  /** Audio-context lifecycle the probe observed (constructor-wrapped). */
+  audioStates(): Promise<AudioStates>;
+  /** Suspend every observed context — the injected interruption. */
+  interruptAudio(): Promise<void>;
   domProbe(): Promise<DomProbe>;
   canvasPainted(): Promise<boolean>;
   canvasHash(): Promise<number | null>;
@@ -82,6 +97,12 @@ export const createPuppeteerDriver = ({ page, size }: PuppeteerDriverOptions): L
   return {
     errors: () => pageErrors,
     consoleErrors: () => consoleErrors,
+    async audioStates() {
+      return await read<AudioStates>(AUDIO_STATES_SCRIPT);
+    },
+    async interruptAudio() {
+      await read<boolean>(INTERRUPT_AUDIO_SCRIPT);
+    },
     async domProbe() {
       return await read<DomProbe>(DOM_PROBE_SCRIPT);
     },

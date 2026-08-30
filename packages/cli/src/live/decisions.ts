@@ -313,6 +313,28 @@ export const neverEndsFinding = (budgetMs: number): LiveFinding =>
     severity: "warning",
   });
 
+/** The game's audio did not recover after an injected interruption plus
+ *  real scripted input — the recovery wiring (gesture-scoped resume) is
+ *  missing. Games without audio (count 0) are fine; the fault is
+ *  injected, the recovery is measured, never simulated. */
+export const audioLockedFinding = (audio: {
+  count: number;
+  running: number;
+}): LiveFinding | null => {
+  if (audio.count === 0 || audio.running > 0) {
+    return null;
+  }
+  return finding({
+    code: "live/audio-locked",
+    file: "game.js",
+    fix: 'audio contexts exist but stayed suspended after an interruption + real input — resume inside a user gesture: Sfx.init() in input.on("down") AND ("up"), plus the 1-sample silent-buffer unlock (frogoe-core → references/audio.md)',
+    message: "audio never recovers — every phone interruption plays this game silent",
+    phase: "play",
+    recipe: "frogoe-core → references/audio.md",
+    severity: "error",
+  });
+};
+
 export const noGameoverCardFinding = (): LiveFinding =>
   finding({
     code: "live/no-gameover-card",

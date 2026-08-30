@@ -8,6 +8,10 @@ import type { FinishEvent, LiveFinding } from "../src/live/types.ts";
 /** Scriptable game world. Defaults model a healthy arcade game: canvas
  *  animates, dies after N state reads, fires finish, retries reload. */
 export interface FakeWorld {
+  /** audio-context lifecycle the probe would report. */
+  audio: { count: number; everRan: boolean; running: number };
+  /** the game's wiring recovers audio after the injected interruption. */
+  audioRecovers: boolean;
   /** console.error output on the page. */
   consoleErrs: string[];
   /** canvas present (domProbe). */
@@ -39,6 +43,8 @@ export interface FakeWorld {
 }
 
 export const healthyWorld = (overrides: Partial<FakeWorld> = {}): FakeWorld => ({
+  audio: { count: 0, everRan: false, running: 0 },
+  audioRecovers: true,
   canvas: true,
   consoleErrs: [],
   dieAfterCalls: 20,
@@ -63,6 +69,7 @@ export class FakeDriver implements LiveDriver {
   private calls = 0;
   private deaths = 0;
   private finishEvents_: FinishEvent[] = [];
+  private interrupted = false;
   taps = 0;
   holds = 0;
   drags = 0;
@@ -87,6 +94,23 @@ export class FakeDriver implements LiveDriver {
 
   consoleErrors(): string[] {
     return this.world.consoleErrs;
+  }
+
+  async audioStates(): Promise<{ count: number; everRan: boolean; running: number }> {
+    if (this.interrupted) {
+      // after the injected interruption, only the game's own wiring
+      // (simulated by taps when audioRecovers) brings contexts back
+      return {
+        count: this.world.audio.count,
+        everRan: true,
+        running: this.world.audioRecovers ? this.world.audio.count : 0,
+      };
+    }
+    return { ...this.world.audio };
+  }
+
+  async interruptAudio(): Promise<void> {
+    this.interrupted = true;
   }
 
   async domProbe(): Promise<DomProbe> {
@@ -317,5 +341,17 @@ describe("live lifecycle: broken games", () => {
   test("corrupt state during play errors", async () => {
     const { outcome } = await run(healthyWorld({ state: "vibes" }));
     expect(codes(outcome.findings)).toContain("live/state-corrupt");
+  });
+
+  test("audio that never recovers after the injected interruption errors", async () => {
+    const { outcome } = await run(
+      healthyWorld({ audio: { count: 1, everRan: true, running: 1 }, audioRecovers: false }),
+    );
+    expect(codes(outcome.findings)).toContain("live/audio-locked");
+  });
+
+  test("audio recovered by the game's wiring stays clean", async () => {
+    const { outcome } = await run(healthyWorld({ audio: { count: 1, everRan: true, running: 1 } }));
+    expect(codes(outcome.findings)).not.toContain("live/audio-locked");
   });
 });

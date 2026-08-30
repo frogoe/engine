@@ -6,16 +6,35 @@
 
 /** Installed before any navigation. Captures frogoe:finish events and
  *  counts rAF ticks into one-second buckets. defineProperty so game code
- *  cannot casually reassign it. */
+ *  cannot casually reassign it. Audio constructors are wrapped so every
+ *  context the game creates is observable — the unlock is MEASURED, not
+ *  assumed. */
 export const PROBE_SCRIPT = `(() => {
   if (window.__frogoeProbe) return;
-  const probe = { finish: [], fps: [] };
+  const probe = { audioContexts: [], audioEverRan: false, finish: [], fps: [] };
   Object.defineProperty(window, "__frogoeProbe", { value: probe });
   document.addEventListener("frogoe:finish", (e) => {
     const d = e && e.detail;
     const score = d && typeof d.score === "number" ? d.score : null;
     probe.finish.push({ at: Math.round(performance.now()), score });
   });
+  const wrap = (Native) => class extends Native {
+    constructor(...args) {
+      super(...args);
+      probe.audioContexts.push(this);
+      this.addEventListener("statechange", () => {
+        if (this.state === "running") probe.audioEverRan = true;
+      });
+    }
+  };
+  const AC = window.AudioContext;
+  if (AC && !AC.__frogoeHooked) {
+    Object.defineProperty(wrap(AC), "__frogoeHooked", { value: true });
+    window.AudioContext = wrap(AC);
+  }
+  if (window.webkitAudioContext) {
+    window.webkitAudioContext = wrap(window.webkitAudioContext);
+  }
   let count = 0;
   let secStart = performance.now();
   const tick = () => {
@@ -119,3 +138,30 @@ export const RETRY_PRESENCE_SCRIPT = `(() => ({
   gameover: Boolean(document.querySelector("[data-block-gameover]")),
   retry: Boolean(document.querySelector("[data-block-retry]")),
 }))()`;
+
+/** Inject the iOS "interrupted" shape: suspend every context the game
+ * created. The phases follow with real input — a healthy game's wiring
+ * recovers (gesture-scoped resume); a game with no recovery stays
+ * silent. (Chrome auto-heals suspended contexts on any input, so
+ * passive watching can never measure this — the fault is injected,
+ * the recovery is not.) */
+export const INTERRUPT_AUDIO_SCRIPT = `(() => {
+  const p = window.__frogoeProbe;
+  if (!p) return false;
+  for (const c of p.audioContexts) {
+    try { void c.suspend(); } catch (e) {}
+  }
+  return true;
+})()`;
+
+/** Audio lifecycle read: how many contexts the game created, whether any
+ *  ever reached "running", and how many run right now. */
+export const AUDIO_STATES_SCRIPT = `(() => {
+  const p = window.__frogoeProbe;
+  if (!p) return { count: 0, everRan: false, running: 0 };
+  let running = 0;
+  for (const c of p.audioContexts) {
+    if (c.state === "running") running++;
+  }
+  return { count: p.audioContexts.length, everRan: p.audioEverRan === true, running };
+})()`;

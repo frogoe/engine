@@ -4,6 +4,7 @@
  *  in decisions.ts; this module only observes and decides WHEN. */
 import type { LiveDriver } from "./driver.ts";
 import {
+  audioLockedFinding,
   canvasMissingFinding,
   canvasUnpaintedFinding,
   collapseFinding,
@@ -323,6 +324,20 @@ export const runLifecycle = async (
   const play = playabilityFinding(playability);
   if (play) {
     findings.push(play);
+  }
+
+  // audio recovery — inject the interruption (the iOS "interrupted"
+  // shape), give the game real input, then require its own wiring to
+  // have recovered: gesture-scoped resume is the contract for phones
+  const audioBefore = await driver.audioStates();
+  if (audioBefore.count > 0) {
+    await driver.interruptAudio();
+    await runStartBurst(driver, ctx); // taps = recovery attempts
+    await doSleep(600); // resume() is async
+    const audioFinding = audioLockedFinding(await driver.audioStates());
+    if (audioFinding) {
+      findings.push(audioFinding);
+    }
   }
 
   // END → RETRY → STABILITY
