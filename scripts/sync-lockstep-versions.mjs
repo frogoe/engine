@@ -45,7 +45,8 @@ export function syncLockstep(root, opts = {}) {
   for (const rel of LOCKSTEP_TARGETS) {
     const file = join(root, rel);
     if (!existsSync(file)) throw new Error(`lockstep target missing: ${rel}`);
-    const data = JSON.parse(readFileSync(file, "utf8"));
+    const raw = readFileSync(file, "utf8");
+    const data = JSON.parse(raw);
     if (data.version === version) {
       report.current.push(rel);
       continue;
@@ -54,8 +55,13 @@ export function syncLockstep(root, opts = {}) {
       report.changed.push(rel);
       continue;
     }
-    data.version = version;
-    writeFileSync(file, JSON.stringify(data, null, 2) + "\n");
+    // Surgical single-line rewrite, NOT JSON.stringify: the tree's files
+    // are oxfmt-formatted (short arrays stay collapsed on one line) and a
+    // full rewrite would expand them and fail format:check in the publish
+    // job. Replace only the version value; every other byte is preserved.
+    const patched = raw.replace(/^(\s*"version"\s*:\s*")[^"]*(")/m, `$1${version}$2`);
+    if (patched === raw) throw new Error(`could not rewrite "version" in ${rel}`);
+    writeFileSync(file, patched);
     report.changed.push(rel);
   }
   return report;
