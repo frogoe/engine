@@ -135,7 +135,7 @@ export const startServer = async (
       // explicit text→parse: runtime json() helpers swallow bad bodies
       // differently everywhere — JSON.parse throws, always
       const payload = JSON.parse(await c.req.text()) as BeaconPayload;
-      // no telemetry config (check --live, library use) → accept + discard:
+      // no telemetry config (check live pass, library use) → accept + discard:
       // the sampler never knows, pages stay identical
       if (!session) return c.body(null, 204);
       const lines = beaconToRecords(payload, Date.now());
