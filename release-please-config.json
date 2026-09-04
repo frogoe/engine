@@ -8,24 +8,29 @@
       "initial-version": "0.1.0",
       "extra-files": [
         {
-          "type": "generic",
-          "path": "packages/lint/package.json"
+          "type": "json",
+          "path": "../lint/package.json",
+          "jsonpath": "$.version"
         },
         {
-          "type": "generic",
-          "path": "packages/contract/package.json"
+          "type": "json",
+          "path": "../contract/package.json",
+          "jsonpath": "$.version"
         },
         {
-          "type": "generic",
-          "path": ".claude-plugin/plugin.json"
+          "type": "json",
+          "path": "../../.claude-plugin/plugin.json",
+          "jsonpath": "$.version"
         },
         {
-          "type": "generic",
-          "path": ".cursor-plugin/plugin.json"
+          "type": "json",
+          "path": "../../.cursor-plugin/plugin.json",
+          "jsonpath": "$.version"
         },
         {
-          "type": "generic",
-          "path": ".codex-plugin/plugin.json"
+          "type": "json",
+          "path": "../../.codex-plugin/plugin.json",
+          "jsonpath": "$.version"
         }
       ]
     }
