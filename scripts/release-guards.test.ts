@@ -42,7 +42,7 @@ describe("packManifestErrors", () => {
     const errors = packManifestErrors(gutted);
     expect(errors).toContain("missing dist/cli.js");
     expect(errors).toContain("missing dist/contract/contract.js");
-    expect(errors.some((e) => e.includes("min 20"))).toBeTrue();
+    expect(errors.some((e: string) => e.includes("min 20"))).toBeTrue();
   });
   test("prefix lookalikes do not satisfy the must-contain check", () => {
     const sneaky = ["npm notice 1.1kB dist/cli.js.map", "npm notice total files: 32"].join("\n");
