@@ -18,6 +18,23 @@ const URL_PATTERN = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/iu;
 
 export const parseTunnelUrl = (chunk: string): string | undefined => URL_PATTERN.exec(chunk)?.[0];
 
+// cloudflared release tags look like 2025.10.1 or 2025.10.1-a — strict
+// charset, no path or shell metacharacters. The tag is attacker-reachable
+// (FROGOE_CLOUDFLARED_VERSION env pin, or a hostile github-api response)
+// and everything downstream derives from it — cache dir, download URL, and
+// ultimately the spawned EXECUTABLE path — so it is validated before it
+// touches any of those (CodeQL: js/command-line-injection).
+const TAG_PATTERN = /^\d{4}\.\d+\.\d+(-[A-Za-z0-9.]+)?$/u;
+
+export const assertSafeTag = (tag: string): string => {
+  if (!TAG_PATTERN.test(tag)) {
+    throw new Error(
+      `cloudflared version "${tag}" is not a valid release tag (expected e.g. 2025.10.1)`,
+    );
+  }
+  return tag;
+};
+
 // ——— tar (ustar) single-file extraction — no dependency for one file ———
 
 const octalAt = (block: Buffer, offset: number, length: number): number => {
@@ -146,10 +163,19 @@ export const resolveBinary = async (onProgress?: (line: string) => void): Promis
     );
   }
 
-  const tag = process.env[ENV_PIN] ?? (await resolveLatestTag());
+  const tag = process.env[ENV_PIN]
+    ? assertSafeTag(process.env[ENV_PIN])
+    : assertSafeTag(await resolveLatestTag());
   const root = path.join(cacheBase(platform, process.env, os.homedir()), "frogoe", "cloudflared");
   const dir = path.join(root, tag);
   const bin = path.join(dir, binaryFileName(platform));
+  // defense in depth: even with a validated tag, the executable must resolve
+  // INSIDE the cache root it was built from — never execute an escaped path
+  const rootResolved = path.resolve(root);
+  const binResolved = path.resolve(bin);
+  if (!binResolved.startsWith(rootResolved + path.sep)) {
+    throw new Error("cloudflared binary path escaped the frogoe cache — refusing to execute");
+  }
   if (existsSync(bin) && binaryEchoes(bin, tag)) return { downloaded: false, path: bin };
 
   onProgress?.(`downloading cloudflared ${tag} (~25 MB, once)…`);

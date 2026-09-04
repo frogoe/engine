@@ -180,6 +180,22 @@ describe("brief parsing", () => {
     expect(brief?.accent).toBe("#ff9e5e");
   });
 
+  test("comment stripping is linear and exact (ReDoS regression)", () => {
+    // a leading # is a VALUE (hex color), never a comment — only
+    // whitespace-preceded # starts one
+    expect(parseBrief("---\nverb: hold\t# note\n---\n")?.verb).toBe("hold");
+    expect(parseBrief('---\nmood: "#cozy fire"\n---\n')?.mood).toBe("#cozy fire");
+    // 8k spaces with no comment terminator: must complete instantly and
+    // trim to empty — the old \s+#.*$ regex backtracked quadratically here
+    const padded = `---\ntitle: ${" ".repeat(8000)}\n---\n`;
+    expect(parseBrief(padded)?.title).toBe("");
+  });
+
+  test("quoted values unwrap; lines without a colon are ignored", () => {
+    const brief = parseBrief('---\ntitle: "Ember"\nthis line has no colon\n---\n');
+    expect(brief?.title).toBe("Ember");
+  });
+
   test("outline-aware contrast: fg vs outline when declared", () => {
     const dir = freshDir("contrast-outline");
     writeGame(dir, {
