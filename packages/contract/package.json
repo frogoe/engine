@@ -1,6 +1,6 @@
 {
   "name": "@frogoe/contract",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "The frogoe platform contract — one closure, four nouns, zero taste",
   "license": "Apache-2.0",
   "files": [
