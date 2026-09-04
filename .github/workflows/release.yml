@@ -149,8 +149,45 @@ jobs:
       - name: Packed tarball must carry the built CLI
         working-directory: packages/cli
         run: |
-          npm pack --dry-run > /tmp/pack.log 2>&1 || { cat /tmp/pack.log; exit 1; }
+          npm pack > /tmp/pack.log 2>&1 || { cat /tmp/pack.log; exit 1; }
           node "$GITHUB_WORKSPACE/scripts/release-guards.mjs" pack /tmp/pack.log
+
+      # The presence guard above only checks files EXIST — 0.2.2 through
+      # 0.3.1 shipped `frogoe init`/`frogoe add` broken from npm installs
+      # because the resolvers looked one directory too high, and nothing
+      # ever executed them from the installed layout. This smoke installs
+      # the real tarball into a scratch prefix and drives the full
+      # first-run path a user hits.
+      - name: Packed tarball must scaffold a real game (init/add/lint smoke)
+        working-directory: packages/cli
+        run: |
+          set -euo pipefail
+          TARBALL="$(ls frogoe-*.tgz)"
+          PREFIX="$RUNNER_TEMP/frogoe-smoke"
+          GAME="$PREFIX/game"
+          npm install --prefix "$PREFIX/pkg" --no-save "$PWD/$TARBALL" >/dev/null
+          CLI="$PREFIX/pkg/node_modules/frogoe/bin/frogoe.mjs"
+          # init/add are cwd-based (no --dir flag) — drive them like a user
+          mkdir -p "$GAME"
+          ( cd "$GAME" && node "$CLI" init smoke )
+          test -f "$GAME/smoke/.frogoe/contract.js"
+          test -f "$GAME/smoke/index.html"
+          ( cd "$GAME/smoke" && node "$CLI" add score-card )
+          test -f "$GAME/smoke/blocks/score-card.html"
+          cat > "$GAME/smoke/BRIEF.md" <<'BRIEF'
+          ---
+          title: Smoke
+          verb: tap
+          mood: ci
+          palette:
+            bg: "#111122"
+            fg: "#eeeeff"
+            accent: "#ff9e5e"
+          ---
+
+          One tap. The pipeline proves the artifact.
+          BRIEF
+          node "$CLI" lint "$GAME/smoke"
 
       # trusted publishing (OIDC) landed in npm 11.5.1 — runner-bundled
       # npm predates it and answers ENEEDAUTH because there is, by design,

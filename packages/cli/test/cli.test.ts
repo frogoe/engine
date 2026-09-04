@@ -6,7 +6,7 @@ import path from "node:path";
 
 import { addBlock } from "../src/add.ts";
 import { checkProject, parseBrief, type Finding } from "@frogoe/lint";
-import { scaffold } from "../src/init.ts";
+import { contractSourceFor, registryRootFor, scaffold } from "../src/init.ts";
 import { startServer } from "../src/run.ts";
 
 const tmpRoot = path.join(import.meta.dir, "../.tmp");
@@ -174,6 +174,38 @@ describe("frogoe check", () => {
   test("dogfood: the reference game (examples/flappy) passes clean", () => {
     const result = checkProject(path.join(import.meta.dir, "../../../examples/flappy"));
     expect(result.errors).toBe(0);
+  });
+});
+
+describe("packaged-layout resolution (npm install regression)", () => {
+  // 0.2.2–0.3.1 shipped init/add broken from an npm install: the resolvers
+  // looked one directory too high (<pkg>/contract, <pkg>/registry) while the
+  // tarball ships the copies BESIDE the bundle (dist/contract, dist/registry).
+  // These tests fabricate both layouts and pin the resolution forever.
+  const write = (p: string, body = "x\n"): void => {
+    mkdirSync(path.dirname(p), { recursive: true });
+    writeFileSync(p, body);
+  };
+
+  test("dist mode: contract + registry resolve beside the bundled cli", () => {
+    const dist = path.join(tmpRoot, "pkg", "dist");
+    write(path.join(dist, "cli.js"));
+    write(path.join(dist, "contract", "contract.js"));
+    write(path.join(dist, "registry", "registry.json"));
+    expect(contractSourceFor(dist)).toBe(path.join(dist, "contract", "contract.js"));
+    expect(registryRootFor(dist)).toBe(path.join(dist, "registry"));
+  });
+
+  test("repo source mode still wins when the workspace contract exists", () => {
+    const src = path.join(tmpRoot, "packages", "cli", "src");
+    write(path.join(tmpRoot, "packages", "contract", "src", "contract.js"));
+    expect(contractSourceFor(src)).toBe(
+      path.join(tmpRoot, "packages", "contract", "src", "contract.js"),
+    );
+  });
+
+  test("missing everything: registry resolution fails loudly", () => {
+    expect(() => registryRootFor(path.join(tmpRoot, "nowhere"))).toThrow(/registry not found/u);
   });
 });
 
