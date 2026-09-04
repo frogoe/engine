@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.2](https://github.com/frogoe/engine/compare/v0.3.1...v0.3.2) (2026-09-04)
+
+
+### Bug Fixes
+
+* **cli:** frogoe init/add from an npm install — dist asset paths ([1c31274](https://github.com/frogoe/engine/commit/1c31274e047f3ed348864bd8148ea1534a616d7a))
+* **cli:** frogoe init/add from an npm install — dist asset paths ([0857d56](https://github.com/frogoe/engine/commit/0857d56da1a98b105240bb546771fe610ce1040f))
+
 ## [0.3.1](https://github.com/frogoe/engine/compare/v0.3.0...v0.3.1) (2026-09-04)
 
 
