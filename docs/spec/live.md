@@ -182,7 +182,7 @@ Adversarial games that fingerprint headless Chrome are out of scope
    `FakeDriver` simulating healthy / never-ending / stuck-loading /
    dead-retry / no-finish-event / frozen-canvas / low-FPS games — full
    orchestration tested without a browser.
-3. **Integration**: `frogoe check --live` against `examples/flappy`
+3. **Integration**: `frogoe check` against `examples/flappy`
    (healthy path, real Chrome) run manually before completion.
 
 ## Docs lockstep (per AGENTS.md)

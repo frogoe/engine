@@ -1,6 +1,6 @@
 # CLI spec — the agent's hands
 
-**Status: LIVE (init/add/run/check/bundle, check --live).**
+**Status: LIVE (init/add/run/lint/check/bundle — check is the full gate: static + live sandbox).**
 
 `frogoe <command>` — outcome-named, JSON-capable, zero config.
 
