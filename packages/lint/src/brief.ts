@@ -1,4 +1,9 @@
-/** BRIEF.md frontmatter parser — pure, no deps. */
+/** BRIEF.md frontmatter parser — pure, no deps.
+ *
+ *  Linear scans only: every pattern here is a single anchored character
+ *  class with no overlapping quantifiers. The previous forms (\s+#.*$,
+ *  ^\s{2,}key:\s*(.*), and the like) backtrack quadratically on
+ *  whitespace-heavy input (CodeQL: js/polynomial-redos). */
 export interface Brief {
   accent?: string;
   bg?: string;
@@ -9,11 +14,35 @@ export interface Brief {
   verb?: string;
 }
 
-const stripComment = (value: string): string =>
-  value
-    .replace(/\s+#.*$/u, "")
-    .trim()
-    .replace(/^["']|["']$/gu, "");
+const KEY_PATTERN = /^[a-z-]+$/u;
+const WS = /\s/u;
+
+/** Strip a trailing `# comment` (whitespace before the hash) and wrapping
+ *  quotes. Manual O(n) scan — no backtracking. */
+const stripComment = (value: string): string => {
+  let cut = -1;
+  for (let i = 1; i < value.length; i += 1) {
+    if (value[i] === "#" && WS.test(value[i - 1] ?? "")) {
+      cut = i;
+      break;
+    }
+  }
+  return (cut === -1 ? value : value.slice(0, cut)).trim().replace(/^["']|["']$/gu, "");
+};
+
+/** One frontmatter line: leading indent, the key before the first colon,
+ *  and everything after it. The linear equivalent of the old
+ *  `^\s{2,}key:\s*(.*)` / `^key:\s*(.*)` regex pair. */
+const parseLine = (line: string): { indent: number; key: string; rest: string } | null => {
+  let indent = 0;
+  while (indent < line.length && line[indent] === " ") indent += 1;
+  const body = line.slice(indent);
+  const colon = body.indexOf(":");
+  if (colon === -1) return null;
+  const key = body.slice(0, colon);
+  if (!KEY_PATTERN.test(key)) return null;
+  return { indent, key, rest: body.slice(colon + 1) };
+};
 
 export const parseBrief = (source: string): Brief | null => {
   const match = /^---\r?\n([\s\S]*?)\r?\n---/u.exec(source);
@@ -26,20 +55,20 @@ export const parseBrief = (source: string): Brief | null => {
     if (rawLine.trim() === "") {
       continue;
     }
-    const nested = /^\s{2,}([a-z-]+):\s*(.*)$/u.exec(rawLine);
-    const top = /^([a-z-]+):\s*(.*)$/u.exec(rawLine);
-    if (nested && section === "palette") {
-      const key = nested[1] as keyof Brief;
-      (brief[key] as string) = stripComment(nested[2] ?? "");
+    const parsed = parseLine(rawLine);
+    if (!parsed) {
       continue;
     }
-    if (top) {
-      section = top[1] ?? "";
+    if (parsed.indent >= 2 && section === "palette") {
+      (brief[parsed.key as keyof Brief] as string) = stripComment(parsed.rest);
+      continue;
+    }
+    if (parsed.indent === 0) {
+      section = parsed.key;
       if (section === "palette") {
         continue;
       }
-      const key = section as keyof Brief;
-      (brief[key] as string) = stripComment(top[2] ?? "");
+      (brief[parsed.key as keyof Brief] as string) = stripComment(parsed.rest);
     }
   }
   return brief;

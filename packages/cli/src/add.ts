@@ -22,16 +22,20 @@ interface RegistryItem {
   placement?: string;
 }
 
-const STYLE_PATTERN = /<style>([\s\S]*?)<\/style>/u;
-const MARKUP_PATTERN = /<\/style>\s*([\s\S]*)$/u;
-
-/** Extract CSS and markup from a block file. */
+/** Extract CSS and markup from a block file. Linear string ops — the old
+ *  `</style>\s*([\s\S]*)$` regex overlapped two unbounded quantifiers and
+ *  backtracked quadratically (CodeQL: js/polynomial-redos); the `\s*` was
+ *  redundant anyway because the caller trims. */
 export const parseBlock = (source: string): { css: string | null; markup: string } => {
-  const styleMatch = STYLE_PATTERN.exec(source);
-  const markupMatch = MARKUP_PATTERN.exec(source);
+  const styleOpen = source.indexOf("<style>");
+  const styleClose = source.indexOf("</style>");
+  const css =
+    styleOpen === -1 || styleClose === -1 || styleClose < styleOpen
+      ? null
+      : source.slice(styleOpen + "<style>".length, styleClose);
   return {
-    css: styleMatch?.[1]?.trim() ?? null,
-    markup: (markupMatch?.[1] ?? "").trim(),
+    css: css?.trim() ?? null,
+    markup: (styleClose === -1 ? "" : source.slice(styleClose + "</style>".length)).trim(),
   };
 };
 

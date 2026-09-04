@@ -8,12 +8,30 @@ import type { IfaceEntry } from "../src/net/ip.ts";
 import { interfaceFromRouteOutput, isLoopback, pickLanIp, selfAddresses } from "../src/net/ip.ts";
 import { lanRisky, planNudge, planStartup } from "../src/net/plan.ts";
 import {
+  assertSafeTag,
   assetName,
   binaryFileName,
   cacheBase,
   extractSingleFile,
   parseTunnelUrl,
 } from "../src/net/tunnel.ts";
+
+describe("assertSafeTag (command-injection guard)", () => {
+  test("real cloudflared release tags pass", () => {
+    expect(assertSafeTag("2025.10.1")).toBe("2025.10.1");
+    expect(assertSafeTag("2024.1.3-a")).toBe("2024.1.3-a");
+  });
+  test("path traversal and shell metacharacters are rejected before any spawn", () => {
+    for (const evil of ["../../evil", "2025.10.1; rm -rf /", "2025.10.1 && id", "$(id)", "`id`"]) {
+      expect(() => assertSafeTag(evil)).toThrow(/not a valid release tag/u);
+    }
+  });
+  test("malformed versions are rejected", () => {
+    for (const bad of ["", "v1.2.3", "latest", "2025.10", "2025.10.1/", " 2025.10.1"]) {
+      expect(() => assertSafeTag(bad)).toThrow(/not a valid release tag/u);
+    }
+  });
+});
 
 /** hand-rolled ustar archive: one 512B header block + padded data */
 const tarOf = (name: string, content: Buffer): Buffer => {
