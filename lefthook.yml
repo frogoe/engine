@@ -16,6 +16,8 @@ pre-commit:
       run: node scripts/check-cli-process-ownership.mjs
     tracked-artifacts:
       run: node scripts/check-tracked-artifacts.mjs
+    lockstep:
+      run: bun run lockstep:check
     registry:
       run: bun run registry:check
 

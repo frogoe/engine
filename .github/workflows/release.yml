@@ -128,6 +128,15 @@ jobs:
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
       - run: bun install --frozen-lockfile
+
+      # release-please bumps only packages/cli (v17 forbids extra-files
+      # outside the package dir), so the release tree arrives with the
+      # lockstep set one version behind. Sync the working tree here so
+      # verify + build + pack see a fully consistent version set; the
+      # lockstep job below lands the same sync on main after publishing.
+      - name: Lockstep sync (working tree)
+        run: node scripts/sync-lockstep-versions.mjs
+
       - run: bun run verify
 
       # the tarball ships dist/ — tests run from src and pass without it,
@@ -184,3 +193,42 @@ jobs:
           done
           echo "::error::frogoe@${VERSION} not visible on npm after publish"
           exit 1
+
+  # release-please can never bump files outside packages/cli (v17 forbids
+  # `..` in extra-files paths), so after every publish the lockstep set on
+  # main is one version behind the just-released packages/cli. This job
+  # syncs main's lockstep targets to main's OWN packages/cli version —
+  # which is exactly the version the release just published — so plugin
+  # stores (which read main) never serve a stale version. No-op when in
+  # sync; the prerelease tag path is naturally safe because the sync
+  # source is main itself, never the tag.
+  lockstep:
+    name: Lockstep versions to main
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: publish
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
+      (github.event.pull_request.merged == true &&
+       startsWith(github.event.pull_request.head.ref, 'release-please--'))
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: main
+      - name: Sync lockstep targets (push only when drifted)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if node scripts/sync-lockstep-versions.mjs --check; then
+            echo "lockstep already in sync — nothing to push"
+            exit 0
+          fi
+          node scripts/sync-lockstep-versions.mjs
+          git add packages/lint/package.json packages/contract/package.json \
+            .claude-plugin/plugin.json .cursor-plugin/plugin.json .codex-plugin/plugin.json
+          VERSION="$(node -p "require('./packages/cli/package.json').version")"
+          git commit -m "chore(lockstep): sync versions to ${VERSION}"
+          git push
