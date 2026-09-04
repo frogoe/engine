@@ -14,6 +14,18 @@
         {
           "type": "generic",
           "path": "packages/contract/package.json"
+        },
+        {
+          "type": "generic",
+          "path": ".claude-plugin/plugin.json"
+        },
+        {
+          "type": "generic",
+          "path": ".cursor-plugin/plugin.json"
+        },
+        {
+          "type": "generic",
+          "path": ".codex-plugin/plugin.json"
         }
       ]
     }
