@@ -16,25 +16,25 @@ npx skills add frogoe/engine    # install all skills
 npx skills add ./engine         # from a sibling clone
 ```
 
-**Read the `frogoe` skill first.** It's the router that confirms the BRIEF (verb, mood, palette) up front, then routes to the domain skills.
+**Read the `/frogoe` skill first.** It's the router that confirms the BRIEF (verb, mood, palette) up front, then routes to the domain skills. `skills/` is distributable (via `npx skills add`); `.claude/skills` + `.agents/skills` are byte-identical mirrors for local dev (checked by `check:skill-mirror`). Native plugin manifests `.claude-plugin/`, `.cursor-plugin/`, `.codex-plugin/` expose the same 5 skills to each store (Claude/Cursor/Codex) without `npx`.
 
 ### Domain skills
 
-- `frogoe-core` — the technical contract: folder form, `defineGame` closure, four nouns (`stage/input/loop/finish`), `window.__frogoe` host handle, HUD bindings, external libraries and the bundler that dissolves them. Read before writing game code.
-- `frogoe-creative` — house style: three dials (VARIANCE/MOTION/DENSITY), lazy defaults to question, typography (banned fonts, voice-to-mood table), named palettes, game feel (motion, feedback, death). Read when choosing how a game looks.
-- `frogoe-cli` — CLI dev loop: init, add, run, check (static + live sandbox), bundle. Finding codes table.
-- `frogoe-registry` — HUD block catalog: how to find, evaluate, install, and author new blocks.
+- `/frogoe-core` — the technical contract: folder form, `defineGame` closure, four nouns (`stage/input/loop/finish`), `window.__frogoe` host handle, HUD bindings, external libraries and the bundler that dissolves them. Read before writing game code.
+- `/frogoe-creative` — house style: three dials (VARIANCE/MOTION/DENSITY), lazy defaults to question, typography (banned fonts, voice-to-mood table), named palettes, game feel (motion, feedback, death). Read when choosing how a game looks.
+- `/frogoe-cli` — CLI dev loop: `frogoe lint` (fast static), `frogoe check` (full gate: static + live sandbox), bundle, report, skills. Finding codes split into `finding-codes.md` / `live-sandbox.md` / `bundle.md`.
+- `/frogoe-registry` — HUD block catalog: `frogoe add` (score-card, fuel-gauge, hearts-row, game-over-card) before hand-writing; how to author new blocks.
 
 ### Skill catalog maintenance
 
-When adding or renaming a skill, update in lockstep: the list above, the `## Skills` section in `README.md`, and `skills-manifest.json`. Out-of-date entries silently kill discovery.
+When adding or renaming a skill, update in lockstep: the list above, the `## Skills` section in `README.md`, `skills-manifest.json` (via `node scripts/gen-skills-manifest.mjs --write`), and the mirrors `.claude/skills` + `.agents/skills` (via `cp -r skills/. .claude/skills/`). Native plugin manifests `.claude-plugin/`, `.cursor-plugin/`, `.codex-plugin/` expose the same 5 skills to each store (Claude/Cursor/Codex) without `npx`. Out-of-date entries or stale hashes silently kill discovery.
 
 ## Build & verify
 
 ```bash
 bun install        # Install dependencies (NOT pnpm — do not create pnpm-lock.yaml)
-bun run verify     # Full gauntlet: format + lint + types + tests + knip + registry
-bun test           # 40 tests across lint + contract + CLI
+bun run verify     # Full gauntlet: format + lint + types + tests + knip + registry + game lint + skill freshness (lint:skills + skill-mirror + packed-manifests)
+bun test           # 138 tests across lint + contract + CLI
 ```
 
 ### Linting & formatting
@@ -49,17 +49,23 @@ bun x oxfmt --check .     # Check formatting (CI / pre-commit)
 
 Always lint and format changed files before committing. Lefthook pre-commit hooks enforce this automatically.
 
-### Game validation
+### Game validation — ALWAYS RUN AFTER CHANGES
 
-After creating or editing a game:
+> **Agents must run `frogoe check` after ANY game code change and fix all errors before
+> presenting the result.** `frogoe lint` is the fast static half; `frogoe check` is the
+> full gate (static + live sandbox) and MUST exit 0 before `frogoe bundle`.
 
 ```bash
-frogoe check             # Static contract lint (BRIEF, folder, input patterns)
-frogoe check --live      # Browser gate: headless Chrome — FPS, playability, HUD outline
-frogoe bundle            # One self-contained HTML (externals dissolved)
+frogoe lint               # fast static contract lint (stable finding codes; --json)
+frogoe check              # full gate: + headless Chrome — FPS, playability, HUD outline
+frogoe bundle             # one self-contained HTML (externals dissolved) — only after check
 ```
 
-Both check commands must pass before considering work complete.
+Common findings: `brief/todo` (fill verb/mood/palette) · `input/incremental-drag` (use
+`x = grabX + p.dx`, never `x += p.dx`) · `folder/touch-select` (user-select none on
+html/body) · `audio/suspended-only` (resume when state is not "running") ·
+`live/hud-outline` (text-shadow on HUD text) · `live/fps` (cache gradients, cut
+shadowBlur) · `live/not-playable` (wire `input.on("down")` to real logic).
 
 ## Project structure
 
@@ -71,8 +77,8 @@ packages/
                           (importable by server, pipeline, studio)
   cli/                  → frogoe CLI: init, add, run, check, bundle
 registry/
-  blocks/               → Installable HUD blocks (10, themeable, with demos)
-skills/                 → AI agent skill definitions (5)
+  blocks/               → Installable HUD blocks (11, themeable, with demos)
+skills/                 → AI agent skill definitions (5, mirrored to .claude/skills + .agents/skills; plugins .claude-plugin/.cursor-plugin/.codex-plugin)
 examples/
   flappy/               → Reference game: Flappy Chick at full quality
 docs/

@@ -43,9 +43,10 @@ npx frogoe init my-game     # or: npm i -g frogoe
 cd my-game
 frogoe run                  # live reload + phone QR; --tunnel works on any network
 frogoe report               # last playtest: fps dips, errors, lock-screens — with timestamps
-frogoe check                # static contract lint
-frogoe check --live         # + headless Chrome: FPS, playability, audio recovery, phone-class throttle
-frogoe bundle               # one self-contained HTML (zero runtime requests)
+frogoe lint                 # fast static contract lint (stable finding codes; --json)
+frogoe check                # full gate: + headless Chrome — FPS, playability, audio recovery, phone-class throttle
+frogoe bundle               # one self-contained HTML (zero runtime requests) — only after check
+frogoe skills check         # skill freshness (hash = per-bundle SHA16)
 ```
 
 **Requirements:** bun or Node.js 22+
@@ -55,7 +56,7 @@ frogoe bundle               # one self-contained HTML (zero runtime requests)
 ```bash
 git clone https://github.com/frogoe/engine && cd engine
 bun install
-bun run verify          # full gauntlet: format + lint + types + tests + knip + registry
+bun run verify          # full gauntlet: format + lint + types + tests + knip + registry + game lint + skill freshness
 ```
 
 Play the reference game and every block demo:
@@ -69,13 +70,13 @@ cd ../../registry/blocks/score-card && bunx serve .   # each block has demo.html
 
 frogoe ships 5 skills agents load on demand. Read `/frogoe` first — it's the router and capability map; it confirms the BRIEF up front and routes to the domain skills below.
 
-| Skill              | Use when                                                                                                                                      |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/frogoe`          | **Read first** for any request to make / create / edit / ship a game. Confirms the BRIEF (verb, mood, palette), routes to domain skills.      |
-| `/frogoe-core`     | The technical contract — folder form, `defineGame` closure, four nouns, HUD bindings, external libraries and the bundler that dissolves them. |
-| `/frogoe-creative` | House style — three dials (VARIANCE / MOTION / DENSITY), lazy defaults to question, typography, named palettes, game feel.                    |
-| `/frogoe-cli`      | CLI dev loop — `init`, `add`, `run`, `check` (static + live sandbox), `bundle`. Finding codes table for self-healing.                         |
-| `/frogoe-registry` | Install and wire registry blocks via `frogoe add`. Authoring a new block to contribute upstream.                                              |
+| Skill              | Use when                                                                                                                                                                                  |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/frogoe`          | **Read first** for any request to make / create / edit / ship a game. Confirms the BRIEF (verb, mood, palette), routes to domain skills.                                                  |
+| `/frogoe-core`     | The technical contract — folder form, `defineGame` closure, four nouns, HUD bindings, external libraries and the bundler that dissolves them.                                             |
+| `/frogoe-creative` | House style — three dials (VARIANCE / MOTION / DENSITY), lazy defaults to question, typography, named palettes, game feel.                                                                |
+| `/frogoe-cli`      | CLI dev loop — `init`, `add`, `run`, `check` (static + live sandbox), `bundle`, `report`. Finding codes split into `finding-codes.md` / `live-sandbox.md` / `bundle.md` for self-healing. |
+| `/frogoe-registry` | Install and wire registry blocks via `frogoe add`. Authoring a new block to contribute upstream.                                                                                          |
 
 ## What You Can Build
 
@@ -145,7 +146,7 @@ Each block is themeable via `--block-*` custom properties from your BRIEF palett
 
 - **Agent-native:** agents already write HTML and JS; the CLI is non-interactive by default; skills teach the patterns generic docs miss.
 - **Zero taste:** the contract draws nothing, sounds nothing, styles nothing. Your game owns the look; the registry owns the building blocks.
-- **Measured quality:** `frogoe check --live` runs your game in headless Chrome through the full lifecycle — boot → play → death → retry, twice — measuring FPS, playability, audio recovery after an injected interruption, and a 4x phone-class CPU-throttle replay. Screenshots are the evidence.
+- **Measured quality:** `frogoe check` runs your game in headless Chrome through the full lifecycle — boot → play → death → retry, twice — measuring FPS, playability, audio recovery after an injected interruption, and a 4x phone-class CPU-throttle replay. Screenshots are the evidence. `frogoe lint` is the fast static half for iteration.
 - **One artifact:** `frogoe bundle` dissolves CDN dependencies into a single self-contained HTML — zero runtime requests, no link rot, verified == played.
 - **Open source:** Apache 2.0, no per-game fees.
 
@@ -153,18 +154,18 @@ Each block is themeable via `--block-*` custom properties from your BRIEF palett
 
 | Package                                                | Description                                                                                                                                    |
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`frogoe`](https://www.npmjs.com/package/frogoe) (npm) | The CLI: `init`, `add`, `run` (+ `--tunnel`), `check` (static + live sandbox), `report`, `bundle`                                              |
+| [`frogoe`](https://www.npmjs.com/package/frogoe) (npm) | The CLI: `init`, `add`, `run` (+ `--tunnel`), `lint` (fast static), `check` (full gate: static + live sandbox), `report`, `bundle`, `skills`   |
 | `@frogoe/contract`                                     | The whole platform (~190 lines, zero taste): defineGame, four nouns, `__frogoe` host handle — workspace-internal, materialized into every game |
 | `@frogoe/lint`                                         | Pure static contract checks, zero browser deps — bundled into the CLI                                                                          |
-| `skills/`                                              | 5 AI agent skills (router, core, creative, cli, registry)                                                                                      |
-| `registry/blocks/`                                     | Themeable HUD blocks with demos — the catalog grows                                                                                            |
+| `skills/`                                              | 5 AI agent skills (router, core, creative, cli, registry) — mirrored to `.claude/skills` + `.agents/skills`                                    |
+| `registry/blocks/`                                     | 11 themeable HUD blocks with demos — the catalog grows                                                                                         |
 | `examples/flappy/`                                     | Reference game: Flappy Chick at Flappy Bird quality                                                                                            |
 
 ## Development
 
 ```bash
 bun install             # Install dependencies (NOT pnpm)
-bun run verify          # Full gauntlet: format + lint + types + tests + knip + registry
+bun run verify          # Full gauntlet: format + lint + types + tests + knip + registry + game lint + skill freshness
 bun test
 ```
 

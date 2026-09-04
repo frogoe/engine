@@ -1,0 +1,40 @@
+{
+  "name": "frogoe",
+  "description": "Write a closure, ship a game. One defineGame closure with four nouns, and a CLI that scaffolds, serves, gates, and bundles feed-ready games as single self-contained HTML files.",
+  "version": "0.2.2",
+  "author": {
+    "name": "frogoe",
+    "url": "https://frogoe.com"
+  },
+  "homepage": "https://frogoe.com",
+  "repository": "https://github.com/frogoe/engine",
+  "license": "Apache-2.0",
+  "keywords": [
+    "frogoe",
+    "game",
+    "canvas",
+    "arcade",
+    "hyper-casual",
+    "defineGame",
+    "stage",
+    "input",
+    "loop",
+    "html5"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Frogoe Engine",
+    "shortDescription": "Write a closure, ship a game",
+    "longDescription": "Build games from one closure with Frogoe. Define games with stage, input, loop, finish, use the CLI for the dev loop (init/run/check/bundle), and install reusable HUD registry blocks. The platform draws nothing — your game owns the look.",
+    "developerName": "frogoe",
+    "category": "Games",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://frogoe.com",
+    "defaultPrompt": [
+      "Make a game where you hold to charge a jump",
+      "Create a flappy-style tap game",
+      "Add a score HUD to this game"
+    ],
+    "brandColor": "#0a0a0a"
+  }
+}

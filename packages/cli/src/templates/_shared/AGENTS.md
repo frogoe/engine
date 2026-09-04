@@ -4,14 +4,14 @@
 
 **Always read the relevant skill before writing or modifying game code.** Skills encode the frogoe contract and creative direction that generic docs don't cover. Skipping them produces broken games.
 
-**Doing anything with frogoe?** Read the `frogoe` skill — it confirms the BRIEF (verb, mood, palette) up front and routes every request. The domain skills it routes to:
+**Doing anything with frogoe?** Read the `/frogoe` skill — it confirms the BRIEF (verb, mood, palette) up front and routes every request. The domain skills it routes to:
 
-- `frogoe-core` — the technical contract: folder form, `defineGame` closure, four nouns, HUD bindings, external libraries. Read before writing any game code.
-- `frogoe-creative` — house style: three dials (VARIANCE/MOTION/DENSITY), lazy defaults, typography, palettes, game feel. Read when choosing how a game looks.
-- `frogoe-cli` — CLI dev loop: init, add, run, check, bundle. Finding codes table for self-healing.
-- `frogoe-registry` — HUD block catalog: find, evaluate, install, author new blocks.
+- `/frogoe-core` — the technical contract: folder form, `defineGame` closure, four nouns, HUD bindings, external libraries. Read before writing any game code.
+- `/frogoe-creative` — house style: three dials (VARIANCE/MOTION/DENSITY), lazy defaults, typography, palettes, game feel. Read when choosing how a game looks.
+- `/frogoe-cli` — CLI dev loop: init, add, run, check, bundle, report. Finding codes split into `finding-codes.md` / `live-sandbox.md` / `bundle.md` for self-healing.
+- `/frogoe-registry` — HUD block catalog: find, evaluate, install, author new blocks.
 
-Skills live at `.agents/skills/` (install via `npx skills add frogoe/engine`). Missing or stale? Re-run the install command and restart the agent session.
+Skills live at `.claude/skills/` and `.agents/skills/` (install via `npx skills add frogoe/engine`; both mirrors stay byte-identical). Missing or stale? Re-run the install and restart the agent session. Check freshness: `frogoe skills check`.
 
 ## The contract
 
@@ -54,15 +54,16 @@ The platform draws NOTHING. Everything visible is your code + HUD blocks from th
 ```bash
 frogoe run                  # serve with live reload + phone QR (safe-area only exists on real devices)
 frogoe run --tunnel         # + public URL — phone works on any network (cloudflared, auto-downloaded once)
-frogoe check                # static contract lint (stable finding codes; --json for CI)
-frogoe check --live         # + headless Chrome: FPS, playability, HUD outline, screenshots
-frogoe bundle               # one self-contained HTML (externals dissolved, zero runtime requests)
 frogoe add <block>          # copy a HUD block into blocks/ (score, hearts, fuel, game-over, etc.)
+frogoe lint                 # fast static contract lint (stable finding codes; --json for CI)
+frogoe check                # full gate: lint + headless Chrome — FPS, playability, HUD outline, screenshots
+frogoe bundle               # one self-contained HTML (externals dissolved) — only after check passes
 ```
 
 > **Agents must run `frogoe check` after ANY code change** and fix all errors before
-> presenting the result. Warnings should be reviewed before bundling. Use `--json` for
-> machine-readable findings that can be fixed programmatically.
+> presenting the result. `frogoe lint` is the fast static half for iteration; `frogoe
+check` is the full gate (static + live sandbox) and MUST exit 0 before `frogoe
+bundle`. Use `--json` for machine-readable findings that can be fixed programmatically.
 
 ## Project structure
 
@@ -79,8 +80,8 @@ frogoe add <block>          # copy a HUD block into blocks/ (score, hearts, fuel
 After creating or editing any file, **always** run:
 
 ```bash
-frogoe check             # static: BRIEF validation, folder structure, input patterns
-frogoe check --live      # browser: runtime errors, canvas painted, FPS, playability
+frogoe lint              # fast static: BRIEF validation, folder structure, input patterns
+frogoe check             # full gate: + browser — runtime errors, canvas painted, FPS, playability
 ```
 
 Fix all errors before presenting the result. Common findings:

@@ -6,6 +6,18 @@ pre-commit:
       run: bun run lint
     check-types:
       run: bun run check-types
+    lint-skills:
+      run: bun run lint:skills
+    skill-mirror:
+      run: node scripts/check-skill-mirror.mjs
+    packed-manifests:
+      run: node scripts/verify-packed-manifests.mjs
+    cli-ownership:
+      run: node scripts/check-cli-process-ownership.mjs
+    tracked-artifacts:
+      run: node scripts/check-tracked-artifacts.mjs
+    registry:
+      run: bun run registry:check
 
 commit-msg:
   commands:

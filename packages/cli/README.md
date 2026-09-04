@@ -24,11 +24,13 @@ frogoe init my-game      # runnable folder: living stub game, BRIEF, pinned cont
 cd my-game
 frogoe run               # live reload + phone QR (try --tunnel: works on any network)
 frogoe add score-card    # themeable HUD block, injected + idempotent
-frogoe check             # static contract lint (stable finding codes, --json)
-frogoe check --live      # headless Chrome: full lifecycle, fps, audio recovery,
-                         # 4x phone-class throttle, screenshots
+frogoe lint              # fast static contract lint (stable finding codes, --json)
+frogoe check             # full gate: lint + headless Chrome — full lifecycle, fps,
+                         # audio recovery, 4x phone-class throttle, screenshots
+frogoe report            # last playtest: fps dips, errors, wall-clock
 frogoe bundle            # ONE self-contained HTML — externals dissolved, zero
-                         # runtime requests
+                         # runtime requests (only after check passes)
+frogoe skills check      # skill freshness (hash = per-bundle SHA16)
 ```
 
 ## Built for agents

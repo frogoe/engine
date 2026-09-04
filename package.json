@@ -19,17 +19,25 @@
     "knip": "knip",
     "prepare": "lefthook install",
     "registry:check": "bun scripts/validate-registry.mjs",
-    "verify": "bun run format:check && bun run lint && bun run check-types && bun test && bun run knip && bun run registry:check"
+    "lint:skills": "tsx scripts/lint-skills.ts",
+    "check:skill-mirror": "node scripts/check-skill-mirror.mjs",
+    "check:packed-manifests": "node scripts/verify-packed-manifests.mjs",
+    "check:cli-process-ownership": "node scripts/check-cli-process-ownership.mjs",
+    "check:tracked-artifacts": "node scripts/check-tracked-artifacts.mjs",
+    "verify": "bun run format:check && bun run lint && bun run check-types && bun test && bun run knip && bun run registry:check && bun packages/cli/src/cli.ts lint examples/flappy && bun run lint:skills && node scripts/check-skill-mirror.mjs && node scripts/verify-packed-manifests.mjs && node scripts/check-cli-process-ownership.mjs && node scripts/check-tracked-artifacts.mjs"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "^21.2.2",
     "@types/bun": "^1.4.0",
+    "@types/node": "^26.4.0",
     "ajv": "^8.20.0",
     "commitlint": "^21.2.2",
     "knip": "^6.33.0",
     "lefthook": "^2.1.12",
     "oxfmt": "^0.65.0",
     "oxlint": "^1.80.0",
-    "typescript": "^7.0.2"
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "yaml": "^2.9.0"
   }
 }

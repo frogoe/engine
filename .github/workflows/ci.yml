@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Verify (format, lint, types, tests, knip, registry)
+    name: Verify (format, lint, types, tests, knip, registry, skill freshness)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -40,5 +40,5 @@ jobs:
         with:
           key: chrome-headless-shell-131.0.6778.204
           path: node_modules/.frogoe-browser
+      - run: bun packages/cli/src/cli.ts lint examples/flappy
       - run: bun packages/cli/src/cli.ts check examples/flappy
-      - run: bun packages/cli/src/cli.ts check --live examples/flappy
