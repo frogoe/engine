@@ -4,6 +4,8 @@
     "registry/**",
     "examples/**",
     "skills/**",
+    ".claude/**",
+    ".agents/**",
     "docs/**",
     "**/CHANGELOG.md",
     "**/.release-please-manifest.json"
