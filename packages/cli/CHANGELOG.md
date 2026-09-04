@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/frogoe/engine/compare/v0.3.0...v0.3.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* **security:** close all 6 CodeQL findings — injection guard + linear parsing ([2ce965c](https://github.com/frogoe/engine/commit/2ce965c134fdd263805b57a032c2e4a352c28e5e))
+* **security:** close all 6 CodeQL findings — injection guard + linear parsing ([c5f5c86](https://github.com/frogoe/engine/commit/c5f5c86b8053f44dc6c0cc17cde5ff74c573ae3d))
+
 ## [0.3.0](https://github.com/frogoe/engine/compare/v0.2.2...v0.3.0) (2026-09-04)
 
 
