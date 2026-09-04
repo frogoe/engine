@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/frogoe/engine/compare/v0.2.2...v0.3.0) (2026-09-04)
+
+
+### Features
+
+* **cli:** check is the full gate, lint the fast static half ([0038329](https://github.com/frogoe/engine/commit/0038329f978f044c481aea19584f9daf515a735d))
+* **cli:** global skills lifecycle — check/update against the published manifest ([c37e822](https://github.com/frogoe/engine/commit/c37e82212c51e6d00664551ab49875c66bf6d808))
+
 ## [0.2.2](https://github.com/frogoe/engine/compare/v0.2.1...v0.2.2) (2026-08-30)
 
 
