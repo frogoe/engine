@@ -1,7 +1,7 @@
 {
   "name": "frogoe",
   "description": "Write a closure, ship a game. One defineGame closure with four nouns, and a CLI that scaffolds, serves, gates, and bundles feed-ready games as single self-contained HTML files.",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "author": {
     "name": "frogoe",
     "url": "https://frogoe.com"
