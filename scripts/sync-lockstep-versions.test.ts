@@ -49,12 +49,30 @@ describe("syncLockstep", () => {
     }
   });
 
-  test("preserves 2-space indent + trailing newline (no reformat churn)", () => {
-    const root = setup("0.3.0", "0.2.2");
+  test("preserves the file's own formatting byte-for-byte (oxfmt-collapsed arrays survive)", () => {
+    const root = freshDir();
+    writeJson(root, "packages/cli/package.json", { name: "frogoe", version: "0.3.0" });
+    // formatted the way oxfmt likes it: short array collapsed to ONE line —
+    // a JSON.stringify rewrite would expand it and fail the publish job's
+    // format:check, so the sync must be surgical
+    const collapsed =
+      '{\n  "name": "frogoe",\n  "version": "0.2.2",\n  "tags": ["game", "canvas"],\n  "skills": "./skills/"\n}\n';
+    mkdirSync(path.join(root, ".cursor-plugin"), { recursive: true });
+    writeFileSync(path.join(root, ".cursor-plugin/plugin.json"), collapsed);
+    for (const rel of [
+      "packages/lint/package.json",
+      "packages/contract/package.json",
+      ".claude-plugin/plugin.json",
+      ".codex-plugin/plugin.json",
+    ]) {
+      writeJson(root, rel, { name: "x", version: "0.2.2" });
+    }
     syncLockstep(root);
-    const raw = readFileSync(path.join(root, ".claude-plugin/plugin.json"), "utf8");
-    expect(raw.endsWith("\n")).toBeTrue();
-    expect(raw).toContain('  "version": "0.3.0"');
+    const after = readFileSync(path.join(root, ".cursor-plugin/plugin.json"), "utf8");
+    expect(after).toContain('"tags": ["game", "canvas"],');
+    expect(after).toContain('"version": "0.3.0"');
+    expect(after.endsWith("\n")).toBeTrue();
+    expect(after).not.toContain("[\n");
   });
 
   test("already-in-sync tree is a no-op and reports current", () => {
@@ -73,15 +91,10 @@ describe("syncLockstep", () => {
     expect(after).toBe(before);
   });
 
-  test("a target without a version field is healed (only the source must carry one)", () => {
+  test("a target without a version field aborts (surgical replace cannot invent a line)", () => {
     const root = setup("0.3.0", "0.2.2");
     writeJson(root, ".codex-plugin/plugin.json", { name: "frogoe" });
-    const report = syncLockstep(root);
-    expect(report.changed).toContain(".codex-plugin/plugin.json");
-    const healed = JSON.parse(
-      readFileSync(path.join(root, ".codex-plugin/plugin.json"), "utf8"),
-    ) as { version: string };
-    expect(healed.version).toBe("0.3.0");
+    expect(() => syncLockstep(root)).toThrow(/could not rewrite "version"/);
   });
 
   test("a source without a version field aborts (never sync from garbage)", () => {
