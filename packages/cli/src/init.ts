@@ -20,10 +20,21 @@ export interface InitResult {
 }
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-// source mode (repo): workspace contract; dist mode (published): copied asset
-const CONTRACT_SOURCE = existsSync(path.join(here, "../../contract/src/contract.js"))
-  ? path.join(here, "../../contract/src/contract.js")
-  : path.join(here, "../contract/contract.js");
+
+/** Where the contract runtime lives, given a base dir (pure, so both
+ *  layouts are testable):
+ *  - repo source mode: packages/cli/src → ../../contract/src/contract.js
+ *  - dist mode (published tarball): the bundle at dist/cli.js, with the
+ *    contract copied BESIDE it at dist/contract/contract.js (build-copy).
+ *    The old `../contract/contract.js` looked one level too high and broke
+ *    every `frogoe init` from an npm install. */
+export const contractSourceFor = (base: string): string => {
+  const repo = path.join(base, "../../contract/src/contract.js");
+  if (existsSync(repo)) return repo;
+  return path.join(base, "contract/contract.js");
+};
+
+const CONTRACT_SOURCE = contractSourceFor(here);
 
 export const scaffold = (name: string, options?: { force?: boolean; dir?: string }): InitResult => {
   const root = options?.dir ?? process.cwd();
@@ -83,11 +94,14 @@ export const rematerializeContract = (projectDir: string): string => {
   return out;
 };
 
-/** Registry resolution: monorepo checkout first, packaged copy second. */
-export const registryRoot = (): string => {
+/** Registry resolution (pure on `base`): monorepo checkout first, then the
+ *  packaged copy that ships beside the bundle (dist/registry — build-copy).
+ *  The old `../registry` candidate looked one level too high and broke every
+ *  `frogoe add` from an npm install. */
+export const registryRootFor = (base: string): string => {
   const candidates = [
-    path.resolve(here, "../../../registry"), // repo source mode
-    path.resolve(here, "../registry"), // dist mode (build:copy)
+    path.resolve(base, "../../../registry"), // repo source mode
+    path.resolve(base, "registry"), // dist mode: beside the bundle
   ];
   for (const candidate of candidates) {
     if (existsSync(path.join(candidate, "registry.json"))) {
@@ -95,6 +109,9 @@ export const registryRoot = (): string => {
     }
   }
   throw new Error(
-    "frogoe: registry not found (expected ../registry or packaged copy). Run from the repo or install @frogoe/cli fully.",
+    "frogoe: registry not found (expected the repo registry or the packaged copy beside the CLI). Run from the repo or reinstall frogoe.",
   );
 };
+
+/** Registry resolution: monorepo checkout first, packaged copy second. */
+export const registryRoot = (): string => registryRootFor(here);
