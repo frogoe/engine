@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sawstorm</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" />
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; touch-action: none;
+      background: var(--game-bg, #1a1424);
+      -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    #c { display: block; width: 100vw; height: 100vh; }
+
+    .hud { position: absolute; inset: 0; pointer-events: none; }
+    .hud > * { position: absolute; }
+    .hud [data-pos="top-left"]      { top: calc(env(safe-area-inset-top) + 12px); left: calc(env(safe-area-inset-left) + 12px); }
+    .hud [data-pos="top-center"]    { top: calc(env(safe-area-inset-top) + 12px); left: 50%; translate: -50% 0; }
+    .hud [data-pos="top-right"]     { top: calc(env(safe-area-inset-top) + 12px); right: calc(env(safe-area-inset-right) + 12px); }
+    .hud [data-pos="bottom-left"]   { bottom: calc(env(safe-area-inset-bottom) + 14px); left: calc(env(safe-area-inset-left) + 14px); }
+    .hud [data-pos="bottom-center"] { bottom: calc(env(safe-area-inset-bottom) + 12px); left: 50%; translate: -50% 0; }
+    .hud [data-pos="bottom-right"]  { bottom: calc(env(safe-area-inset-bottom) + 14px); right: calc(env(safe-area-inset-right) + 14px); }
+
+    /* theme every block from the BRIEF palette — one parent rule */
+    .hud {
+      --block-accent: #ff3b3b;
+      --block-fg: #f2ecff;
+      --block-outline: #120d1a;
+      --block-card: #221830;
+      --block-cta: #ff3b3b;
+      --block-cta-label: #1a0e12;
+      --block-danger: #ff3b3b;
+      --block-font: "Press Start 2P", monospace;
+      font-family: var(--block-font);
+    }
+    /* shape lock: pixel arcade = all-sharp */
+    .hud .block-game-over__card,
+    .hud .block-game-over__retry { border-radius: 0; }
+
+    /* ===== frogoe block: score-card ===== */
+    .block-score-card {
+      color: var(--block-fg);
+      font-family: var(--block-font);
+      font-size: clamp(1.4rem, 5vmin, 2rem);
+      line-height: 1;
+      text-align: center;
+      -webkit-user-select: none;
+      user-select: none;
+      pointer-events: none;
+    }
+    .block-score-card__label {
+      display: block;
+      font-size: 0.42em;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      opacity: 0.85;
+      text-shadow: 0 2px 0 var(--block-outline);
+    }
+    .block-score-card__value {
+      display: block;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0.09em 0 var(--block-outline), 0 0.16em 0.24em rgba(0, 0, 0, 0.35);
+    }
+    .block-score-card__value[data-bump] {
+      animation: block-score-bump 240ms cubic-bezier(0.34, 1.8, 0.5, 1);
+    }
+    @keyframes block-score-bump {
+      from { transform: scale(1.28); }
+      to   { transform: scale(1); }
+    }
+
+    /* ===== frogoe block: game-over-card ===== */
+    .block-game-over {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(10, 6, 16, 0.62);
+      font-family: var(--block-font);
+      color: var(--block-fg);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 220ms ease;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .block-game-over[data-open] {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .block-game-over__card {
+      display: grid;
+      justify-items: center;
+      gap: 0.6em;
+      min-width: min(78vw, 22rem);
+      padding: 2rem 2.4rem 2.2rem;
+      background: var(--block-card);
+      border: 2px solid rgba(255, 59, 59, 0.35);
+      box-shadow: 0 0.8rem 2.4rem rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+    .block-game-over[data-open] .block-game-over__card {
+      animation: block-card-in 320ms cubic-bezier(0.34, 1.56, 0.5, 1);
+    }
+    @keyframes block-card-in {
+      from { transform: translateY(1.2rem) scale(0.92); opacity: 0; }
+    }
+    .block-game-over__title {
+      font-size: clamp(1.1rem, 5vmin, 1.6rem);
+      letter-spacing: 0.06em;
+      text-shadow: 0 3px 0 var(--block-outline);
+    }
+    .block-game-over__subtitle {
+      font-size: 0.6rem;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      opacity: 0.6;
+      text-shadow: 0 2px 0 var(--block-outline);
+    }
+    .block-game-over[data-new-best] .block-game-over__subtitle {
+      color: var(--block-accent);
+      opacity: 1;
+      animation: block-best-pulse 800ms ease-in-out infinite alternate;
+    }
+    @keyframes block-best-pulse {
+      from { opacity: 1; }
+      to   { opacity: 0.55; }
+    }
+    .block-game-over__score {
+      font-size: clamp(2rem, 10vmin, 3.2rem);
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+      text-shadow: 0 4px 0 var(--block-outline);
+    }
+    .block-game-over__best {
+      font-size: 0.7rem;
+      opacity: 0.75;
+      text-shadow: 0 2px 0 var(--block-outline);
+    }
+    .block-game-over__retry {
+      margin-top: 0.9em;
+      font-family: inherit;
+      font-size: 0.9rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--block-cta-label);
+      background: var(--block-cta);
+      text-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+      border: none;
+      padding: 1em 2.4em;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #a31717;
+      transition: transform 80ms ease, box-shadow 80ms ease;
+    }
+    .block-game-over__retry:active {
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 #a31717;
+    }
+
+    /* ===== ready veil: dim the world until the run starts ===== */
+    .ready-veil {
+      position: absolute;
+      inset: 0;
+      background: rgba(19, 14, 29, 0.6);
+      opacity: 1;
+      transition: opacity 300ms ease;
+      pointer-events: none;
+    }
+    body:not([data-ready]) .ready-veil { opacity: 0; }
+
+    /* score + pad exist only once the run lives */
+    .hud .block-score-card,
+    .hud .pad { transition: opacity 250ms ease; }
+    body[data-ready] .hud .block-score-card,
+    body[data-ready] .hud .pad { opacity: 0; }
+
+    /* ===== ready screen: title + chunky PLAY button, centered in the arena ===== */
+    .block-ready {
+      display: grid;
+      justify-items: center;
+      gap: 1.1em;
+      max-width: min(84vw, 400px); /* never wider than the arena box */
+      color: var(--block-fg);
+      font-family: var(--block-font);
+      text-align: center;
+      pointer-events: none;
+      -webkit-user-select: none;
+      user-select: none;
+      transition: opacity 200ms ease, scale 200ms ease;
+    }
+    .block-ready[data-hidden] {
+      opacity: 0;
+      scale: 0.9;
+    }
+    .block-ready__title {
+      font-size: clamp(1.5rem, 9vmin, 3rem);
+      letter-spacing: 0.06em;
+      line-height: 1.1;
+      white-space: nowrap;
+      text-shadow: 0 4px 0 var(--block-outline), 0 8px 16px rgba(0, 0, 0, 0.35);
+    }
+    .ready-cta {
+      pointer-events: auto;
+      font-family: inherit;
+      font-size: 0.95rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--block-cta-label);
+      background: var(--block-cta);
+      text-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+      border: none;
+      padding: 1em 2.6em;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #a31717;
+      transition: transform 80ms ease, box-shadow 80ms ease;
+    }
+    .ready-cta:active {
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 #a31717;
+    }
+    .block-ready:not([data-hidden]) .block-ready__title {
+      animation: block-ready-breathe 1.8s ease-in-out infinite alternate;
+    }
+    @keyframes block-ready-breathe {
+      from { transform: scale(1); }
+      to   { transform: scale(1.04); }
+    }
+
+    /* ===== sudden death banner ===== */
+    .sudden {
+      top: 34%;
+      left: 50%;
+      translate: -50% 0;
+      color: var(--block-accent);
+      font-family: var(--block-font);
+      font-size: clamp(1rem, 5vmin, 1.6rem);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      text-shadow: 0 3px 0 var(--block-outline);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .sudden[data-on] {
+      animation: sudden-flash 0.5s steps(2) infinite;
+    }
+    @keyframes sudden-flash {
+      from { opacity: 1; }
+      to   { opacity: 0.25; }
+    }
+
+    /* ===== on-screen controls (two-hand arcade pad) =====
+     * touch devices only — desktop plays on the keyboard.
+     * Faded (not display:none) on fine pointers so the boxes keep their size. */
+    .pad {
+      display: flex; gap: 14px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 250ms ease;
+    }
+    @media (pointer: coarse) {
+      .pad { opacity: 1; pointer-events: auto; }
+    }
+    .pad-btn {
+      width: clamp(64px, 17vmin, 76px);
+      height: clamp(60px, 16vmin, 74px);
+      display: grid;
+      place-items: center;
+      font-family: var(--block-font);
+      font-size: 0.66rem;
+      color: var(--block-fg);
+      text-shadow: 0 2px 0 var(--block-outline);
+      background: rgba(26, 20, 36, 0.72);
+      border: 2px solid rgba(242, 236, 255, 0.35);
+      box-shadow: 0 4px 0 var(--block-outline);
+      cursor: pointer;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      transition: transform 60ms ease, box-shadow 60ms ease, border-color 60ms ease;
+    }
+    .pad-btn[data-held] {
+      transform: translateY(4px);
+      box-shadow: 0 0 0 var(--block-outline);
+      border-color: var(--block-accent);
+      color: var(--block-accent);
+      background: rgba(255, 59, 59, 0.22);
+    }
+    .pad-jump {
+      width: clamp(88px, 22vmin, 104px);
+    }
+    .ready-cta, .block-game-over__retry {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    /* CSS triangles — no emoji icons */
+    .tri {
+      width: 0; height: 0;
+      border-top: 10px solid transparent;
+      border-bottom: 10px solid transparent;
+    }
+    .tri-l { border-right: 14px solid currentColor; }
+    .tri-r { border-left: 14px solid currentColor; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .block-score-card__value[data-bump] { animation: none; }
+      .block-game-over[data-open] .block-game-over__card { animation: none; }
+      .block-game-over[data-new-best] .block-game-over__subtitle { animation: none; }
+      .block-game-over { transition: none; }
+      .block-ready:not([data-hidden]) .block-ready__title { animation: none; }
+      .block-ready { transition: none; }
+      .sudden[data-on] { animation: none; opacity: 1; }
+    }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "frogoe": "./.frogoe/contract.js"
+    }
+  }
+  </script>
+</head>
+<body data-ready>
+  <canvas id="c"></canvas>
+  <div class="hud">
+    <!-- ready veil: sits over the world, under the title -->
+    <div class="ready-veil"></div>
+
+    <!-- frogoe:block:score-card — the only number on screen -->
+    <div data-pos="top-center">
+      <div class="block-score-card">
+        <span class="block-score-card__label">Score</span>
+        <span class="block-score-card__value" data-block-score>0</span>
+      </div>
+    </div>
+
+    <!-- frogoe:block:ready — title + PLAY, dead center of the arena -->
+    <div data-pos="top-center" style="top: 44%; translate: -50% -50%;">
+      <div class="block-ready" data-block-ready>
+        <span class="block-ready__title">SAWSTORM</span>
+        <button class="ready-cta" data-block-play type="button">PLAY</button>
+      </div>
+    </div>
+
+    <!-- sudden death banner -->
+    <div class="sudden" data-block-sudden>Sudden Death</div>
+
+    <!-- on-screen controls -->
+    <div class="pad" data-pos="bottom-left">
+      <button class="pad-btn" id="btnL" type="button" aria-label="left"><span class="tri tri-l"></span></button>
+      <button class="pad-btn" id="btnR" type="button" aria-label="right"><span class="tri tri-r"></span></button>
+    </div>
+    <div class="pad" data-pos="bottom-right">
+      <button class="pad-btn pad-jump" id="btnJ" type="button">JUMP</button>
+    </div>
+
+    <!-- frogoe:block:game-over-card -->
+    <div class="block-game-over" data-block-gameover>
+      <div class="block-game-over__card">
+        <span class="block-game-over__title">SLICED</span>
+        <span class="block-game-over__subtitle" data-block-subtitle>Score</span>
+        <span class="block-game-over__score" data-block-final>0</span>
+        <span class="block-game-over__best">Best <b data-block-best>0</b></span>
+        <button class="block-game-over__retry" type="button" data-block-retry>Retry</button>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="game.js"></script>
+</body>
+</html>

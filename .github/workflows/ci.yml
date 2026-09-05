@@ -42,3 +42,5 @@ jobs:
           path: node_modules/.frogoe-browser
       - run: bun packages/cli/src/cli.ts lint examples/flappy
       - run: bun packages/cli/src/cli.ts check examples/flappy
+      - run: bun packages/cli/src/cli.ts lint examples/sawstorm
+      - run: bun packages/cli/src/cli.ts check examples/sawstorm

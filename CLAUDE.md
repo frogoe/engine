@@ -80,7 +80,9 @@ registry/
   blocks/               → Installable HUD blocks (11, themeable, with demos)
 skills/                 → AI agent skill definitions (5, mirrored to .claude/skills + .agents/skills; plugins .claude-plugin/.cursor-plugin/.codex-plugin)
 examples/
-  flappy/               → Reference game: Flappy Chick at full quality
+  flappy/               → Reference game: Flappy Chick (tap) at full quality
+  sawstorm/             → Reference game: Sawstorm — arena survival (touch pad,
+                          sudden death, safe persistence) by deni + GLM 5.3
 docs/
   spec/                 → Bundler + CLI specifications
 ```
