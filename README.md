@@ -59,7 +59,7 @@ bun install
 bun run verify          # full gauntlet: format + lint + types + tests + knip + registry + game lint + skill freshness
 ```
 
-Play the reference game and every block demo:
+Play the reference games and every block demo:
 
 ```bash
 cd examples/flappy && bunx serve .
@@ -159,7 +159,8 @@ Each block is themeable via `--block-*` custom properties from your BRIEF palett
 | `@frogoe/lint`                                         | Pure static contract checks, zero browser deps — bundled into the CLI                                                                          |
 | `skills/`                                              | 5 AI agent skills (router, core, creative, cli, registry) — mirrored to `.claude/skills` + `.agents/skills`                                    |
 | `registry/blocks/`                                     | 11 themeable HUD blocks with demos — the catalog grows                                                                                         |
-| `examples/flappy/`                                     | Reference game: Flappy Chick at Flappy Bird quality                                                                                            |
+| `examples/flappy/`                                     | Reference game: Flappy Chick (tap runner) at Flappy Bird quality                                                                               |
+| `examples/sawstorm/`                                   | Reference game: Sawstorm — arena survival with touch pad, sudden death, safe persistence                                                       |
 
 ## Development
 
