@@ -1,6 +1,7 @@
 import { defineCommand } from "citty";
 
 import { bundle } from "../bundle.ts";
+import { rasterizeArt } from "../raster.ts";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -18,13 +19,16 @@ export const command = defineCommand({
       : path.join(dir, "dist", "index.html");
     mkdirSync(path.dirname(outPath), { recursive: true });
     writeFileSync(outPath, report.artifact, "utf-8");
-    for (const warning of report.warnings) {
+    // identity art: authored SVG → dist PNG (poster 1080×1920, icon 1024)
+    const art = await rasterizeArt({ dir });
+    for (const warning of [...report.warnings, ...art.warnings]) {
       console.log(`  ⚠ ${warning}`);
     }
     if (args.json) {
       console.log(
         JSON.stringify(
           {
+            art: art.files,
             artifact: outPath,
             assets: report.assets,
             bytes: report.bytes,
@@ -42,6 +46,9 @@ export const command = defineCommand({
       );
       for (const asset of report.assets) {
         console.log(`    ${asset.kind.padEnd(5)} ${asset.source}`);
+      }
+      for (const file of art.files) {
+        console.log(`    art   ${file.file} (${file.bytes} bytes)`);
       }
     }
   },

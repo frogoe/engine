@@ -38,6 +38,20 @@ const fillBrief = (dir: string): void => {
   );
 };
 
+const fillArt = (dir: string): void => {
+  mkdirSync(path.join(dir, "assets"), { recursive: true });
+  // authored scenes — the scaffold stubs intentionally fail art/empty
+  // until composed; tests compose them (the contract in miniature)
+  writeFileSync(
+    path.join(dir, "assets", "poster.js"),
+    'import { C } from "../game.js";\n\nexport function drawPoster(ctx, w, h) {\n  ctx.fillStyle = C.bg;\n  ctx.fillRect(0, 0, w, h);\n  ctx.fillStyle = C.accent;\n  ctx.beginPath();\n  ctx.arc(w / 2, h / 2, 120, 0, 7);\n  ctx.fill();\n}\n',
+  );
+  writeFileSync(
+    path.join(dir, "assets", "icon.js"),
+    'import { C } from "../game.js";\n\nexport function drawIcon(ctx, size) {\n  ctx.fillStyle = C.bg;\n  ctx.fillRect(0, 0, size, size);\n  ctx.fillStyle = C.accent;\n  ctx.beginPath();\n  ctx.arc(size / 2, size / 2, 160, 0, 7);\n  ctx.fill();\n}\n',
+  );
+};
+
 describe("frogoe init", () => {
   test("scaffolds a complete, bootable folder", () => {
     const parent = freshDir("init-parent");
@@ -107,6 +121,7 @@ describe("frogoe check", () => {
     scaffold("g", { dir: parent });
     const dir = path.join(parent, "g");
     fillBrief(dir);
+    fillArt(dir);
     const result = checkProject(dir);
     expect(result.errors).toBe(0);
   });
@@ -116,6 +131,7 @@ describe("frogoe check", () => {
     scaffold("g", { dir: parent });
     const dir = path.join(parent, "g");
     fillBrief(dir);
+    fillArt(dir);
 
     const indexFile = path.join(dir, "index.html");
     const gameFile = path.join(dir, "game.js");
@@ -132,6 +148,7 @@ describe("frogoe check", () => {
 
     // brief/contrast: fg ≈ bg
     fillBrief(dir);
+    fillArt(dir);
     writeFileSync(
       path.join(dir, "BRIEF.md"),
       '---\ntitle: Low\nverb: tap\nmood: dim\npalette:\n  bg: "#121212"\n  fg: "#1a1a1a"\n  accent: "#ff9e5e"\n---\nx\n',
@@ -139,6 +156,7 @@ describe("frogoe check", () => {
     codes = checkProject(dir).findings.map((f: Finding) => f.code);
     expect(codes).toContain("brief/contrast");
     fillBrief(dir);
+    fillArt(dir);
 
     // folder/canvas + folder/viewport-fit + folder/importmap
     const html = readFileSync(indexFile, "utf-8");
@@ -164,6 +182,7 @@ describe("frogoe check", () => {
     expect(codes).toContain("input/incremental-drag");
     scaffold("g", { dir: parent, force: true });
     fillBrief(dir);
+    fillArt(dir);
 
     // folder/contract-pin drift
     writeFileSync(pinFile, JSON.stringify({ contract: "9.9.9" }));

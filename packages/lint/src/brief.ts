@@ -7,6 +7,8 @@
 export interface Brief {
   accent?: string;
   bg?: string;
+  /** display font name — the poster lettering and the game share it */
+  fonts?: string;
   fg?: string;
   mood?: string;
   outline?: string;

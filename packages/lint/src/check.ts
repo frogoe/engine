@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { parseBrief } from "./brief.ts";
 import { contrastRatio, isHex } from "./contrast.ts";
+import { checkArt } from "./art.ts";
 
 export type Severity = "error" | "warning";
 
@@ -349,6 +350,7 @@ const checkPin = (dir: string, findings: Finding[]): void => {
 
 export const checkProject = (dir: string): CheckResult => {
   const findings: Finding[] = [];
+  checkArt(dir, findings);
   checkBrief(dir, findings);
   checkFolder(dir, findings);
   checkPin(dir, findings);

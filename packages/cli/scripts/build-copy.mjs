@@ -16,6 +16,13 @@ cpSync(
   path.resolve(here, "../../contract/src/contract.js"),
   path.join(out, "contract", "contract.js"),
 );
+// pixel analyzers — shipped VERBATIM (esbuild renaming breaks toString()
+// injection; bun inlines module consts, esbuild doesn't — the divergence
+// shipped a broken npm CLI). Read at runtime and injected into pages as-is.
+cpSync(
+  path.resolve(__dirname, "../src/injected-runtime.js"),
+  path.join(out, "injected-runtime.js"),
+);
 // agent docs (CLAUDE.md + AGENTS.md) for frogoe init scaffolds
 cpSync(path.resolve(here, "../src/templates/_shared"), path.join(out, "templates/_shared"), {
   recursive: true,

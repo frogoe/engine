@@ -29,6 +29,8 @@ Commands:
   check [dir]              full gate: lint + live Chrome sandbox (FPS, HUD outline)
   report [dir]             last playtest session: fps dips, errors, when
   bundle [dir]             dissolve externals → one self-contained HTML
+  embed [dir]              wrap the bundle in a card (poster + manifest)
+  vision [dir]             see the game: objects, frames, art as ASCII maps
   skills [check|update]    skill freshness — check or update via npx skills add
 
 Docs: skills/frogoe-core — the whole contract in five references.`;
@@ -39,6 +41,8 @@ const main = defineCommand({
     add: () => import("./commands/add.ts").then((m) => m.command),
     bundle: () => import("./commands/bundle.ts").then((m) => m.command),
     check: () => import("./commands/check.ts").then((m) => m.command),
+    embed: () => import("./commands/embed.ts").then((m) => m.command),
+    vision: () => import("./commands/vision.ts").then((m) => m.command),
     init: () => import("./commands/init.ts").then((m) => m.command),
     lint: () => import("./commands/lint.ts").then((m) => m.command),
     report: () => import("./commands/report.ts").then((m) => m.command),

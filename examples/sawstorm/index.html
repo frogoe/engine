@@ -171,7 +171,7 @@
     .hud .block-score-card,
     .hud .pad { transition: opacity 250ms ease; }
     body[data-ready] .hud .block-score-card,
-    body[data-ready] .hud .pad { opacity: 0; }
+    body[data-ready] .hud .pad { opacity: 0; pointer-events: none; }
 
     /* ===== ready screen: title + chunky PLAY button, centered in the arena ===== */
     .block-ready {
@@ -248,8 +248,11 @@
     }
 
     /* ===== on-screen controls (two-hand arcade pad) =====
-     * touch devices only — desktop plays on the keyboard.
-     * Faded (not display:none) on fine pointers so the boxes keep their size. */
+     * Touch devices only — desktop plays on the keyboard (the embed
+     * card focuses the frame on running, so keys land there too).
+     * Same gate on every surface: (pointer: coarse) evaluates the
+     * DEVICE, so direct page and embed card behave identically.
+     * Faded (not display:none) so the boxes keep their size. */
     .pad {
       display: flex; gap: 14px;
       opacity: 0;

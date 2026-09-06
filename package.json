@@ -26,7 +26,9 @@
     "check:tracked-artifacts": "node scripts/check-tracked-artifacts.mjs",
     "lockstep:sync": "node scripts/sync-lockstep-versions.mjs",
     "lockstep:check": "node scripts/sync-lockstep-versions.mjs --check",
-    "verify": "bun run format:check && bun run lint && bun run check-types && bun test && bun run knip && bun run registry:check && bun packages/cli/src/cli.ts lint examples/flappy && bun packages/cli/src/cli.ts lint examples/sawstorm && bun run lint:skills && node scripts/check-skill-mirror.mjs && node scripts/verify-packed-manifests.mjs && node scripts/check-cli-process-ownership.mjs && node scripts/check-tracked-artifacts.mjs"
+    "verify": "bun run format:check && bun run lint && bun run check-types && bun test && bun run knip && bun run registry:check && bun packages/cli/src/cli.ts lint examples/flappy && bun packages/cli/src/cli.ts lint examples/sawstorm && bun run lint:skills && node scripts/check-skill-mirror.mjs && node scripts/verify-packed-manifests.mjs && node scripts/check-cli-process-ownership.mjs && node scripts/check-tracked-artifacts.mjs && node scripts/verify-npm.mjs",
+    "verify:art": "bun packages/cli/src/cli.ts check examples/flappy && bun packages/cli/src/cli.ts bundle examples/flappy && bun packages/cli/src/cli.ts embed examples/flappy && bun packages/cli/test/embed.e2e.ts examples/flappy/dist/embed.html && bun packages/cli/src/cli.ts check examples/sawstorm && bun packages/cli/src/cli.ts bundle examples/sawstorm && bun packages/cli/src/cli.ts embed examples/sawstorm && bun packages/cli/test/embed.e2e.ts examples/sawstorm/dist/embed.html",
+    "verify:npm": "node scripts/verify-npm.mjs"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "^21.2.2",

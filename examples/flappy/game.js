@@ -5,8 +5,15 @@
 import { defineGame } from "frogoe";
 
 // ── canonical Flappy Bird palette (pixel-extracted) ────────────────────────
+// exported: the identity art (assets/poster.js, assets/icon.js) renders
+// with THESE constants and THESE sprite functions — key art is 1:1 with
+// the shipped game by construction, not by imitation.
 
-const C = {
+/** One pose, every surface — the poster and the icon render the hero
+ *  from these constants so the brand reads identical everywhere. */
+export const HERO_POSE = { rot: -12, wingPhase: 0.32 };
+
+export const C = {
   // universal outline — warm plum, not black, wraps EVERY foreground sprite
   outline: "#543847",
   // bird
@@ -114,6 +121,279 @@ const Sfx = {
     this.tone(300, 0.4, 0.3, "sawtooth", 50);
     setTimeout(() => this.tone(200, 0.3, 0.2, "square", 30), 100);
   },
+};
+
+// ── sprites (pure: explicit geometry, no closure state) ───────────────────
+
+export function drawBackground(ctx, w, h, groundH) {
+  // flat sky (one color, no gradient — Flappy Bird's sky IS flat)
+  ctx.fillStyle = C.sky;
+  ctx.fillRect(-4, -4, w + 8, h + 8);
+
+  // cloud band: scalloped puffs, no outline (atmospheric perspective)
+  const cloudY = h - groundH - 140;
+  ctx.fillStyle = C.cloud;
+  ctx.beginPath();
+  ctx.moveTo(0, cloudY + 30);
+  for (let x = 0; x <= w + 60; x += 60) {
+    ctx.arc(x + 30, cloudY + 16, 22, Math.PI, 0);
+    ctx.arc(x + 52, cloudY + 18, 16, Math.PI, 0);
+    ctx.arc(x + 8, cloudY + 18, 14, Math.PI, 0);
+  }
+  ctx.lineTo(w, cloudY + 30);
+  ctx.closePath();
+  ctx.fill();
+
+  // city skyline: flat pale buildings, no outline
+  ctx.fillStyle = C.city;
+  const cityY = cloudY + 24;
+  for (let x = 0; x <= w; x += 40) {
+    const bh = 14 + ((x * 7) % 20);
+    ctx.fillRect(x, cityY - bh, 36, bh + 40);
+    // window dots
+    ctx.fillStyle = "rgba(180,220,190,0.6)";
+    ctx.fillRect(x + 8, cityY - bh + 4, 3, 3);
+    ctx.fillRect(x + 20, cityY - bh + 4, 3, 3);
+    ctx.fillRect(x + 14, cityY - bh + 12, 3, 3);
+    ctx.fillStyle = C.city;
+  }
+
+  // bush band: scalloped green bumps, no outline
+  const bushY = cityY + 30;
+  ctx.fillStyle = C.bush;
+  ctx.beginPath();
+  ctx.moveTo(0, bushY + 30);
+  for (let x = 0; x <= w + 40; x += 32) {
+    ctx.arc(x + 16, bushY + 12, 14, Math.PI, 0);
+  }
+  ctx.lineTo(w, bushY + 30);
+  ctx.closePath();
+  ctx.fill();
+}
+
+export function drawPipe(ctx, x, gapY, groundY, pipeW, gap) {
+  const w = pipeW;
+  const capH = 22;
+  const capOverhang = 3;
+  const capW = w + capOverhang * 2;
+  const cx = x - capOverhang;
+  const gy = groundY;
+
+  // stepped cylinder gradient (one shared fn for shaft + cap)
+  const fillGradient = (fx, fw, fy, fh) => {
+    const cols = C.pipeRamp;
+    const steps = 14; // smooth ramp, not visible steps
+    const peak = 0.35; // highlight peak position from left
+    for (let i = 0; i < steps; i++) {
+      const p = i / steps;
+      let col;
+      if (p < peak) {
+        // highlight side: bright → mid
+        const t = p / peak;
+        col = cols[Math.floor(t * 2)];
+      } else {
+        // shadow side: mid → dark
+        const t = (p - peak) / (1 - peak);
+        col = cols[2 + Math.floor(t * (cols.length - 3))];
+      }
+      ctx.fillStyle = col;
+      ctx.fillRect(fx + p * fw, fy, Math.ceil(fw / steps) + 1, fh);
+    }
+    // flat shadow (right ~20%)
+    ctx.fillStyle = C.pipeShadow;
+    ctx.fillRect(fx + fw * 0.82, fy, fw * 0.18, fh);
+    // rim light (left inner edge — the signature glow line)
+    ctx.fillStyle = C.pipeRimLight;
+    ctx.fillRect(fx + 2, fy, 2, fh);
+  };
+
+  // ── top pipe (ceiling → gapY) ───────────────────────────────────
+  // shaft
+  fillGradient(x + 1, w - 2, 0, gapY - capH);
+  ctx.strokeStyle = C.outline;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x, 0);
+  ctx.lineTo(x, gapY - capH);
+  ctx.moveTo(x + w, 0);
+  ctx.lineTo(x + w, gapY - capH);
+  ctx.stroke();
+  // cap (drawn OVER shaft end — seamless join)
+  fillGradient(cx + 1, capW - 2, gapY - capH, capH);
+  ctx.strokeRect(cx, gapY - capH, capW, capH);
+  // cap top rim (facing the gap — this is the "lip" the bird sees)
+  ctx.fillStyle = C.pipeRimLight;
+  ctx.fillRect(cx + 2, gapY - capH + 1, capW - 4, 2);
+
+  // ── bottom pipe (gapY + gap → ground) ───────────────────────────
+  // cap first (drawn over shaft start — seamless)
+  fillGradient(cx + 1, capW - 2, gapY + gap, capH);
+  ctx.strokeRect(cx, gapY + gap, capW, capH);
+  // cap bottom rim
+  ctx.fillStyle = C.pipeRimLight;
+  ctx.fillRect(cx + 2, gapY + gap + capH - 3, capW - 4, 2);
+  // shaft from below cap to ground
+  fillGradient(x + 1, w - 2, gapY + gap + capH, gy - (gapY + gap + capH));
+  ctx.beginPath();
+  ctx.moveTo(x, gapY + gap + capH);
+  ctx.lineTo(x, gy);
+  ctx.moveTo(x + w, gapY + gap + capH);
+  ctx.lineTo(x + w, gy);
+  ctx.stroke();
+}
+
+export function drawGround(ctx, w, groundY, groundH, groundOff) {
+  const gy = groundY;
+
+  // outline line
+  ctx.fillStyle = C.outline;
+  ctx.fillRect(0, gy - 1, w, 2);
+
+  // grass: highlight line + diagonal striped body
+  ctx.fillStyle = C.dirtHighlight;
+  ctx.fillRect(0, gy + 1, w, 2);
+
+  // diagonal grass stripes (the Mario grass motif — 45° alternating)
+  const grassH = 12;
+  for (let x = -groundOff - 24; x < w + 24; x += 12) {
+    // alternate colors, shift for diagonal effect
+    const isLight = Math.floor((x + groundOff) / 12) % 2 === 0;
+    ctx.fillStyle = isLight ? C.grassLight : C.grassMid;
+    // draw diagonal stripe
+    ctx.beginPath();
+    ctx.moveTo(x, gy + 3);
+    ctx.lineTo(x + 12, gy + 3);
+    ctx.lineTo(x + 12 - 4, gy + 3 + grassH);
+    ctx.lineTo(x - 4, gy + 3 + grassH);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // grass shadow line
+  ctx.fillStyle = C.grassShadow;
+  ctx.fillRect(0, gy + 3 + grassH, w, 2);
+
+  // dirt highlight line
+  ctx.fillStyle = C.dirtLine;
+  ctx.fillRect(0, gy + 5 + grassH, w, 2);
+
+  // dirt body (flat, no texture — Flappy Bird's dirt IS flat)
+  ctx.fillStyle = C.dirt;
+  ctx.fillRect(0, gy + 7 + grassH, w, groundH - 7 - grassH);
+}
+
+/** The chick. pose: { rot (deg), wingPhase (0..1 flap), dying }.
+ *  Same anatomy at any r — line weights scale with the body. */
+export function drawBird(ctx, x, y, r, pose = {}) {
+  // BOX CHICK — the bird speaks in squares: a rounded-square body,
+  // block tuft and tail, a bill of two stacked blocks, a wing that is
+  // one rotating bar — and one soft circle (the eye) for the cute.
+  const rot = pose.rot ?? 0;
+  const wingPhase = pose.wingPhase ?? 0;
+  const dying = pose.dying ?? false;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate((rot * Math.PI) / 180);
+  const o = C.outline;
+  const lw = (2 * Math.min(r, 26)) / 13 + Math.max(0, r - 26) * 0.05;
+  ctx.lineJoin = "round";
+  ctx.lineWidth = lw;
+  const block = (bx, by, bw, bh, br) => {
+    ctx.beginPath();
+    ctx.roundRect(bx * r, by * r, bw * r, bh * r, br * r);
+  };
+
+  // ── tail: one block, out the back ─────────────────────────────────
+  block(-1.18, 0.02, 0.4, 0.3, 0.08);
+  ctx.fillStyle = C.birdBody;
+  ctx.fill();
+  ctx.strokeStyle = o;
+  ctx.stroke();
+
+  // ── tuft: ONE block feather on the crown ──────────────────────────
+  block(0.0, -1.1, 0.24, 0.3, 0.08);
+  ctx.fill();
+  ctx.stroke();
+
+  // ── body: THE square + quiet block shading ────────────────────────
+  const body = () => block(-0.85, -0.85, 1.7, 1.7, 0.35);
+  body();
+  ctx.fillStyle = C.birdBody;
+  ctx.fill();
+  ctx.save();
+  body();
+  ctx.clip();
+  ctx.fillStyle = C.birdBelly;
+  ctx.fillRect(-0.85 * r, 0.36 * r, 1.7 * r, 0.49 * r);
+  ctx.restore();
+  body();
+  ctx.strokeStyle = o;
+  ctx.stroke();
+
+  // ── bill: two stacked blocks (mandibles), upper over lower ────────
+  block(0.78, 0.18, 0.42, 0.16, 0.07); // lower
+  ctx.fillStyle = C.beak;
+  ctx.fill();
+  ctx.strokeStyle = o;
+  ctx.stroke();
+  block(0.78, -0.14, 0.58, 0.24, 0.08); // upper
+  ctx.fillStyle = C.beak;
+  ctx.fill();
+  ctx.stroke();
+
+  // ── wing: one rotating bar, shoulder-pivoted ───────────────────────
+  ctx.save();
+  ctx.translate(-0.15 * r, 0.02 * r);
+  ctx.rotate(dying ? -0.35 : -0.2 + 1.6 * wingPhase);
+  block(-0.62, -0.13, 0.62, 0.26, 0.11);
+  ctx.fillStyle = C.birdWing;
+  ctx.fill();
+  ctx.save();
+  ctx.clip();
+  ctx.fillStyle = C.birdWingShade;
+  block(-0.52, -0.06, 0.34, 0.12, 0.05);
+  ctx.fill();
+  ctx.restore();
+  block(-0.62, -0.13, 0.62, 0.26, 0.11);
+  ctx.strokeStyle = o;
+  ctx.stroke();
+  ctx.restore();
+
+  // ── the eye: the one circle — soft on the hard grid ───────────────
+  ctx.beginPath();
+  ctx.arc(0.3 * r, -0.32 * r, 0.26 * r, 0, 7);
+  ctx.fillStyle = C.birdWing;
+  ctx.fill();
+  ctx.strokeStyle = o;
+  ctx.stroke();
+  if (dying) {
+    const h = 0.09 * r;
+    ctx.beginPath();
+    ctx.moveTo(0.3 * r - h, -0.32 * r - h);
+    ctx.lineTo(0.3 * r + h, -0.32 * r + h);
+    ctx.moveTo(0.3 * r + h, -0.32 * r - h);
+    ctx.lineTo(0.3 * r - h, -0.32 * r + h);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.arc(0.4 * r, -0.3 * r, 0.11 * r, 0, 7);
+    ctx.fillStyle = o;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0.455 * r, -0.375 * r, 0.045 * r, 0, 7);
+    ctx.fillStyle = C.birdWing;
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+/** SPRITES — the frogoe vision workbench registry: each object
+ *  rendered in isolation and ASCII-mapped (`frogoe vision`). Authors
+ *  add an entry per drawable; w/h frame the preview box. */
+export const SPRITES = {
+  chick: { w: 200, h: 200, draw: (ctx) => drawBird(ctx, 90, 105, 80, HERO_POSE) },
+  pipe: { w: 130, h: 330, draw: (ctx) => drawPipe(ctx, 34, 100, 326, 52, 200) },
 };
 
 // ── game ───────────────────────────────────────────────────────────────────
@@ -349,293 +629,6 @@ defineGame(({ stage, input, loop, finish }) => {
     }
   };
 
-  // ── rendering: pixel-art faithful ────────────────────────────────────────
-
-  const drawBackground = (ctx) => {
-    // flat sky (one color, no gradient — Flappy Bird's sky IS flat)
-    ctx.fillStyle = C.sky;
-    ctx.fillRect(-4, -4, stage.width + 8, stage.height + 8);
-
-    // cloud band: scalloped puffs, no outline (atmospheric perspective)
-    const cloudY = stage.height - T.groundH - 140;
-    ctx.fillStyle = C.cloud;
-    ctx.beginPath();
-    ctx.moveTo(0, cloudY + 30);
-    for (let x = 0; x <= stage.width + 60; x += 60) {
-      ctx.arc(x + 30, cloudY + 16, 22, Math.PI, 0);
-      ctx.arc(x + 52, cloudY + 18, 16, Math.PI, 0);
-      ctx.arc(x + 8, cloudY + 18, 14, Math.PI, 0);
-    }
-    ctx.lineTo(stage.width, cloudY + 30);
-    ctx.closePath();
-    ctx.fill();
-
-    // city skyline: flat pale buildings, no outline
-    ctx.fillStyle = C.city;
-    const cityY = cloudY + 24;
-    for (let x = 0; x <= stage.width; x += 40) {
-      const h = 14 + ((x * 7) % 20);
-      ctx.fillRect(x, cityY - h, 36, h + 40);
-      // window dots
-      ctx.fillStyle = "rgba(180,220,190,0.6)";
-      ctx.fillRect(x + 8, cityY - h + 4, 3, 3);
-      ctx.fillRect(x + 20, cityY - h + 4, 3, 3);
-      ctx.fillRect(x + 14, cityY - h + 12, 3, 3);
-      ctx.fillStyle = C.city;
-    }
-
-    // bush band: scalloped green bumps, no outline
-    const bushY = cityY + 30;
-    ctx.fillStyle = C.bush;
-    ctx.beginPath();
-    ctx.moveTo(0, bushY + 30);
-    for (let x = 0; x <= stage.width + 40; x += 32) {
-      ctx.arc(x + 16, bushY + 12, 14, Math.PI, 0);
-    }
-    ctx.lineTo(stage.width, bushY + 30);
-    ctx.closePath();
-    ctx.fill();
-  };
-
-  const drawPipe = (ctx, x, gapY) => {
-    const w = T.pipeW;
-    const capH = 22;
-    const capOverhang = 3;
-    const capW = w + capOverhang * 2;
-    const cx = x - capOverhang;
-    const gy = GROUND_Y();
-
-    // stepped cylinder gradient (one shared fn for shaft + cap)
-    const fillGradient = (fx, fw, fy, fh) => {
-      const cols = C.pipeRamp;
-      const steps = 14; // smooth ramp, not visible steps
-      const peak = 0.35; // highlight peak position from left
-      for (let i = 0; i < steps; i++) {
-        const p = i / steps;
-        let col;
-        if (p < peak) {
-          // highlight side: bright → mid
-          const t = p / peak;
-          col = cols[Math.floor(t * 2)];
-        } else {
-          // shadow side: mid → dark
-          const t = (p - peak) / (1 - peak);
-          col = cols[2 + Math.floor(t * (cols.length - 3))];
-        }
-        ctx.fillStyle = col;
-        ctx.fillRect(fx + p * fw, fy, Math.ceil(fw / steps) + 1, fh);
-      }
-      // flat shadow (right ~20%)
-      ctx.fillStyle = C.pipeShadow;
-      ctx.fillRect(fx + fw * 0.82, fy, fw * 0.18, fh);
-      // rim light (left inner edge — the signature glow line)
-      ctx.fillStyle = C.pipeRimLight;
-      ctx.fillRect(fx + 2, fy, 2, fh);
-    };
-
-    // ── top pipe (ceiling → gapY) ───────────────────────────────────
-    // shaft
-    fillGradient(x + 1, w - 2, 0, gapY - capH);
-    ctx.strokeStyle = C.outline;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, gapY - capH);
-    ctx.moveTo(x + w, 0);
-    ctx.lineTo(x + w, gapY - capH);
-    ctx.stroke();
-    // cap (drawn OVER shaft end — seamless join)
-    fillGradient(cx + 1, capW - 2, gapY - capH, capH);
-    ctx.strokeRect(cx, gapY - capH, capW, capH);
-    // cap top rim (facing the gap — this is the "lip" the bird sees)
-    ctx.fillStyle = C.pipeRimLight;
-    ctx.fillRect(cx + 2, gapY - capH + 1, capW - 4, 2);
-
-    // ── bottom pipe (gapY + gap → ground) ───────────────────────────
-    // cap first (drawn over shaft start — seamless)
-    fillGradient(cx + 1, capW - 2, gapY + T.gap, capH);
-    ctx.strokeRect(cx, gapY + T.gap, capW, capH);
-    // cap bottom rim
-    ctx.fillStyle = C.pipeRimLight;
-    ctx.fillRect(cx + 2, gapY + T.gap + capH - 3, capW - 4, 2);
-    // shaft from below cap to ground
-    fillGradient(x + 1, w - 2, gapY + T.gap + capH, gy - (gapY + T.gap + capH));
-    ctx.beginPath();
-    ctx.moveTo(x, gapY + T.gap + capH);
-    ctx.lineTo(x, gy);
-    ctx.moveTo(x + w, gapY + T.gap + capH);
-    ctx.lineTo(x + w, gy);
-    ctx.stroke();
-  };
-
-  const drawGround = (ctx) => {
-    const gy = GROUND_Y();
-
-    // outline line
-    ctx.fillStyle = C.outline;
-    ctx.fillRect(0, gy - 1, stage.width, 2);
-
-    // grass: highlight line + diagonal striped body
-    ctx.fillStyle = C.dirtHighlight;
-    ctx.fillRect(0, gy + 1, stage.width, 2);
-
-    // diagonal grass stripes (the Mario grass motif — 45° alternating)
-    const grassH = 12;
-    for (let x = -groundOff - 24; x < stage.width + 24; x += 12) {
-      // alternate colors, shift for diagonal effect
-      const isLight = Math.floor((x + groundOff) / 12) % 2 === 0;
-      ctx.fillStyle = isLight ? C.grassLight : C.grassMid;
-      // draw diagonal stripe
-      ctx.beginPath();
-      ctx.moveTo(x, gy + 3);
-      ctx.lineTo(x + 12, gy + 3);
-      ctx.lineTo(x + 12 - 4, gy + 3 + grassH);
-      ctx.lineTo(x - 4, gy + 3 + grassH);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    // grass shadow line
-    ctx.fillStyle = C.grassShadow;
-    ctx.fillRect(0, gy + 3 + grassH, stage.width, 2);
-
-    // dirt highlight line
-    ctx.fillStyle = C.dirtLine;
-    ctx.fillRect(0, gy + 5 + grassH, stage.width, 2);
-
-    // dirt body (flat, no texture — Flappy Bird's dirt IS flat)
-    ctx.fillStyle = C.dirt;
-    ctx.fillRect(0, gy + 7 + grassH, stage.width, T.groundH - 7 - grassH);
-  };
-
-  const drawBird = (ctx) => {
-    ctx.save();
-    ctx.translate(stage.play.center, P.y);
-    ctx.rotate((P.rot * Math.PI) / 180);
-    const r = T.r;
-    const o = C.outline;
-    const lw = (2 * r) / 13;
-    const wingPhase = dying ? 0 : wingT;
-
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    ctx.lineWidth = lw;
-
-    const body = () => {
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 1.05 * r, 0.94 * r, 0, 0, 7);
-    };
-    const wing = () => {
-      ctx.beginPath();
-      ctx.moveTo(0.04 * r, 0.02 * r);
-      ctx.bezierCurveTo(-0.4 * r, 0.08 * r, -0.46 * r, 0.48 * r, -0.08 * r, 0.74 * r);
-      ctx.quadraticCurveTo(0.06 * r, 0.82 * r, 0.16 * r, 0.66 * r);
-      ctx.bezierCurveTo(0.36 * r, 0.4 * r, 0.32 * r, 0.1 * r, 0.04 * r, 0.02 * r);
-      ctx.closePath();
-    };
-
-    // body fill
-    body();
-    ctx.fillStyle = C.birdBody;
-    ctx.fill();
-
-    // interior shading (clipped)
-    ctx.save();
-    body();
-    ctx.clip();
-    // forehead highlight: crescent upper-left
-    ctx.fillStyle = C.birdHighlight;
-    ctx.beginPath();
-    ctx.ellipse(-0.4 * r, -0.52 * r, 0.36 * r, 0.2 * r, -0.65, 0, 7);
-    ctx.fill();
-    // crown spot
-    ctx.beginPath();
-    ctx.ellipse(-0.02 * r, -0.78 * r, 0.1 * r, 0.06 * r, -0.3, 0, 7);
-    ctx.fill();
-    // belly: warm tan bottom
-    ctx.fillStyle = C.birdBelly;
-    ctx.beginPath();
-    ctx.ellipse(0.12 * r, 0.72 * r, 0.74 * r, 0.52 * r, 0, 0, 7);
-    ctx.fill();
-    ctx.restore();
-
-    // body outline
-    ctx.strokeStyle = o;
-    body();
-    ctx.stroke();
-
-    // wing (pivots at shoulder, swings up on flap)
-    ctx.save();
-    ctx.translate(-0.2 * r, -0.3 * r);
-    ctx.rotate(dying ? 0.55 : 0.45 + 1.75 * wingPhase);
-    wing();
-    ctx.fillStyle = C.birdWing;
-    ctx.fill();
-    ctx.save();
-    wing();
-    ctx.clip();
-    ctx.fillStyle = C.birdWingShade;
-    ctx.beginPath();
-    ctx.ellipse(-0.06 * r, 0.5 * r, 0.3 * r, 0.26 * r, 0.35, 0, 7);
-    ctx.fill();
-    ctx.restore();
-    ctx.strokeStyle = o;
-    wing();
-    ctx.stroke();
-    ctx.restore();
-
-    // beak: tiny chick cheep — short pointed triangles, bases tucked inside body
-    ctx.fillStyle = C.beak;
-    ctx.strokeStyle = o;
-    // upper
-    ctx.beginPath();
-    ctx.moveTo(0.84 * r, -0.16 * r);
-    ctx.lineTo(1.26 * r, -0.05 * r);
-    ctx.lineTo(0.84 * r, 0.04 * r);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    // lower (gap = 0.09r)
-    ctx.beginPath();
-    ctx.moveTo(0.84 * r, 0.13 * r);
-    ctx.lineTo(1.16 * r, 0.22 * r);
-    ctx.lineTo(0.84 * r, 0.29 * r);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    // eye: big, expressive, upper-right
-    ctx.beginPath();
-    ctx.ellipse(0.44 * r, -0.34 * r, 0.32 * r, 0.36 * r, 0, 0, 7);
-    ctx.fillStyle = "#FAFAFA";
-    ctx.fill();
-    ctx.strokeStyle = o;
-    ctx.stroke();
-
-    if (dying) {
-      // X eyes when dead
-      const h = 0.12 * r;
-      ctx.beginPath();
-      ctx.moveTo(0.44 * r - h, -0.34 * r - h);
-      ctx.lineTo(0.44 * r + h, -0.34 * r + h);
-      ctx.moveTo(0.44 * r + h, -0.34 * r - h);
-      ctx.lineTo(0.44 * r - h, -0.34 * r + h);
-      ctx.stroke();
-    } else {
-      // pupil pushed toward beak + white glint
-      ctx.beginPath();
-      ctx.arc(0.55 * r, -0.33 * r, 0.15 * r, 0, 7);
-      ctx.fillStyle = o;
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(0.61 * r, -0.4 * r, 0.05 * r, 0, 7);
-      ctx.fillStyle = "#FAFAFA";
-      ctx.fill();
-    }
-
-    ctx.restore();
-  };
-
   loop.render = (ctx) => {
     ctx.save();
     if (shakeT > 0) {
@@ -643,12 +636,16 @@ defineGame(({ stage, input, loop, finish }) => {
       ctx.translate((Math.random() - 0.5) * s, (Math.random() - 0.5) * s);
     }
 
-    drawBackground(ctx);
+    drawBackground(ctx, stage.width, stage.height, T.groundH);
 
-    for (const w of pipes) drawPipe(ctx, w.x, w.gapY);
+    for (const w of pipes) drawPipe(ctx, w.x, w.gapY, GROUND_Y(), T.pipeW, T.gap);
 
-    drawGround(ctx);
-    drawBird(ctx);
+    drawGround(ctx, stage.width, GROUND_Y(), T.groundH, groundOff);
+    drawBird(ctx, stage.play.center, P.y, T.r, {
+      dying,
+      rot: P.rot,
+      wingPhase: wingT,
+    });
 
     // particles
     for (const p of parts) {

@@ -28,6 +28,9 @@ blind; this skill is where taste lives.
 3. HUD = registry blocks, themed from the brief palette in ONE parent rule
    (frogoe-core → hud-bindings.md). Do not hand-draw HUD chrome.
 4. Juice and feel → `references/game-feel.md`.
+5. The game's face: author `assets/poster.js` + `assets/icon.js` per
+   `references/art.md` — canvas scenes importing the game's own sprites;
+   1:1 with the shipped game by construction.
 
 ## Routing
 
@@ -37,6 +40,7 @@ blind; this skill is where taste lives.
 | Voice selection, banned fonts, numerals, display scale  | `references/typography.md`  |
 | Named palettes (arcade-neon, cozy-pastel, crt-amber, …) | `references/palettes.md`    |
 | Motion, easing, feedback, death, retry feel             | `references/game-feel.md`   |
+| Poster + icon: drawing the game's face (key art rules)  | `references/art.md`         |
 
 ## Boundaries
 

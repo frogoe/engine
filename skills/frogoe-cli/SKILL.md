@@ -22,19 +22,23 @@ Run commands as `bun packages/cli/src/bin.ts <cmd>` from the repo (published:
 | `references/finding-codes.md` | look up every static finding code (stable, never renumbered) |
 | `references/live-sandbox.md` | understand the live headless-browser lifecycle and held-failure rule |
 | `references/bundle.md` | how externals dissolve into one HTML and the allowlist |
+| `references/embed.md` | the card, the frogoe-card protocol, and dist/manifest.json |
+| `references/vision.md` | `frogoe vision` — ASCII eyes for draw code (objects, frames, art) |
 
 ## Development loop
 
 1. **Scaffold:** `frogoe init my-game` — boots a runnable folder (living stub game, BRIEF stub, pinned `.frogoe/`). `cd my-game`.
 2. **Find the part:** before hand-writing HUD, look in the registry — `frogoe add fuel-gauge` copies a themeable block into `blocks/` and prints its bindings plus placement snippet. Hand-write only once nothing fits. This rule lives in `/frogoe-registry` too.
-3. **Iterate:** `frogoe run` — live reload on every save, QR for the phone (safe-area only exists on real devices; test there before shipping). Phone on another network? `frogoe run --tunnel` serves a public cloudflared URL (auto-downloaded once, cached; reload survives SSE-less proxies via a version poll — ≤2s). Playtests are telemetered: fps dips, page errors and lock-screens print live in the terminal and persist to `.frogoe/sessions/*.jsonl` (local only — nothing leaves the machine). After a session: `frogoe report` — duration, fps mean, dips below 30 with their wall-clock moment, errors, hidden periods.
+3. **See:** `frogoe vision` — your draw code as ASCII maps (SPRITES objects, gameplay frames, identity art). Agents that draw blind ship blobs; iterate on what you SEE (`references/vision.md`).
+4. **Iterate:** `frogoe run` — live reload on every save, QR for the phone (safe-area only exists on real devices; test there before shipping). Phone on another network? `frogoe run --tunnel` serves a public cloudflared URL (auto-downloaded once, cached; reload survives SSE-less proxies via a version poll — ≤2s). Playtests are telemetered: fps dips, page errors and lock-screens print live in the terminal and persist to `.frogoe/sessions/*.jsonl` (local only — nothing leaves the machine). After a session: `frogoe report` — duration, fps mean, dips below 30 with their wall-clock moment, errors, hidden periods.
 4. **Fast feedback:** `frogoe lint` — static only. Cheatsheet (details: `references/finding-codes.md`):
    - errors: `brief/*`, `folder/*`, `input/incremental-drag` (never `x += p.dx`)
    - warnings: `input/absolute-steering`, `layout/innerwidth-spawn`, `audio/suspended-only`, `game/loop-*`, `blocks/binding-orphan`
 
    In agent loops use `frogoe lint --json`; every finding carries `{code, file, line, severity, fix, recipe}` — read the fix, apply, re-run. One iteration heals.
-5. **Gate:** `frogoe check` — the full gate: it reruns the static pass, then ALWAYS opens the live sandbox (boot → play → end → retry, twice; see `references/live-sandbox.md`). Exit 1 on errors. Do not prepend a redundant `lint` before it; do not ship without it passing.
-6. **Ship:** `frogoe bundle` only after check passes — externals dissolve, one self-contained HTML.
+6. **Gate:** `frogoe check` — the full gate: it reruns the static pass (incl. the authored `art/*` contract), then ALWAYS opens the live sandbox (boot → play → end → retry, twice; see `references/live-sandbox.md`). Exit 1 on errors. Do not prepend a redundant `lint` before it; do not ship without it passing.
+7. **Ship:** `frogoe bundle` only after check passes — externals dissolve into one self-contained HTML, and the authored identity scenes render into `dist/assets/` (poster 1080×1920, icon 1024).
+8. **Embed:** `frogoe embed` after bundle — the card (`dist/embed.html`: poster loading state + sandboxed game) and `dist/manifest.json`. Order is law: check → bundle → embed.
 
 ## Boundaries
 

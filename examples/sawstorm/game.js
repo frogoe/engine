@@ -2,8 +2,9 @@
  *  Loop modeled on "A Slight Chance of Sawblades" (Classic mode). */
 import { defineGame } from "frogoe";
 
-/* ---------- palette (from BRIEF.md) ---------- */
-const C = {
+/* ---------- palette (from BRIEF.md) — exported: identity art
+ * renders with these constants (assets/poster.js, assets/icon.js) ---------- */
+export const C = {
   bg: "#1a1424",
   bgDeep: "#130e1d",
   bgDanger: "#2a0f16",
@@ -109,6 +110,104 @@ const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const safeStore = {
   get(key) { try { return localStorage.getItem(key); } catch { return null; } },
   set(key, value) { try { localStorage.setItem(key, value); } catch {} },
+};
+
+
+/* ---------- sprites (pure — shared with the identity art) ---------- */
+
+export function drawSaw(ctx, s, silhouette = false) {
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.rotate(s.rot);
+  const r = s.r;
+  ctx.fillStyle = silhouette ? C.cloud : C.accent;
+  const teeth = 8;
+  ctx.beginPath();
+  for (let i = 0; i < teeth; i++) {
+    const a0 = (i / teeth) * Math.PI * 2;
+    const a1 = ((i + 0.5) / teeth) * Math.PI * 2;
+    const a2 = ((i + 1) / teeth) * Math.PI * 2;
+    const R = r, r0 = r * 0.72;
+    ctx.lineTo(Math.cos(a0) * r0, Math.sin(a0) * r0);
+    ctx.lineTo(Math.cos(a1) * R, Math.sin(a1) * R);
+    ctx.lineTo(Math.cos(a2) * r0, Math.sin(a2) * r0);
+  }
+  ctx.closePath();
+  ctx.fill();
+  if (!silhouette) {
+    ctx.fillStyle = C.accentDark;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.4, 0, 7);
+    ctx.fill();
+    ctx.fillStyle = C.outline;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.16, 0, 7);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+export function drawPlayer(ctx, p) {
+  const { x, y, w, h } = p;
+  const sq = p.squash ?? 1;
+  const face = p.face ?? 1;
+  const grounded = p.grounded ?? true;
+  const bw = w / sq, bh = h * sq;
+  ctx.save();
+  ctx.translate(x, y); // feet
+  if (p.flips === 1 && !grounded) ctx.rotate((p.spin ?? 0) * Math.PI * 2 * face);
+  ctx.translate(0, -bh / 2);
+  ctx.fillStyle = C.fg;
+  ctx.fillRect(-bw / 2, -bh / 2, bw, bh);
+  ctx.fillStyle = C.fgDim;
+  ctx.fillRect(-bw / 2, bh / 2 - 4, bw, 4);
+  ctx.fillStyle = C.outline;
+  const ey = -bh / 2 + bh * 0.28;
+  ctx.fillRect(-bw / 2 + 5 + face * 2, ey, 5, 7);
+  ctx.fillRect(bw / 2 - 10 + face * 2, ey, 5, 7);
+  if (grounded) {
+    ctx.fillStyle = C.fg;
+    ctx.fillRect(-bw / 2 + 2, bh / 2, 7, 4);
+    ctx.fillRect(bw / 2 - 9, bh / 2, 7, 4);
+  }
+  ctx.restore();
+}
+
+export function drawCloud(ctx, cx, cy, sz, fill) {
+  ctx.fillStyle = fill;
+  ctx.fillRect(cx - sz, cy, sz * 2, sz * 0.42);
+  ctx.fillRect(cx - sz * 0.55, cy - sz * 0.28, sz * 1.1, sz * 0.3);
+}
+
+export function drawWalls(ctx, left, right, height, wallW) {
+  ctx.fillStyle = C.ground;
+  ctx.fillRect(left, 0, wallW, height);
+  ctx.fillRect(right - wallW, 0, wallW, height);
+  ctx.fillStyle = C.groundEdge;
+  ctx.fillRect(left + wallW - 4, 0, 4, height);
+  ctx.fillRect(right - wallW, 0, 4, height);
+}
+
+export function drawFloor(ctx, left, right, gy, bottomY) {
+  ctx.fillStyle = C.ground;
+  ctx.fillRect(left, gy, right - left, bottomY - gy);
+  ctx.fillStyle = C.groundEdge;
+  ctx.fillRect(left, gy, right - left, 4);
+  ctx.fillStyle = C.bgDeep;
+  for (let gx = left + 8; gx < right; gx += 26) {
+    ctx.fillRect(gx, gy + 12 + (gx % 3) * 8, 12, 4);
+  }
+}
+
+/** SPRITES — the frogoe vision workbench registry: each object
+ *  rendered in isolation and ASCII-mapped (`frogoe vision`). */
+export const SPRITES = {
+  blade: { w: 200, h: 200, draw: (ctx) => drawSaw(ctx, { x: 100, y: 100, r: 80, rot: 0.3 }) },
+  player: {
+    w: 140, h: 130,
+    draw: (ctx) =>
+      drawPlayer(ctx, { x: 70, y: 120, w: 60, h: 88, squash: 1, face: 1, grounded: true, flips: 0, spin: 0 }),
+  },
 };
 
 defineGame(({ stage, input, loop, finish }) => {
@@ -468,62 +567,6 @@ defineGame(({ stage, input, loop, finish }) => {
   };
 
   /* ---------- render ---------- */
-  function drawSaw(ctx, s, silhouette = false) {
-    ctx.save();
-    ctx.translate(s.x, s.y);
-    ctx.rotate(s.rot);
-    const r = s.r;
-    ctx.fillStyle = silhouette ? C.cloud : C.accent;
-    const teeth = 8;
-    ctx.beginPath();
-    for (let i = 0; i < teeth; i++) {
-      const a0 = (i / teeth) * Math.PI * 2;
-      const a1 = ((i + 0.5) / teeth) * Math.PI * 2;
-      const a2 = ((i + 1) / teeth) * Math.PI * 2;
-      const R = r, r0 = r * 0.72;
-      ctx.lineTo(Math.cos(a0) * r0, Math.sin(a0) * r0);
-      ctx.lineTo(Math.cos(a1) * R, Math.sin(a1) * R);
-      ctx.lineTo(Math.cos(a2) * r0, Math.sin(a2) * r0);
-    }
-    ctx.closePath();
-    ctx.fill();
-    if (!silhouette) {
-      ctx.fillStyle = C.accentDark;
-      ctx.beginPath();
-      ctx.arc(0, 0, r * 0.4, 0, 7);
-      ctx.fill();
-      ctx.fillStyle = C.outline;
-      ctx.beginPath();
-      ctx.arc(0, 0, r * 0.16, 0, 7);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  function drawPlayer(ctx) {
-    const { x, y, w, h } = player;
-    const sq = player.squash;
-    const bw = w / sq, bh = h * sq;
-    ctx.save();
-    ctx.translate(x, y); // feet
-    if (player.flips === 1 && !player.grounded) ctx.rotate(player.spin * Math.PI * 2 * player.face);
-    ctx.translate(0, -bh / 2);
-    ctx.fillStyle = C.fg;
-    ctx.fillRect(-bw / 2, -bh / 2, bw, bh);
-    ctx.fillStyle = C.fgDim;
-    ctx.fillRect(-bw / 2, bh / 2 - 4, bw, 4);
-    ctx.fillStyle = C.outline;
-    const ey = -bh / 2 + bh * 0.28;
-    ctx.fillRect(-bw / 2 + 5 + player.face * 2, ey, 5, 7);
-    ctx.fillRect(bw / 2 - 10 + player.face * 2, ey, 5, 7);
-    if (player.grounded) {
-      ctx.fillStyle = C.fg;
-      ctx.fillRect(-bw / 2 + 2, bh / 2, 7, 4);
-      ctx.fillRect(bw / 2 - 9, bh / 2, 7, 4);
-    }
-    ctx.restore();
-  }
-
   loop.render = (ctx) => {
     /* outside the arena: same as the arena bg — the walls mark the box */
     ctx.fillStyle = suddenDeath ? C.bgDanger : C.bg;
@@ -543,10 +586,8 @@ defineGame(({ stage, input, loop, finish }) => {
       drawSaw(ctx, { x: stage.play.left + s.x * stage.play.width, y: s.y * stage.height, r: s.r, rot: s.rot, spin: 0 }, true);
     }
     for (const c of clouds) {
-      ctx.fillStyle = suddenDeath && c.s > 1.1 ? "#33121c" : (c.s > 1.1 ? C.cloud : C.cloudFar);
-      const cx = stage.play.left + c.x * stage.play.width, cy = c.y * stage.height, s = c.s * 46;
-      ctx.fillRect(cx - s, cy, s * 2, s * 0.42);
-      ctx.fillRect(cx - s * 0.55, cy - s * 0.28, s * 1.1, s * 0.3);
+      const fill = suddenDeath && c.s > 1.1 ? "#33121c" : (c.s > 1.1 ? C.cloud : C.cloudFar);
+      drawCloud(ctx, stage.play.left + c.x * stage.play.width, c.y * stage.height, c.s * 46, fill);
     }
 
     ctx.save();
@@ -554,28 +595,15 @@ defineGame(({ stage, input, loop, finish }) => {
 
     const gy = groundY();
 
-    /* arena ground */
-    ctx.fillStyle = C.ground;
-    ctx.fillRect(stage.play.left, gy, stage.play.width, stage.height - gy);
-    ctx.fillStyle = C.groundEdge;
-    ctx.fillRect(stage.play.left, gy, stage.play.width, 4);
-    ctx.fillStyle = C.bgDeep;
-    for (let gx = stage.play.left + 8; gx < stage.play.right; gx += 26) {
-      ctx.fillRect(gx, gy + 12 + (gx % 3) * 8, 12, 4);
-    }
-    /* arena walls */
-    ctx.fillStyle = C.ground;
-    ctx.fillRect(stage.play.left, 0, TUNE.wallW, stage.height);
-    ctx.fillRect(stage.play.right - TUNE.wallW, 0, TUNE.wallW, stage.height);
-    ctx.fillStyle = C.groundEdge;
-    ctx.fillRect(stage.play.left + TUNE.wallW - 4, 0, 4, stage.height);
-    ctx.fillRect(stage.play.right - TUNE.wallW, 0, 4, stage.height);
+    /* arena ground + walls */
+    drawFloor(ctx, stage.play.left, stage.play.right, gy, stage.height);
+    drawWalls(ctx, stage.play.left, stage.play.right, stage.height, TUNE.wallW);
 
     for (const s of saws) drawSaw(ctx, s);
-    if (phase !== "over" && phase !== "dying") drawPlayer(ctx);
+    if (phase !== "over" && phase !== "dying") drawPlayer(ctx, player);
     if (phase === "dying") {
       ctx.globalAlpha = 0.6;
-      drawPlayer(ctx);
+      drawPlayer(ctx, player);
       ctx.globalAlpha = 1;
     }
 

@@ -6,9 +6,9 @@
 
 **Doing anything with frogoe?** Read the `/frogoe` skill — it confirms the BRIEF (verb, mood, palette) up front and routes every request. The domain skills it routes to:
 
-- `/frogoe-core` — the technical contract: folder form, `defineGame` closure, four nouns, HUD bindings, external libraries. Read before writing any game code.
-- `/frogoe-creative` — house style: three dials (VARIANCE/MOTION/DENSITY), lazy defaults, typography, palettes, game feel. Read when choosing how a game looks.
-- `/frogoe-cli` — CLI dev loop: init, add, run, check, bundle, report. Finding codes split into `finding-codes.md` / `live-sandbox.md` / `bundle.md` for self-healing.
+- `/frogoe-core` — the technical contract: folder form, `defineGame` closure, four nouns, HUD bindings, external libraries, the identity-art assets (`assets/poster.js` + `assets/icon.js`). Read before writing any game code.
+- `/frogoe-creative` — house style: three dials (VARIANCE/MOTION/DENSITY), lazy defaults, typography, palettes, game feel, identity art (the poster + icon are authored, 1:1 with gameplay). Read when choosing how a game looks — including its face.
+- `/frogoe-cli` — CLI dev loop: init, add, run, vision (ASCII eyes for draw code), check, bundle, embed (the card + manifest), report. Finding codes split into `finding-codes.md` / `live-sandbox.md` / `bundle.md` / `embed.md` / `vision.md` for self-healing.
 - `/frogoe-registry` — HUD block catalog: find, evaluate, install, author new blocks.
 
 Skills live at `.claude/skills/` and `.agents/skills/` (install via `npx skills add frogoe/engine`; both mirrors stay byte-identical). Missing or stale? Re-run the install and restart the agent session. Check freshness: `frogoe skills check`.
@@ -57,7 +57,9 @@ frogoe run --tunnel         # + public URL — phone works on any network (cloud
 frogoe add <block>          # copy a HUD block into blocks/ (score, hearts, fuel, game-over, etc.)
 frogoe lint                 # fast static contract lint (stable finding codes; --json for CI)
 frogoe check                # full gate: lint + headless Chrome — FPS, playability, HUD outline, screenshots
+frogoe vision               # eyes: your draw code as ASCII maps (objects, frames, identity art)
 frogoe bundle               # one self-contained HTML (externals dissolved) — only after check passes
+frogoe embed                # the card: poster loading state + sandboxed game + manifest — after bundle
 ```
 
 > **Agents must run `frogoe check` after ANY code change** and fix all errors before
@@ -70,6 +72,7 @@ bundle`. Use `--json` for machine-readable findings that can be fixed programmat
 - `index.html` — entry shell: `<canvas id="c">` + import map + `.hud` layer (HUD blocks land here)
 - `game.js` — the whole simulation: `defineGame(({stage, input, loop, finish}) => {...})`
 - `BRIEF.md` — the game's identity: verb, mood, palette (validated by `frogoe check`)
+- `assets/poster.js` + `assets/icon.js` — REQUIRED identity art: canvas scenes importing the game's own sprites (`art/missing` gates the check; frogoe-creative → `references/art.md`)
 - `frogoe.json` — contract version pin
 - `.frogoe/` — tool-owned, gitignored (the contract runtime — never edit)
 - `blocks/` — HUD blocks copied from the registry (themed via `.hud` CSS custom properties)
@@ -86,15 +89,17 @@ frogoe check             # full gate: + browser — runtime errors, canvas paint
 
 Fix all errors before presenting the result. Common findings:
 
-| Code                     | Meaning                                                 | Fix                                                                                          |
-| ------------------------ | ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `brief/todo`             | BRIEF.md still has TODO markers                         | Fill in verb, mood, palette                                                                  |
-| `input/incremental-drag` | `x += p.dx` (wall-rocket bug)                           | Use `x = grabX + p.dx` or track lastX                                                        |
-| `folder/touch-select`    | Phone long-press summons text selection (iOS + Android) | Add `-webkit-user-select: none; user-select: none; -webkit-touch-callout: none` on html/body |
-| `audio/suspended-only`   | Resume gated on `=== "suspended"` (iOS silent bug)      | Resume when `state !== "running"` — see frogoe-core `references/audio.md`                    |
-| `live/hud-outline`       | HUD text missing text-shadow/stroke                     | Add `text-shadow: 0 2px 0 <dark>`                                                            |
-| `live/fps`               | Below 30fps                                             | Cache gradients, reduce shadowBlur, cut particles                                            |
-| `live/not-playable`      | Scripted taps changed nothing                           | Wire `input.on("down")` to actual game logic                                                 |
+| Code                     | Meaning                                                 | Fix                                                                                           |
+| ------------------------ | ------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `brief/todo`             | BRIEF.md still has TODO markers                         | Fill in verb, mood, palette                                                                   |
+| `art/missing`            | `assets/poster.js` / `assets/icon.js` absent            | Author both scenes — they import sprites from game.js (frogoe-creative → `references/art.md`) |
+| `art/title-band`         | poster declares no lettering-block band                 | Set `ctx.__frogoeTitleBand = [x0,y0,x1,y1]` from the layout variables (never hand-typed)      |
+| `input/incremental-drag` | `x += p.dx` (wall-rocket bug)                           | Use `x = grabX + p.dx` or track lastX                                                         |
+| `folder/touch-select`    | Phone long-press summons text selection (iOS + Android) | Add `-webkit-user-select: none; user-select: none; -webkit-touch-callout: none` on html/body  |
+| `audio/suspended-only`   | Resume gated on `=== "suspended"` (iOS silent bug)      | Resume when `state !== "running"` — see frogoe-core `references/audio.md`                     |
+| `live/hud-outline`       | HUD text missing text-shadow/stroke                     | Add `text-shadow: 0 2px 0 <dark>`                                                             |
+| `live/fps`               | Below 30fps                                             | Cache gradients, reduce shadowBlur, cut particles                                             |
+| `live/not-playable`      | Scripted taps changed nothing                           | Wire `input.on("down")` to actual game logic                                                  |
 
 ## Key rules
 
@@ -104,3 +109,4 @@ Fix all errors before presenting the result. Common findings:
 4. **Fixed furniture respects `stage.safe`** — notches cover screen edges. Score at fixed y=34 sits under the Dynamic Island on modern phones.
 5. **One page, zero runtime requests** after bundling. Author-time CDN dependencies are fine — `frogoe bundle` dissolves them (allowlist + pin + hash + inline).
 6. **`finish(score)`** ends the run. The results card is a HUD block (`game-over-card`), never something the platform draws.
+7. **Identity art is authored, never captured** — `assets/poster.js` + `assets/icon.js` draw with the game's own sprite functions (1:1 by construction; `art/*` findings gate them). Iterate with `frogoe vision` — render, LOOK at the ASCII map, fix; agents that draw blind ship blobs.

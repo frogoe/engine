@@ -46,6 +46,7 @@ defineGame(({ stage, input, loop, finish }) => {
 | `references/folder-form.md`  | lay out or extend a game folder (index.html, .frogoe/, assets/)    |
 | `references/brief-format.md` | author BRIEF.md (frontmatter schema: verb, mood, palette)          |
 | `references/contract.md`     | every platform guarantee and teaching error in one table           |
+| `references/assets.md`       | author assets/poster.js + assets/icon.js and how they publish    |
 | `references/hud-bindings.md` | place, theme, and bind registry HUD blocks to game state           |
 | `references/externals.md`    | use three.js / gsap / web fonts and how the bundler dissolves them |
 | `references/audio.md`        | make sound that survives phones (gesture unlock, interrupted state, no selection UI — iOS + Android) |

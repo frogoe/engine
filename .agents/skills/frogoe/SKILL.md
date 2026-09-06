@@ -5,7 +5,7 @@ description: >
   frogoe game (frogoe lint, frogoe check, frogoe run, frogoe bundle, frogoe add,
   frogoe report), or to make, create, edit, or ship a game — arcade, puzzle, runner,
   hyper-casual, single-file or folder, interactive toy, micro-game, game jam prototype,
-  web arcade, canvas toy, playable demo (bikin/buat game). Also use it to pick HUD
+  web arcade, canvas toy, playable demo. Also use it to pick HUD
   recipe blocks from the registry, wire them to game state, or place a game in a
   feed/shell. Inputs may be a genre idea, a reference game, a brief, or an existing
   project folder. It confirms the BRIEF up front, then routes to the owning skill.
@@ -48,6 +48,7 @@ Use the first matching row. Match the requested **capability**, not a keyword in
 | -------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
 | 1        | Technical contract, folder form, `defineGame`, input semantics, `finish`, `window.__frogoe`, lint/bundler behavior | `/frogoe-core`                                               |
 | 2        | Visual direction, palettes, typography, lazy defaults, HUD styling, juice polish                                   | `/frogoe-creative`                                           |
+| 2b       | Identity art: authoring `assets/poster.js` + `assets/icon.js`, key-art rules, seeing your draw code (`frogoe vision`) | `/frogoe-creative` → `references/art.md` + `/frogoe-cli` → `references/vision.md` |
 | 3        | Choosing, theming, or binding HUD blocks (score, hearts, fuel, game-over) — always try `frogoe add` before hand-writing | `/frogoe-registry`                                             |
 | 4        | Anything 3D or with external libs (three.js, gsap, fonts)                                                          | `/frogoe-core` → `references/externals.md`                   |
 | 5        | CLI dev loop: init, add, run, check, bundle, report, finding codes, live sandbox                                   | `/frogoe-cli`                                                |
@@ -56,9 +57,16 @@ Use the first matching row. Match the requested **capability**, not a keyword in
 Always load `/frogoe-core` once for any code-touching task; add `/frogoe-creative`
 whenever pixels change. For HUD, prefer `/frogoe-registry` as the owner; `hud-bindings.md` is the supplement.
 
-## 4. Install and enter
+## 4. Verify and enter
 
-Skills are installed via `npx skills add frogoe/engine` (or `npx skills add ./engine` from a sibling clone). The core set (`frogoe`, `frogoe-core`, `frogoe-creative`, `frogoe-cli`) is eager; `frogoe-registry` installs on demand when `frogoe add` is first used. If a skill is missing, surface the error; do not reconstruct from memory. Freshness is checked via `frogoe skills check` or `node scripts/gen-skills-manifest.mjs --check`.
+Skills arrive with the repo or package — **never install packages yourself**.
+Installation (`npx skills add frogoe/engine`) is a human decision made outside
+this skill; if skills are missing, tell the user what to install and stop —
+do not run installers, do not reconstruct from memory. What you CAN do is
+verify: `frogoe skills check` compares every skill file against SHA-pinned
+hashes in `skills-manifest.json` (per-skill SHA16). If verification fails,
+surface the mismatch to the user — stale or tampered skills must be
+refreshed by the user, not by you.
 
 ## 5. Load domain skills on demand
 
@@ -84,4 +92,4 @@ Skills are installed via `npx skills add frogoe/engine` (or `npx skills add ./en
 - Do not add engine opinions: the contract draws nothing. Anything visible comes from game code or registry blocks.
 - Do not bypass `BRIEF.md` for feed games — the brief is what the gate measures against.
 - Do not read every reference for a one-line edit; the tables above route narrowly.
-- Do not reconstruct a skill from memory if `frogoe skills check` reports it outdated — refresh via `npx skills add`.
+- Do not reconstruct a skill from memory if `frogoe skills check` reports it outdated — surface it to the user; refreshing installs is the user's call, not yours.
