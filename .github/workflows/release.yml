@@ -190,8 +190,8 @@ jobs:
           One tap. The pipeline proves the artifact.
           BRIEF
           mkdir -p "$GAME/smoke/assets"
-          printf 'import { palette } from "../game.js";\nexport function drawPoster(ctx, w, h) { ctx.fillStyle = palette.bg; ctx.fillRect(0,0,w,h); }\n' > "$GAME/smoke/assets/poster.js"
-          printf 'import { palette } from "../game.js";\nexport function drawIcon(ctx, s) { ctx.fillStyle = palette.bg; ctx.fillRect(0,0,s,s); }\n' > "$GAME/smoke/assets/icon.js"
+          printf 'import { palette } from "../game.js";\nexport function drawPoster(ctx, w, h) { ctx.fillStyle = palette.bg; ctx.fillRect(0,0,w,h); ctx.fillStyle = palette.fg; ctx.font = "700 48px Fredoka"; ctx.textAlign = "center"; ctx.strokeStyle = palette.accent; ctx.lineWidth = 6; ctx.strokeText("Smoke", w/2, h/2); ctx.fillText("Smoke", w/2, h/2); ctx.__frogoeTitleBand = [w*0.2, h*0.4, w*0.8, h*0.6]; }\n' > "$GAME/smoke/assets/poster.js"
+          printf 'import { palette } from "../game.js";\nexport function drawIcon(ctx, s) { ctx.fillStyle = palette.bg; ctx.fillRect(0,0,s,s); ctx.fillStyle = palette.fg; ctx.font = "700 24px Fredoka"; ctx.textAlign = "center"; ctx.fillText("S", s/2, s/2); }\n' > "$GAME/smoke/assets/icon.js"
           node "$CLI" lint "$GAME/smoke"
 
       # trusted publishing (OIDC) landed in npm 11.5.1 — runner-bundled
