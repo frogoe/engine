@@ -25,12 +25,6 @@
     "loop",
     "html5"
   ],
-  "tags": [
-    "game",
-    "canvas",
-    "arcade",
-    "creative",
-    "workflow"
-  ],
+  "tags": ["game", "canvas", "arcade", "creative", "workflow"],
   "skills": "./skills/"
 }
