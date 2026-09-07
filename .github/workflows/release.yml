@@ -149,7 +149,8 @@ jobs:
       - name: Packed tarball must carry the built CLI
         working-directory: packages/cli
         run: |
-          npm pack > /tmp/pack.log 2>&1 || { cat /tmp/pack.log; exit 1; }
+          npm pack --dry-run > /tmp/pack.log 2>&1 || { cat /tmp/pack.log; exit 1; }
+          cat /tmp/pack.log
           node "$GITHUB_WORKSPACE/scripts/release-guards.mjs" pack /tmp/pack.log
 
       # The presence guard above only checks files EXIST — 0.2.2 through
@@ -162,7 +163,8 @@ jobs:
         working-directory: packages/cli
         run: |
           set -euo pipefail
-          TARBALL="$(ls frogoe-*.tgz)"
+          npm pack >/dev/null
+          TARBALL="$(ls frogoe-*.tgz | head -1)"
           PREFIX="$RUNNER_TEMP/frogoe-smoke"
           GAME="$PREFIX/game"
           npm install --prefix "$PREFIX/pkg" --no-save "$PWD/$TARBALL" >/dev/null
