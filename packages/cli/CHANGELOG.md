@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/frogoe/engine/compare/v0.4.1...v0.4.2) (2026-09-07)
+
+
+### Bug Fixes
+
+* test lockstep ([41514b3](https://github.com/frogoe/engine/commit/41514b3182cb782dff922039363339f8df847586))
+
 ## [0.4.1](https://github.com/frogoe/engine/compare/v0.4.0...v0.4.1) (2026-09-07)
 
 
