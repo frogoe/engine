@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/frogoe/engine/compare/v0.4.3...v0.5.0) (2026-09-07)
+
+
+### Features
+
+* trigger 0.4.4 ([6831efc](https://github.com/frogoe/engine/commit/6831efc603d2b9ed8c92ed0ffa8efc03eb58acd2))
+
 ## [0.4.3](https://github.com/frogoe/engine/compare/v0.4.2...v0.4.3) (2026-09-07)
 
 
