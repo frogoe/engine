@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.0](https://github.com/frogoe/engine/compare/v0.3.2...v0.4.0) (2026-09-07)
+
+
+### Features
+
+* identity art polish — vision wiring, build-copy, skill mirrors ([e9de047](https://github.com/frogoe/engine/commit/e9de04710290a2ec3fe0478fb4a722a2b1c3ebc6))
+* identity art system, embed card, vision workbench, embed protocol ([96e82e8](https://github.com/frogoe/engine/commit/96e82e84e1ab08521b14985ec10dd137039a7f49))
+* identity art system, embed card, vision workbench, embed protocol ([1ff480a](https://github.com/frogoe/engine/commit/1ff480abb97728d95fe9cb1cd36ae0780203db45))
+
 ## [0.3.2](https://github.com/frogoe/engine/compare/v0.3.1...v0.3.2) (2026-09-04)
 
 
