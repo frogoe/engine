@@ -190,8 +190,8 @@ jobs:
           One tap. The pipeline proves the artifact.
           BRIEF
           mkdir -p "$GAME/smoke/assets"
-          printf 'export function drawPoster(ctx, w, h) { ctx.fillStyle = "#111"; ctx.fillRect(0,0,w,h); }\n' > "$GAME/smoke/assets/poster.js"
-          printf 'export function drawIcon(ctx, s) { ctx.fillStyle = "#111"; ctx.fillRect(0,0,s,s); }\n' > "$GAME/smoke/assets/icon.js"
+          printf 'import { palette } from "../game.js";\nexport function drawPoster(ctx, w, h) { ctx.fillStyle = palette.bg; ctx.fillRect(0,0,w,h); }\n' > "$GAME/smoke/assets/poster.js"
+          printf 'import { palette } from "../game.js";\nexport function drawIcon(ctx, s) { ctx.fillStyle = palette.bg; ctx.fillRect(0,0,s,s); }\n' > "$GAME/smoke/assets/icon.js"
           node "$CLI" lint "$GAME/smoke"
 
       # trusted publishing (OIDC) landed in npm 11.5.1 — runner-bundled
