@@ -1,7 +1,7 @@
 {
   "name": "frogoe",
   "description": "Write a closure, ship a game. One defineGame closure with four nouns, and a CLI that scaffolds, serves, gates, and bundles feed-ready games as single self-contained HTML files.",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "author": {
     "name": "frogoe",
     "url": "https://frogoe.com"
@@ -25,10 +25,13 @@
   "interface": {
     "displayName": "Frogoe Engine",
     "shortDescription": "Write a closure, ship a game",
-    "longDescription": "Build games from one closure with Frogoe. Define games with stage, input, loop, finish, use the CLI for the dev loop (init/run/check/bundle), and install reusable HUD registry blocks. The platform draws nothing — your game owns the look.",
+    "longDescription": "Build games from one closure with Frogoe. Define games with stage, input, loop, finish, use the CLI for the dev loop (init/run/check/bundle), and install reusable HUD registry blocks. The platform draws nothing \u2014 your game owns the look.",
     "developerName": "frogoe",
     "category": "Games",
-    "capabilities": ["Read", "Write"],
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
     "websiteURL": "https://frogoe.com",
     "defaultPrompt": [
       "Make a game where you hold to charge a jump",
