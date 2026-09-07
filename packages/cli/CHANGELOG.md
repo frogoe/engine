@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.3](https://github.com/frogoe/engine/compare/v0.5.2...v0.5.3) (2026-09-07)
+
+
+### Bug Fixes
+
+* trigger with smoke fix ([d8a2d20](https://github.com/frogoe/engine/commit/d8a2d205439cf56fdd3cd1ee524e89beefa42f45))
+
 ## [0.5.2](https://github.com/frogoe/engine/compare/v0.5.1...v0.5.2) (2026-09-07)
 
 
