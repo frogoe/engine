@@ -5,7 +5,29 @@
   "packages": {
     "packages/cli": {
       "changelog-path": "CHANGELOG.md",
-      "initial-version": "0.1.0"
+      "initial-version": "0.1.0",
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "packages/lint/package.json"
+        },
+        {
+          "type": "generic",
+          "path": "packages/contract/package.json"
+        },
+        {
+          "type": "generic",
+          "path": ".claude-plugin/plugin.json"
+        },
+        {
+          "type": "generic",
+          "path": ".codex-plugin/plugin.json"
+        },
+        {
+          "type": "generic",
+          "path": ".cursor-plugin/plugin.json"
+        }
+      ]
     }
   }
 }
