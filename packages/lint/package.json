@@ -1,7 +1,7 @@
 {
   "name": "@frogoe/lint",
   "version": "0.4.0",
-  "description": "frogoe static contract checks \u2014 pure, zero browser deps",
+  "description": "frogoe static contract checks — pure, zero browser deps",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./src/index.ts",
