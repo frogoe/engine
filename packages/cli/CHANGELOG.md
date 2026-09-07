@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/frogoe/engine/compare/v0.5.0...v0.5.1) (2026-09-07)
+
+
+### Bug Fixes
+
+* trigger 0.5.1 ([0d9e5d1](https://github.com/frogoe/engine/commit/0d9e5d1fb1e621d4c08b838d7cda4a80aa5a9a62))
+* trigger 0.5.1 ([ac755a2](https://github.com/frogoe/engine/commit/ac755a284a0658f2263ed356c749dbd44591eb98))
+
 ## [0.5.0](https://github.com/frogoe/engine/compare/v0.4.3...v0.5.0) (2026-09-07)
 
 
