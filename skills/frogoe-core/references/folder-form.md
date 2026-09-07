@@ -8,7 +8,8 @@ my-game/
   index.html    entry shell: <canvas id="c"> + import map + HUD layer div
   game.js       defineGame(...) — the whole simulation
   blocks/          registry blocks copied here (markup + their <style>)
-  assets/       sprites, audio, fonts (referenced by relative path)
+  assets/       identity art (poster.js + icon.js — REQUIRED scenes) +
+                any sprites, audio, fonts (referenced by relative path)
   frogoe.json   { "contract": "0.1.0" } — the ONE version source of truth
   .frogoe/      tool-owned, gitignored, never edited (contract + import map)
   dist/         bundler output (gitignored)
@@ -49,5 +50,7 @@ Visible read-only files are a DX smell: if the tool owns it, the tool hides it.
 
 ## Minimal form
 
-A game with no assets and no HUD may skip `assets/` and `blocks/`. Never skip
-`BRIEF.md`, `index.html`, `game.js`, `frogoe.json`.
+A game with no HUD may skip `blocks/` — but `assets/poster.js` and
+`assets/icon.js` are REQUIRED identity art (`art/missing` gates the check;
+see `references/assets.md`). Never skip `BRIEF.md`, `index.html`, `game.js`,
+`frogoe.json`.

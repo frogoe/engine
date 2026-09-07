@@ -23,12 +23,15 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
       - run: bun install --frozen-lockfile
       - run: bun run verify
+      # verify ends with the npm user journey (build → pack → install →
+      # node runs the packaged CLI) — the gate that catches runtime
+      # drift between the repo (bun) and users (node)
 
   # The flagship gate runs against the real browser path too — the unit
   # suite drives a FakeDriver; this proves the chrome-headless-shell road
   # end to end (boot → play → retry → audio injection → throttle replay).
   live:
-    name: Live sandbox (real headless chrome)
+    name: Live sandbox + art pipeline (chrome, rendered gates, card e2e)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -40,7 +43,7 @@ jobs:
         with:
           key: chrome-headless-shell-131.0.6778.204
           path: node_modules/.frogoe-browser
-      - run: bun packages/cli/src/cli.ts lint examples/flappy
-      - run: bun packages/cli/src/cli.ts check examples/flappy
-      - run: bun packages/cli/src/cli.ts lint examples/sawstorm
-      - run: bun packages/cli/src/cli.ts check examples/sawstorm
+      # the full art + embed pipeline on both examples: check (superset
+      # of lint) → bundle (rendered gates) → embed → card e2e with REAL
+      # input — the embed survival guards run on every push
+      - run: bun run verify:art

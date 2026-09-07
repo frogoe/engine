@@ -33,8 +33,9 @@ When adding or renaming a skill, update in lockstep: the list above, the `## Ski
 
 ```bash
 bun install        # Install dependencies (NOT pnpm — do not create pnpm-lock.yaml)
-bun run verify     # Full gauntlet: format + lint + types + tests + knip + registry + game lint + skill freshness (lint:skills + skill-mirror + packed-manifests)
-bun test           # 138 tests across lint + contract + CLI
+bun run verify     # Full gauntlet: format + lint + types + tests + knip + registry + game lint + skill freshness + the npm user journey (packaged CLI under node) (lint:skills + skill-mirror + packed-manifests)
+bun run verify:art # Art pipeline on both examples: check → bundle (rendered gates) → embed → card e2e (downloads headless Chrome on first run)
+bun test           # Tests across lint + contract + CLI
 ```
 
 ### Linting & formatting
@@ -98,6 +99,7 @@ docs/
 - **HUD lives in the DOM layer** (`.hud` div): canvas HUD is only for world-anchored popups
 - **Readability via outline**: game HUD text uses `text-shadow` or `-webkit-text-stroke`, not pixel-contrast against changing backgrounds
 - **Externals dissolve at build**: allowlisted CDN dependencies are fetched, pinned, hashed, and inlined by `frogoe bundle` — the artifact has zero runtime requests
+- **Identity art is authored and 1:1 by construction** (`assets/poster.js` + `assets/icon.js` canvas scenes importing sprites from `game.js`; `art/*` findings gate it): bundle renders them on the game page (poster 1080×1920, icon 1024), `frogoe embed` composes the card (poster loading state → fade on running) + `dist/manifest.json`
 - **pointer.dx is anchor-relative** (since touch-down): steer with `x = grabX + p.dx` or track lastX. NEVER `x += p.dx`
 - **Gameplay uses `stage.play`** (capped centered column), never raw innerWidth
 - **One artifact, one fetch**: `frogoe bundle` output is a single self-contained HTML file — verified == played
@@ -107,4 +109,4 @@ docs/
 - Skills: `skills/frogoe/SKILL.md` (the router — start here)
 - Contract: `packages/contract/src/contract.js` (~190 lines, heavily commented)
 - Registry: `registry/registry.json` + `registry/blocks/*/demo.html`
-- Specs: `docs/spec/bundler.md` + `docs/spec/cli.md`
+- Specs: `docs/spec/bundler.md` + `docs/spec/cli.md` + `docs/spec/embed.md`

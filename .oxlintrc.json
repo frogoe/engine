@@ -6,7 +6,15 @@
     "eqeqeq": "error",
     "prefer-const": "error"
   },
-  "ignorePatterns": ["node_modules", "dist", "out", ".frogoe", "registry", "examples"],
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "out",
+    ".frogoe",
+    "registry",
+    "examples",
+    "packages/cli/src/injected-runtime.js"
+  ],
   "overrides": [
     {
       "files": ["packages/cli/**", "scripts/**"],

@@ -1,26 +1,23 @@
 # Skill installation and freshness
 
-Read this reference when installing or updating skills, diagnosing unexpected behavior, or running frogoe setup in CI.
+Read this reference when verifying skill freshness or diagnosing unexpected
+behavior. **These commands are for the HUMAN operator** (docs, CI scripts,
+README) — an agent inside a session never runs installers: package
+installation is a user decision, and the agent's job is verification
+(hash-pinned), not acquisition.
 
-Frogoe installs the core set eagerly and registry lazily.
+## Installation (operator, not agent)
 
-- **Core set:** `/frogoe`, `frogoe-core`, `frogoe-creative`, `frogoe-cli`.
-- **On-demand:** `frogoe-registry` (and future genre lenses) — installed when `frogoe add` is actually used.
-
-## What `frogoe init` does
-
-`frogoe init` scaffolds a game folder and does not touch global skills. Global skills are managed separately:
-
-```bash
-npx skills add frogoe/engine            # all 5 via vercel-labs/skills
-npx skills add frogoe/engine --skill frogoe-registry  # one only
-```
-
-For local development from a clone:
+Skills ship with the repo/package. The operator manages the global set:
 
 ```bash
-npx skills add ./engine                 # from sibling clone
+npx skills add frogoe/engine            # all 5 via vercel-labs/skills (user-run)
+npx skills add frogoe/engine --skill frogoe-registry  # one only (user-run)
+npx skills add ./engine                 # from a sibling clone (user-run)
 ```
+
+An agent that finds skills missing should surface what to install and stop —
+never execute these itself.
 
 Native plugin manifests `.claude-plugin/` (Claude), `.cursor-plugin/` (Cursor), `.codex-plugin/` (Codex) expose the same 5 skills to each store without `npx` — `skills/` is the distributable source, `.claude/skills` + `.agents/skills` are byte-identical mirrors for local dev (checked by `check:skill-mirror`).
 

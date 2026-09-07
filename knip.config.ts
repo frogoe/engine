@@ -10,6 +10,7 @@ const config: KnipConfig = {
     "examples/**",
     "commitlint.config.js",
     "scripts/gen-skills-manifest.mjs",
+    "packages/cli/test/embed.e2e.ts",
     "scripts/lib/hashSkill.mjs",
   ],
   ignoreDependencies: ["@commitlint/config-conventional"],

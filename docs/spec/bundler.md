@@ -40,6 +40,20 @@ dist/index.html — single file, content-addressed name (sha of body),
 Warn > 3 MB (`bundle/size`), never reject. Feed caching handles content-addressed
 artifacts of any sane size.
 
+## Art rasterization (same command)
+
+`frogoe bundle` also rasterizes the authored identity scenes through the game's own
+page: the dev server serves `index.html` as the browser sees it (import map, HUD
+blocks, font link — everything `game.js` expects at import time), the rasterizer
+waits for the contract to boot (`window.__frogoe`), dynamically imports
+`assets/poster.js` / `assets/icon.js`, draws each onto an injected full-bleed
+canvas, and captures an element screenshot — `dist/assets/poster.png` (1080×1920)
+and `dist/assets/icon.png` (1024×1024), pixel-exact and DPR-independent. Canvas
+lettering uses the page's real webfont (awaited via `document.fonts`). Missing
+scenes fail with `bundle/art-missing`; a crashing scene fails with
+`bundle/art-crash` (`check` catches contract violations earlier as `art/*`).
+See the embed spec for how the rasters are consumed.
+
 ## Not in scope (v0)
 
 Code minification (agents write readable; the artifact is cached once),

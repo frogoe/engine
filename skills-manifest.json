@@ -2,20 +2,20 @@
   "source": "frogoe/engine",
   "skills": {
     "frogoe": {
-      "hash": "bfd1e81f424199cd",
+      "hash": "a5076b37c770a9be",
       "files": 5
     },
     "frogoe-cli": {
-      "hash": "3df18efd65cc6b3d",
-      "files": 4
+      "hash": "fd76e8f6349eab34",
+      "files": 6
     },
     "frogoe-core": {
-      "hash": "1e9cbc7aa68c53f0",
-      "files": 8
+      "hash": "78473f0a3503bc03",
+      "files": 9
     },
     "frogoe-creative": {
-      "hash": "af57ef4b2cf1ec36",
-      "files": 5
+      "hash": "ecf0c1586b0c1984",
+      "files": 6
     },
     "frogoe-registry": {
       "hash": "dadd1f687daa8a41",

@@ -74,3 +74,17 @@ transparent to read, impossible to version-skip.
 - Canvas HUD text is for world-anchored popups only (combo at the actor's position).
 - Reduced-motion is the blocks' job (they all ship `prefers-reduced-motion` rules) —
   do not remove those rules when theming.
+
+## Embedded controls
+
+Inside embed cards the relay adds `frogoe-embed` to `<html>` (a truthful
+context mark for games that need it). Input works on every surface when you
+follow two rules:
+
+- gate touch controls on the DEVICE (`@media (pointer: coarse)`) — it
+  evaluates identically in a direct page and inside an iframe, so both
+  surfaces behave the same with zero special-casing;
+- never rely on the keyboard alone for the FIRST interaction — the embed
+  card focuses the frame once the game reports `running`, but the player
+  may land mid-run after a restart; a visible start affordance (PLAY
+  button, tap-anywhere) always works.

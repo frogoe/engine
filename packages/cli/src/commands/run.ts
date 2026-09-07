@@ -13,6 +13,8 @@ import { startServer } from "../run.ts";
 const NUDGE_MS = 10_000;
 
 const printQr = (url: string): void => {
+  // Non-TTY shedding: piped agents don't need QR codes (they can't scan them)
+  if (!process.stdout.isTTY) return;
   void import("qrcode-terminal")
     .then((mod) => {
       // CJS interop: named exports are not statically detected under node

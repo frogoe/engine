@@ -33,10 +33,35 @@ export const parseBlock = (source: string): { css: string | null; markup: string
     styleOpen === -1 || styleClose === -1 || styleClose < styleOpen
       ? null
       : source.slice(styleOpen + "<style>".length, styleClose);
-  return {
-    css: css?.trim() ?? null,
-    markup: (styleClose === -1 ? "" : source.slice(styleClose + "</style>".length)).trim(),
-  };
+  // Block files are full HTML documents (viewable in a browser). The markup
+  // lives between COPY FROM HERE / COPY TO HERE markers — extracting
+  // "everything after </style>" would drag </head><body> scaffolding into
+  // the game (the shipped bug: score-card injected <head> inside .hud).
+  const fromMarker = source.indexOf("COPY FROM HERE");
+  const toMarker = source.indexOf("COPY TO HERE");
+  let markup: string;
+  if (fromMarker !== -1 && toMarker !== -1 && toMarker > fromMarker) {
+    const afterFrom = source.indexOf("-->", fromMarker);
+    const beforeTo = source.lastIndexOf("<!--", toMarker);
+    markup =
+      afterFrom !== -1 && beforeTo !== -1 && beforeTo > afterFrom
+        ? source.slice(afterFrom + 3, beforeTo).trim()
+        : "";
+  } else {
+    // Fallback: no markers — strip document scaffolding
+    markup = (styleClose === -1 ? "" : source.slice(styleClose + "</style>".length)).trim();
+    // Remove trailing document closers
+    for (const closer of ["</body>", "</html>"]) {
+      const idx = markup.lastIndexOf(closer);
+      if (idx !== -1) markup = markup.slice(0, idx).trim();
+    }
+    // Remove leading document openers
+    for (const opener of ["</head>", "<body>", "<html...>"]) {
+      const idx = markup.toLowerCase().indexOf(opener.toLowerCase());
+      if (idx === 0) markup = markup.slice(opener.length).trim();
+    }
+  }
+  return { css: css?.trim() ?? null, markup };
 };
 
 /** Generate a stable marker comment for idempotent injection. */

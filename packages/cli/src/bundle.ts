@@ -139,7 +139,10 @@ const importMapPlugin = (dir: string, imports: Record<string, string>): Plugin =
   },
 });
 
-const inlineFontCss = async (
+/** Google-Fonts stylesheet → self-contained CSS (woff2 as data: URIs).
+ *  Shared by the bundler (game HTML) and the art rasterizer (poster
+ *  lettering must render in the game's own typography). */
+export const inlineFontCss = async (
   cssUrl: string,
   options: BundleOptions,
   assets: BundleAsset[],

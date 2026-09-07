@@ -199,10 +199,12 @@ export const startServer = async (
   let timer: ReturnType<typeof setTimeout> | undefined;
   const watcher = watch(root, { recursive: true }, (_event, file) => {
     // tool-owned output is not game source: the live sandbox writes
-    // screenshots into snapshots/, and a screenshot must never reload
-    // the dev page (it races real, button-driven reloads)
+    // screenshots into snapshots/, the bundler/rasterizer write dist/,
+    // and .frogoe is tool state — none of these may reload the dev
+    // page (they race real, button-driven reloads and destroy the
+    // rasterizer's execution context mid-capture)
     const first = file?.split(path.sep)[0];
-    if (first === "snapshots" || first === ".frogoe") {
+    if (first === "snapshots" || first === ".frogoe" || first === "dist") {
       return;
     }
     clearTimeout(timer);

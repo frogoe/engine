@@ -45,7 +45,9 @@ frogoe run                  # live reload + phone QR; --tunnel works on any netw
 frogoe report               # last playtest: fps dips, errors, lock-screens — with timestamps
 frogoe lint                 # fast static contract lint (stable finding codes; --json)
 frogoe check                # full gate: + headless Chrome — FPS, playability, audio recovery, phone-class throttle
+frogoe vision               # eyes for draw code: objects, gameplay frames, identity art as ASCII maps (--pretty: color)
 frogoe bundle               # one self-contained HTML (zero runtime requests) — only after check
+frogoe embed                # the card: poster loading state + sandboxed game + dist/manifest.json
 frogoe skills check         # skill freshness (hash = per-bundle SHA16)
 ```
 
@@ -56,7 +58,8 @@ frogoe skills check         # skill freshness (hash = per-bundle SHA16)
 ```bash
 git clone https://github.com/frogoe/engine && cd engine
 bun install
-bun run verify          # full gauntlet: format + lint + types + tests + knip + registry + game lint + skill freshness
+bun run verify          # full gauntlet: format + lint + types + tests + knip + registry + game lint + skill freshness + the npm user journey (packaged CLI under node)
+bun run verify:art     # art pipeline on both examples: check → bundle (rendered gates) → embed → card e2e
 ```
 
 Play the reference games and every block demo:
@@ -70,13 +73,13 @@ cd ../../registry/blocks/score-card && bunx serve .   # each block has demo.html
 
 frogoe ships 5 skills agents load on demand. Read `/frogoe` first — it's the router and capability map; it confirms the BRIEF up front and routes to the domain skills below.
 
-| Skill              | Use when                                                                                                                                                                                  |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/frogoe`          | **Read first** for any request to make / create / edit / ship a game. Confirms the BRIEF (verb, mood, palette), routes to domain skills.                                                  |
-| `/frogoe-core`     | The technical contract — folder form, `defineGame` closure, four nouns, HUD bindings, external libraries and the bundler that dissolves them.                                             |
-| `/frogoe-creative` | House style — three dials (VARIANCE / MOTION / DENSITY), lazy defaults to question, typography, named palettes, game feel.                                                                |
-| `/frogoe-cli`      | CLI dev loop — `init`, `add`, `run`, `check` (static + live sandbox), `bundle`, `report`. Finding codes split into `finding-codes.md` / `live-sandbox.md` / `bundle.md` for self-healing. |
-| `/frogoe-registry` | Install and wire registry blocks via `frogoe add`. Authoring a new block to contribute upstream.                                                                                          |
+| Skill              | Use when                                                                                                                                                                                                                                                                   |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/frogoe`          | **Read first** for any request to make / create / edit / ship a game. Confirms the BRIEF (verb, mood, palette), routes to domain skills.                                                                                                                                   |
+| `/frogoe-core`     | The technical contract — folder form, `defineGame` closure, four nouns, HUD bindings, external libraries and the bundler that dissolves them.                                                                                                                              |
+| `/frogoe-creative` | House style — three dials (VARIANCE / MOTION / DENSITY), lazy defaults to question, typography, named palettes, game feel, identity art (authored `assets/poster.js` + `assets/icon.js`).                                                                                  |
+| `/frogoe-cli`      | CLI dev loop — `init`, `add`, `run`, `vision` (ASCII eyes), `check` (static + live sandbox), `bundle`, `embed` (the card + manifest), `report`. Finding codes split into `finding-codes.md` / `live-sandbox.md` / `bundle.md` / `embed.md` / `vision.md` for self-healing. |
+| `/frogoe-registry` | Install and wire registry blocks via `frogoe add`. Authoring a new block to contribute upstream.                                                                                                                                                                           |
 
 ## What You Can Build
 
@@ -148,6 +151,7 @@ Each block is themeable via `--block-*` custom properties from your BRIEF palett
 - **Zero taste:** the contract draws nothing, sounds nothing, styles nothing. Your game owns the look; the registry owns the building blocks.
 - **Measured quality:** `frogoe check` runs your game in headless Chrome through the full lifecycle — boot → play → death → retry, twice — measuring FPS, playability, audio recovery after an injected interruption, and a 4x phone-class CPU-throttle replay. Screenshots are the evidence. `frogoe lint` is the fast static half for iteration.
 - **One artifact:** `frogoe bundle` dissolves CDN dependencies into a single self-contained HTML — zero runtime requests, no link rot, verified == played.
+- **Identity art is authored, not captured:** every game ships `assets/poster.js` + `assets/icon.js` — canvas scenes drawn by the game's own sprites (1:1 with gameplay by construction). The bundle renders them at store sizes (1080×1920 / 1024) behind rendered gates (title readability, safe-zone collisions, full-bleed icon), and `frogoe embed` composes the card: poster loading state → game, plus `dist/manifest.json` (palette, fonts, sha256 integrity).
 - **Open source:** Apache 2.0, no per-game fees.
 
 ## Packages

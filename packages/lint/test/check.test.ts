@@ -63,7 +63,9 @@ One tap flaps.
   writeFileSync(
     path.join(dir, "game.js"),
     options?.game ??
-      `defineGame(({ input, loop }) => {
+      `const C = { bg: "#101418", accent: "#ffd166" };
+export { C };
+defineGame(({ input, loop }) => {
   input.on("down", () => {});
   loop.update = (dt) => {};
   loop.render = (ctx) => {};
@@ -73,6 +75,16 @@ One tap flaps.
   writeFileSync(
     path.join(dir, ".frogoe", "contract.js"),
     "// frogoe contract v0.1.0 (materialized by frogoe init — do not edit)\nexport {};\n",
+  );
+  // authored identity art — part of the shippable game (art/* checks)
+  mkdirSync(path.join(dir, "assets"), { recursive: true });
+  writeFileSync(
+    path.join(dir, "assets", "poster.js"),
+    `import { C } from "../game.js";\n\nexport function drawPoster(ctx, w, h) {\n  ctx.fillStyle = C.bg;\n  ctx.fillRect(0, 0, w, h);\n  ctx.fillStyle = C.accent;\n  ctx.beginPath();\n  ctx.arc(w / 2, h / 2, 120, 0, 7);\n  ctx.fill();\n}\n`,
+  );
+  writeFileSync(
+    path.join(dir, "assets", "icon.js"),
+    `import { C } from "../game.js";\n\nexport function drawIcon(ctx, size) {\n  ctx.fillStyle = C.bg;\n  ctx.fillRect(0, 0, size, size);\n  ctx.fillStyle = C.accent;\n  ctx.beginPath();\n  ctx.arc(size / 2, size / 2, 180, 0, 7);\n  ctx.fill();\n}\n`,
   );
 };
 

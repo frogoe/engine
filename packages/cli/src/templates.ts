@@ -75,8 +75,27 @@ export const indexTemplate = `<!doctype html>
 `;
 
 export const gameTemplate = `/** My Game — the whole simulation in one closure. Replace everything
- *  below with your game; the four nouns are the entire platform. */
+ *  below with your game; the four nouns are the entire platform.
+ *  Keep the palette exported: the identity scenes (assets/) draw with
+ *  it, so key art stays 1:1 with the shipped game. */
 import { defineGame } from "frogoe";
+
+export const C = { bg: "#101418", fg: "#fffdf7", accent: "#ffd166" };
+
+/** SPRITES — the frogoe vision workbench registry: each object
+ *  rendered in isolation and ASCII-mapped by 'frogoe vision'. TODO:
+ *  add one entry per drawable as your sprites take shape. */
+export const SPRITES = {
+  ball: {
+    w: 120, h: 120,
+    draw: (ctx) => {
+      ctx.fillStyle = C.fg;
+      ctx.beginPath();
+      ctx.arc(60, 60, 34, 0, 7);
+      ctx.fill();
+    },
+  },
+};
 
 defineGame(({ stage, input, loop, finish }) => {
   let t = 0;
@@ -93,7 +112,7 @@ defineGame(({ stage, input, loop, finish }) => {
 
   loop.render = (ctx) => {
     ctx.clearRect(0, 0, stage.width, stage.height);
-    ctx.fillStyle = "#fffdf7";
+    ctx.fillStyle = C.fg;
     ctx.beginPath();
     ctx.arc(x, stage.height / 2, 14 + Math.sin(t * 3) * 3, 0, 7);
     ctx.fill();
