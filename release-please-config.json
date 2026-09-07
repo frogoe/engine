@@ -5,34 +5,14 @@
   "packages": {
     "packages/cli": {
       "changelog-path": "CHANGELOG.md",
-      "initial-version": "0.1.0",
-      "extra-files": [
-        {
-          "type": "json",
-          "path": "packages/lint/package.json",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "json",
-          "path": "packages/contract/package.json",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "json",
-          "path": ".claude-plugin/plugin.json",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "json",
-          "path": ".codex-plugin/plugin.json",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "json",
-          "path": ".cursor-plugin/plugin.json",
-          "jsonpath": "$.version"
-        }
-      ]
+      "initial-version": "0.1.0"
     }
-  }
+  },
+  "extra-files": [
+    "packages/lint/package.json",
+    "packages/contract/package.json",
+    ".claude-plugin/plugin.json",
+    ".codex-plugin/plugin.json",
+    ".cursor-plugin/plugin.json"
+  ]
 }
