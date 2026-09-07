@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.3](https://github.com/frogoe/engine/compare/v0.4.2...v0.4.3) (2026-09-07)
+
+
+### Bug Fixes
+
+* trigger 0.4.2 ([272065b](https://github.com/frogoe/engine/commit/272065b82428ff3c1c5031e8e4b1766d7a203d6a))
+
 ## [0.4.2](https://github.com/frogoe/engine/compare/v0.4.1...v0.4.2) (2026-09-07)
 
 
