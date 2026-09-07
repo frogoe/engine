@@ -167,6 +167,88 @@ system for every game:
 
 Examples: `examples/{flappy,sawstorm}/assets/icon.js`.
 
+
+## Copy-paste skeletons (start here, then compose)
+
+The fastest path to passing art: copy these skeletons, replace the
+sprite calls + logotype with YOUR game's constants, run
+`frogoe vision --poster` to SEE, iterate. Do not search the filesystem
+for examples — they are HERE.
+
+### Poster skeleton
+
+```js
+// assets/poster.js — the game's key art (copy, then compose)
+import { C, YOUR_SPRITE_FN } from "../game.js";
+
+const fitText = (ctx, text, font, targetPx, maxW) => {
+  ctx.font = font(targetPx);
+  const w = ctx.measureText(text).width;
+  return w <= maxW ? targetPx : Math.floor(targetPx * (maxW / w));
+};
+
+export function drawPoster(ctx, w, h) {
+  const S = w / 540; // the game's own stage — NEVER zoom sprites
+  ctx.save();
+  ctx.scale(S, S);
+
+  // 1. ground (BRIEF palette, flat)
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, 540, 960);
+
+  // 2. the moment — call YOUR game's own sprite function with real tuning
+  YOUR_SPRITE_FN(ctx, x, y, realSize, { pose });
+  // ... more sprites at their in-game sizes
+
+  // 3. safe-zone band (declared title block, top third)
+  ctx.restore();
+  ctx.textAlign = "center";
+  ctx.lineJoin = "round";
+  ctx.letterSpacing = "6px";
+  const size = fitText(ctx, "YOUR TITLE", (px) => `700 ${px}px YourFont`, 100, 540 * 0.84);
+  ctx.font = `700 ${size}px YourFont`;
+  ctx.lineWidth = size * 0.12;
+  ctx.strokeStyle = C.outline || C.bg;
+  ctx.strokeText("YOUR TITLE", w / 2, 160);
+  ctx.fillStyle = C.fg;
+  ctx.fillText("YOUR TITLE", w / 2, 160);
+  ctx.letterSpacing = "0px";
+
+  // 4. the declared lettering block (safe-zone contract — from variables)
+  ctx.__frogoeTitleBand = [43, 50, 497, 172];
+}
+```
+
+### Icon skeleton
+
+```js
+// assets/icon.js — the game's mark (copy, then compose)
+import { C, YOUR_SPRITE_FN } from "../game.js";
+
+export function drawIcon(ctx, size) {
+  // plate: full-bleed square, NEVER pre-rounded
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, size, size);
+
+  // mark: the game's own sprite, fills 55–70% of plate
+  YOUR_SPRITE_FN(ctx, size * 0.49, size * 0.47, size * 0.25, { pose });
+}
+```
+
+### SPRITES registry skeleton (for `frogoe vision --objects`)
+
+```js
+// in game.js — one entry per drawable
+export const SPRITES = {
+  hero: { w: 200, h: 200, draw: (ctx) => drawHero(ctx, 100, 110, 80) },
+  hazard: { w: 120, h: 120, draw: (ctx) => drawHazard(ctx, 60, 60, 40) },
+};
+```
+
+**After copying:** run `frogoe check --fast` (static gate — must pass
+before art is worth writing), then `frogoe vision --poster` and LOOK at
+the map. Iterate on what you SEE, not on what you imagine.
+
 ## Character craft — the Box Chick (frogoe's mascot construction)
 
 The reference character (examples/flappy drawBird) speaks in SQUARES —

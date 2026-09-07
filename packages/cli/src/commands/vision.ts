@@ -48,15 +48,15 @@ const HELPERS = [
   .map((fn) => `const ${fn.name} = ${String(fn)};`)
   .join("\n");
 
-const PAGE_SCRIPT = (palette: EyePalette): string => `(async () => {
+const PAGE_SCRIPT = (palette: EyePalette, cols = 96): string => `(async () => {
   ${HELPERS}
   const PAL = ${JSON.stringify(palette)};
-  const map = (d, w, h, cols) => {
-    const rows = Math.max(1, Math.round((cols * (h / w)) / 2));
+  const map = (d, w, h, useCols) => {
+    const rows = Math.max(1, Math.round((useCols * (h / w)) / 2));
     return {
-      cols, rows,
-      plain: mapToChars(d, w, h, cols, rows, PAL),
-      pretty: mapToPretty(d, w, h, cols, rows),
+      cols: useCols, rows,
+      plain: mapToChars(d, w, h, useCols, rows, PAL),
+      pretty: mapToPretty(d, w, h, useCols, rows),
       metrics: compositionMetrics(d, w, h, Math.max(4, Math.round(rows / 4)), PAL),
     };
   };
@@ -97,7 +97,7 @@ const PAGE_SCRIPT = (palette: EyePalette): string => `(async () => {
         try {
           const w = sp.w ?? 200, h = sp.h ?? 200;
           const { d } = render(w, h, (ctx) => sp.draw(ctx));
-          out.objects.push({ name, ...map(d, w, h, 48), error: null });
+          out.objects.push({ name, ...map(d, w, h, ${String(Math.min(48, cols))}), error: null });
         } catch (error) {
           out.objects.push({ name, error: String(error) });
         }
@@ -113,7 +113,7 @@ const PAGE_SCRIPT = (palette: EyePalette): string => `(async () => {
     let band = null;
     try { band = ctx.__frogoeTitleBand ?? null; } catch (e) { band = null; }
     out.identity.poster = {
-      ...map(d, w, h, 96),
+      ...map(d, w, h, ${String(cols)}),
       titleReport,
       titleCollision: findTitleZoneCollision(d, w, h, band),
       titleBandDeclared: band !== null,
@@ -161,6 +161,14 @@ export const command = defineCommand({
   args: {
     dir: { type: "positional", required: false, description: "game folder (default: cwd)" },
     pretty: { type: "boolean", description: "truecolor half-block maps (human eyes)" },
+    full: {
+      type: "boolean",
+      description: "all windows at full resolution (default: poster + gameplay, compact)",
+    },
+    poster: { type: "boolean", description: "poster map only" },
+    icon: { type: "boolean", description: "icon map only" },
+    gameplay: { type: "boolean", description: "gameplay frames only" },
+    objects: { type: "boolean", description: "SPRITES objects only" },
   },
   async run({ args }) {
     const dir = path.resolve(args.dir ? String(args.dir) : process.cwd());
@@ -181,6 +189,16 @@ export const command = defineCommand({
       ...(brief.outline ? { outline: brief.outline } : {}),
     };
     const pretty = args.pretty === true;
+    // Window selection: targeted flag > default (poster + gameplay) > --full (all)
+    const wantAll = args.full === true;
+    const wantPoster = args.poster === true || wantAll;
+    const wantIcon = args.icon === true || wantAll;
+    const wantGameplay =
+      args.gameplay === true || (!args.poster && !args.icon && !args.objects) || wantAll;
+    const wantObjects = args.objects === true || wantAll;
+    const targeted =
+      args.poster === true || args.icon === true || args.gameplay === true || args.objects === true;
+    const compact = !wantAll; // compact mode: 48 cols vs 96
 
     const { startServer } = await import("../run.ts");
     const server = await startServer(dir);
@@ -196,7 +214,7 @@ export const command = defineCommand({
       const page = await browser.newPage();
       await page.goto(server.urls.local, { timeout: 15_000, waitUntil: "domcontentloaded" });
       await page.waitForFunction("window.__frogoe !== undefined", { timeout: 15_000 });
-      report = (await page.evaluate(PAGE_SCRIPT(palette))) as VisionReport;
+      report = (await page.evaluate(PAGE_SCRIPT(palette, compact ? 48 : 96))) as VisionReport;
 
       // GAMEPLAY — full-page frames (canvas + DOM HUD): the HUD is half
       // the composition and canvas-only capture was blind to it
@@ -224,59 +242,67 @@ export const command = defineCommand({
     console.log(`frogoe vision — ${dir}`);
     console.log(`palette: ${legend}\n`);
 
-    console.log("── OBJECTS (SPRITES) " + "─".repeat(28));
-    if (report.objects === null) {
-      console.log("  (none — export SPRITES from game.js to see each object)\n");
-    } else {
-      for (const obj of report.objects) {
-        if (obj.error !== null && obj.error !== undefined) {
-          console.log(`${obj.name}: ERROR ${obj.error.slice(0, 120)}`);
-          continue;
+    if (wantObjects) {
+      console.log("── OBJECTS (SPRITES) " + "─".repeat(28));
+      if (report.objects === null) {
+        console.log("  (none — export SPRITES from game.js to see each object)\n");
+      } else {
+        for (const obj of report.objects) {
+          if (obj.error !== null && obj.error !== undefined) {
+            console.log(`${obj.name}: ERROR ${obj.error.slice(0, 120)}`);
+            continue;
+          }
+          console.log(`${obj.name} (${obj.cols}×${obj.rows} map) — ${metricLine(obj as MapView)}`);
+          console.log(show(obj as MapView, pretty));
+          console.log();
         }
-        console.log(`${obj.name} (${obj.cols}×${obj.rows} map) — ${metricLine(obj as MapView)}`);
-        console.log(show(obj as MapView, pretty));
+      }
+    }
+    if (wantGameplay) {
+      console.log("── GAMEPLAY (full page: world + HUD) " + "─".repeat(16));
+      for (const frame of report.gameplay) {
+        console.log(`${frame.label} — ${metricLine(frame)}`);
+        console.log(show(frame, pretty));
         console.log();
       }
     }
-
-    console.log("── GAMEPLAY (full page: world + HUD) " + "─".repeat(16));
-    for (const frame of report.gameplay) {
-      console.log(`${frame.label} — ${metricLine(frame)}`);
-      console.log(show(frame, pretty));
-      console.log();
+    if (wantPoster || wantIcon) {
+      console.log("── IDENTITY " + "─".repeat(38));
     }
-
-    console.log("── IDENTITY " + "─".repeat(38));
-    const poster = report.identity.poster;
-    if (poster === undefined || "error" in poster) {
-      console.log(
-        `poster: MISSING (${String((poster as { error?: string })?.error ?? "assets/poster.js not found").slice(0, 90)})`,
-      );
-    } else {
-      const verdict = verifyTitleReadability(poster.titleReport, 540);
-      const share =
-        poster.titleReport.inkTotal > 0
-          ? poster.titleReport.inkCount / poster.titleReport.inkTotal
-          : 0;
-      console.log(
-        `poster — ${metricLine(poster)} · title ${verdict === null ? "✓" : `✗ ${verdict.slice(0, 100)}`} · ink ${(share * 100).toFixed(1)}%`,
-      );
-      console.log(show(poster, pretty));
+    if (wantPoster) {
+      const poster = report.identity.poster;
+      if (poster === undefined || "error" in poster) {
+        console.log(
+          `poster: MISSING (${String((poster as { error?: string })?.error ?? "assets/poster.js not found").slice(0, 90)})`,
+        );
+      } else {
+        const verdict = verifyTitleReadability(poster.titleReport, 540);
+        const share =
+          poster.titleReport.inkTotal > 0
+            ? poster.titleReport.inkCount / poster.titleReport.inkTotal
+            : 0;
+        console.log(
+          `poster — ${metricLine(poster)} · title ${verdict === null ? "✓" : `✗ ${verdict.slice(0, 100)}`} · ink ${(share * 100).toFixed(1)}%`,
+        );
+        console.log(show(poster, pretty));
+      }
     }
-    const icon = report.identity.icon;
-    if (icon === undefined || "error" in icon) {
-      console.log(
-        `icon: MISSING (${String((icon as { error?: string })?.error ?? "assets/icon.js not found").slice(0, 90)})`,
-      );
-    } else {
-      const hexes = [palette.bg, palette.fg, palette.accent, palette.outline ?? palette.bg];
-      const verdict = verifyIconFullbleed(icon.cornerReport, hexes);
-      console.log(
-        `icon — ${metricLine(icon)} · fullbleed ${verdict === null ? "✓" : `✗ ${verdict.slice(0, 100)}`}`,
-      );
-      console.log(show(icon, pretty));
+    if (wantIcon) {
+      const icon = report.identity.icon;
+      if (icon === undefined || "error" in icon) {
+        console.log(
+          `icon: MISSING (${String((icon as { error?: string })?.error ?? "assets/icon.js not found").slice(0, 90)})`,
+        );
+      } else {
+        const hexes = [palette.bg, palette.fg, palette.accent, palette.outline ?? palette.bg];
+        const verdict = verifyIconFullbleed(icon.cornerReport, hexes);
+        console.log(
+          `icon — ${metricLine(icon)} · fullbleed ${verdict === null ? "✓" : `✗ ${verdict.slice(0, 100)}`}`,
+        );
+        console.log(show(icon, pretty));
+      }
     }
-    if (!existsSync(path.join(dir, "assets", "poster.js"))) {
+    if (!targeted && !existsSync(path.join(dir, "assets", "poster.js"))) {
       console.log("\n(note: run `frogoe check` first — vision only looks, it never gates)");
     }
   },

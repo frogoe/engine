@@ -38,9 +38,11 @@ Run commands as `bun packages/cli/src/bin.ts <cmd>` from the repo (published:
    In agent loops use `frogoe lint --json`; every finding carries `{code, file, line, severity, fix, recipe}` — read the fix, apply, re-run. One iteration heals.
 6. **Gate:** `frogoe check` — the full gate: it reruns the static pass (incl. the authored `art/*` contract), then ALWAYS opens the live sandbox (boot → play → end → retry, twice; see `references/live-sandbox.md`). Exit 1 on errors. Do not prepend a redundant `lint` before it; do not ship without it passing.
 7. **Ship:** `frogoe bundle` only after check passes — externals dissolve into one self-contained HTML, and the authored identity scenes render into `dist/assets/` (poster 1080×1920, icon 1024).
-8. **Embed:** `frogoe embed` after bundle — the card (`dist/embed.html`: poster loading state + sandboxed game) and `dist/manifest.json`. Order is law: check → bundle → embed.
+9. **Embed:** `frogoe embed` after bundle — the card (`dist/embed.html`: poster loading state + sandboxed game) and `dist/manifest.json`. Order is law: check → bundle → embed.
 
 ## Boundaries
 
-- `lint` is the fast static half; `check` is the full gate and always includes the browser pass. The declared-palette contrast check is the static floor — rendered contrast arrives with the sandbox.
+- `lint` is the fast static half; `check` is the full gate and always includes the browser pass. The declared-palette contrast check is the static floor — rendered contrast arrives with the sandbox layer.
 - `bundle` requires network for CDN assets (allowlist plus pin plus sha256); offline games bundle with zero fetches.
+- **Never read the installed package's `dist/` directory** — it is bundled/minified code that wastes 50K+ tokens and teaches nothing. If you need to understand how the CLI works, the source is open at `github.com/frogoe/engine` under `packages/cli/src/`. If you need examples of game art, they are in `skills/frogoe-creative/references/art.md` (inline skeletons) — not in the binary.
+- **Do not run `frogoe run` inside an agent loop** — it starts a dev server and blocks. Use `frogoe lint` / `frogoe check --fast` for iteration, `frogoe check` for the gate, and tell the human to run `frogoe run` on their phone for real-device testing.

@@ -20,6 +20,10 @@ and nothing visual. Read `/frogoe-core` before writing any game code.
 
 ## 1. Start from project state
 
+**BRIEF.md is the ~1KB routing cache** — once it exists, you re-read THAT
+file (never this router) and go straight to the owning skill. Only a fresh
+creation (no BRIEF, no frogoe.json) enters the intent layer.
+
 Apply the first matching row; do not evaluate lower rows:
 
 | State                                                                 | Action                                                                                                                                                   |
@@ -36,7 +40,7 @@ If a fresh request does not identify the verb or mood, ask what the game is abou
 ## 2. Fresh creation — confirm the BRIEF first
 
 Before any code, `BRIEF.md` must exist and be honest (see `/frogoe-core` →
-`references/brief-format.md` for the schema and `references/brief-contract.md` for question invariants). If the user gave a genre or reference game, derive the brief and confirm it in one message: title, **one verb** (`tap`/`hold`/`steer`/`aim`), mood, and a **declared palette** (bg / fg / accent hex). A game whose core action cannot be named in one word is input soup — push back once, then proceed with the closest single verb.
+`/frogoe-core/references/brief-format.md` (note: `/frogoe-core`, not `/frogoe`) for the schema and `references/brief-contract.md` for question invariants). If the user gave a genre or reference game, derive the brief and confirm it in one message: title, **one verb** (`tap`/`hold`/`steer`/`aim`), mood, and a **declared palette** (bg / fg / accent hex). A game whose core action cannot be named in one word is input soup — push back once, then proceed with the closest single verb.
 
 For unformed requests ("make me a fun game"), run the pitch round (`references/pitch-round.md`) before locking the brief — 5 divergent concepts, at least 2 from the tail, present all before recommending one. The capability menu (`references/capability-menu.md`) lists what frogoe can bring; recommend 1-2 rows traced to the confirmed concept.
 
@@ -79,13 +83,16 @@ refreshed by the user, not by you.
 | Audio: gesture unlock, interrupted state, silent buffer                              | `/frogoe-core` → `audio.md` |
 | Externals: three.js, gsap, fonts, bundler dissolve                                   | `/frogoe-core` → `externals.md` |
 
-## 6. The loop (build → lint → check → bundle)
+## 6. The loop (build → lint → check → vision → bundle)
 
 1. Author the folder (`index.html`, `game.js`, `BRIEF.md`, blocks from the registry).
 2. Run the game (`frogoe run` or any static server) and **look at it** — a screenshot is the only quality gate that matters.
 3. `frogoe lint` after every edit — fast static feedback; every finding carries a fix, apply and re-run. One iteration heals.
-4. `frogoe check` — the full gate: it reruns the static pass and ALWAYS opens the live sandbox (FPS, playability, HUD outline, audio recovery, retry). It MUST exit 0 before shipping; do not prepend a redundant `lint`.
-5. `frogoe bundle` only after check passes: externals dissolve, one self-contained HTML.
+4. `frogoe check --fast` — quick static gate (0.03s, no Chrome) BEFORE writing art. If the game doesn't pass static, art is wasted effort.
+5. Author identity art (`assets/poster.js` + `assets/icon.js` per `/frogoe-creative → art.md`).
+6. `frogoe vision` — SEE what you drew (ASCII maps, palette-aware). Agents that draw blind ship blobs; iterate on what you SEE.
+7. `frogoe check` — the full gate (Chrome sandbox: FPS, playability, HUD outline, audio recovery). MUST exit 0 before shipping.
+8. `frogoe bundle` only after check passes: externals dissolve, one self-contained HTML.
 
 ## Boundaries
 
@@ -93,3 +100,7 @@ refreshed by the user, not by you.
 - Do not bypass `BRIEF.md` for feed games — the brief is what the gate measures against.
 - Do not read every reference for a one-line edit; the tables above route narrowly.
 - Do not reconstruct a skill from memory if `frogoe skills check` reports it outdated — surface it to the user; refreshing installs is the user's call, not yours.
+
+## Don't
+
+- **Never read the installed package's `dist/`** — bundled code, wastes 50K+ tokens, teaches nothing. Source: `github.com/frogoe/engine`. Art examples: `frogoe-creative → art.md` (inline skeletons).
