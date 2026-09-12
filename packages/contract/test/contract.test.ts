@@ -136,11 +136,30 @@ const sourceBody = (): string => contractSource.replace("export { defineGame };"
 interface GameOptions {
   finish: (score: number) => void;
   input: {
-    on: (
-      event: "down" | "up" | "drag",
-      handler: (p: { dx: number; dy: number; x: number; y: number }) => void,
-    ) => void;
-    pointer: { down: boolean };
+    keys: Set<string>;
+    on: {
+      (
+        event: "key",
+        handler: (k: {
+          code: string;
+          dir: string;
+          key: string;
+          mods: { alt: boolean; ctrl: boolean; meta: boolean; shift: boolean };
+        }) => void,
+      ): void;
+      (
+        event: "down" | "drag" | "move" | "up",
+        handler: (p: {
+          down?: boolean;
+          dx: number;
+          dy: number;
+          id?: number;
+          x: number;
+          y: number;
+        }) => void,
+      ): void;
+    };
+    pointer: { down: boolean; dx: number; dy: number; x: number; y: number };
   };
   loop: {
     update?: (dt: number) => void;
@@ -288,5 +307,269 @@ describe("frogoe contract", () => {
     handle?.mute(true);
     expect(handle?.muted).toBeTrue();
     expect(stub.dispatched.some((e) => e.type === "frogoe:mute")).toBeTrue();
+  });
+});
+
+describe("frogoe contract 0.2.0 — keyboard", () => {
+  const bootKeys = (
+    onKey?: (k: { code: string; dir: string; key: string }) => void,
+  ): { input?: GameOptions["input"]; stub: ReturnType<typeof createStubEnv> } => {
+    const stub = createStubEnv();
+    let input: GameOptions["input"] | undefined;
+    stub.defineGame((options: GameOptions) => {
+      input = options.input;
+      if (onKey) {
+        options.input.on("key", onKey);
+      }
+      options.loop.update = () => {};
+      options.loop.render = () => {};
+    });
+    return { input, stub };
+  };
+
+  test("key down/up roundtrip with dir, key, code, mods", () => {
+    const seen: Array<{ code: string; dir: string; key: string }> = [];
+    const { stub } = bootKeys((k) => {
+      seen.push({ code: k.code, dir: k.dir, key: k.key });
+    });
+    stub.api.fire("win:keydown", { code: "KeyQ", key: "q" });
+    stub.api.fire("win:keyup", { code: "KeyQ", key: "q" });
+    expect(seen).toEqual([
+      { code: "KeyQ", dir: "down", key: "q" },
+      { code: "KeyQ", dir: "up", key: "q" },
+    ]);
+  });
+
+  test("OS auto-repeat is suppressed — one edge per press", () => {
+    let downs = 0;
+    const { stub } = bootKeys((k) => {
+      if (k.dir === "down") downs += 1;
+    });
+    stub.api.fire("win:keydown", { code: "Space", key: " " });
+    stub.api.fire("win:keydown", { code: "Space", key: " ", repeat: true });
+    stub.api.fire("win:keydown", { code: "Space", key: " ", repeat: true });
+    expect(downs).toBe(1);
+  });
+
+  test("input.keys tracks held codes and clears on release", () => {
+    const { input, stub } = bootKeys();
+    stub.api.fire("win:keydown", { code: "ArrowLeft", key: "ArrowLeft" });
+    stub.api.fire("win:keydown", { code: "KeyD", key: "d" });
+    expect(input?.keys.has("ArrowLeft")).toBeTrue();
+    expect(input?.keys.has("KeyD")).toBeTrue();
+    stub.api.fire("win:keyup", { code: "ArrowLeft", key: "ArrowLeft" });
+    expect(input?.keys.has("ArrowLeft")).toBeFalse();
+    expect(input?.keys.has("KeyD")).toBeTrue();
+  });
+
+  test("blur fires a synthetic up per held key, then clears the set", () => {
+    const ups: string[] = [];
+    const { input, stub } = bootKeys((k) => {
+      if (k.dir === "up") ups.push(k.code);
+    });
+    stub.api.fire("win:keydown", { code: "KeyA", key: "a" });
+    stub.api.fire("win:keydown", { code: "KeyW", key: "w" });
+    stub.api.fire("win:blur");
+    expect(ups.sort()).toEqual(["KeyA", "KeyW"]);
+    expect(input?.keys.size).toBe(0);
+  });
+
+  test("modifier chords pass through — no event, no held state", () => {
+    let fired = 0;
+    const { input, stub } = bootKeys(() => {
+      fired += 1;
+    });
+    stub.api.fire("win:keydown", { code: "KeyR", ctrlKey: true, key: "r" });
+    stub.api.fire("win:keydown", { code: "KeyI", metaKey: true, key: "i" });
+    expect(fired).toBe(0);
+    expect(input?.keys.size).toBe(0);
+  });
+
+  test("scroll keys are prevented; letters are not", () => {
+    let prevented = 0;
+    const { stub } = bootKeys(() => {});
+    const spy = () => {
+      prevented += 1;
+    };
+    stub.api.fire("win:keydown", { code: "Space", key: " ", preventDefault: spy });
+    stub.api.fire("win:keydown", { code: "ArrowLeft", key: "ArrowLeft", preventDefault: spy });
+    stub.api.fire("win:keydown", { code: "KeyA", key: "a", preventDefault: spy });
+    expect(prevented).toBe(2);
+  });
+
+  test("editable targets keep native typing — no event, no preventDefault", () => {
+    let fired = 0;
+    let prevented = 0;
+    const { input, stub } = bootKeys(() => {
+      fired += 1;
+    });
+    const target = { closest: () => ({}) }; // any match = editable
+    stub.api.fire("win:keydown", {
+      code: "Space",
+      key: " ",
+      preventDefault: () => {
+        prevented += 1;
+      },
+      target,
+    });
+    expect(fired).toBe(0);
+    expect(prevented).toBe(0);
+    expect(input?.keys.size).toBe(0);
+  });
+
+  test("no key listener — DOM untouched, but input.keys still tracks", () => {
+    const { input, stub } = bootKeys();
+    let prevented = 0;
+    stub.api.fire("win:keydown", {
+      code: "Space",
+      key: " ",
+      preventDefault: () => {
+        prevented += 1;
+      },
+    });
+    expect(prevented).toBe(0); // no listener — the page keeps native scroll
+    expect(input?.keys.has("Space")).toBeTrue(); // polling is first-class
+    stub.api.fire("win:keyup", { code: "Space", key: " " });
+    expect(input?.keys.size).toBe(0);
+  });
+
+  test("unknown input event throws a teaching TypeError", () => {
+    const stub = createStubEnv();
+    stub.defineGame((options: GameOptions) => {
+      options.loop.update = () => {};
+      options.loop.render = () => {};
+      expect(() =>
+        options.input.on("wheel" as "down", () => {
+          // unreachable
+        }),
+      ).toThrow(/unknown input event "wheel" .* down, drag, key, move, up/u);
+    });
+  });
+
+  test("api.version reports 0.2.0", () => {
+    const stub = createStubEnv();
+    stub.defineGame(({ loop }: GameOptions) => {
+      loop.update = () => {};
+      loop.render = () => {};
+    });
+    const handle = (stub.windowStub as typeof stub.windowStub & { __frogoe?: { version: string } })
+      .__frogoe;
+    expect(handle?.version).toBe("0.2.0");
+  });
+});
+
+describe("frogoe contract 0.2.0 — multi-touch + hover", () => {
+  const bootPointer = (): {
+    input?: GameOptions["input"];
+    stub: ReturnType<typeof createStubEnv>;
+  } => {
+    const stub = createStubEnv();
+    let input: GameOptions["input"] | undefined;
+    stub.defineGame((options: GameOptions) => {
+      input = options.input;
+      options.loop.update = () => {};
+      options.loop.render = () => {};
+    });
+    return { input, stub };
+  };
+
+  test("two touches keep independent anchors; pointer mirrors the first", () => {
+    const { input, stub } = bootPointer();
+    stub.api.fire("win:pointerdown", { clientX: 100, clientY: 500, pointerId: 7 });
+    stub.api.fire("win:pointerdown", { clientX: 300, clientY: 200, pointerId: 9 });
+    stub.api.fire("win:pointermove", { clientX: 140, clientY: 500, pointerId: 7 });
+    stub.api.fire("win:pointermove", { clientX: 340, clientY: 240, pointerId: 9 });
+    // per-touch dx: id 7 moved +40 from its anchor, id 9 moved +40/+40 from its own
+    expect(input?.pointer.dx).toBe(40);
+    expect(input?.pointer.x).toBe(140); // follows the FIRST touch, not the second
+    expect(input?.pointer.down).toBeTrue();
+  });
+
+  test("first touch lifting ends pointer.down even with a second held", () => {
+    const { input, stub } = bootPointer();
+    stub.api.fire("win:pointerdown", { clientX: 100, clientY: 500, pointerId: 7 });
+    stub.api.fire("win:pointerdown", { clientX: 300, clientY: 200, pointerId: 9 });
+    stub.api.fire("win:pointerup", { pointerId: 7 });
+    expect(input?.pointer.down).toBeFalse(); // primary is gone
+  });
+
+  test("handlers receive per-touch snapshots with the pointer id", () => {
+    const stub = createStubEnv();
+    const ups: Array<{ down?: boolean; dx: number; id?: number }> = [];
+    stub.defineGame((options: GameOptions) => {
+      options.input.on("up", (p) => {
+        ups.push({ down: p.down, dx: p.dx, id: p.id });
+      });
+      options.loop.update = () => {};
+      options.loop.render = () => {};
+    });
+    stub.api.fire("win:pointerdown", { clientX: 100, clientY: 500, pointerId: 3 });
+    stub.api.fire("win:pointermove", { clientX: 160, clientY: 500, pointerId: 3 });
+    stub.api.fire("win:pointerup", { pointerId: 3 });
+    expect(ups).toEqual([{ down: false, dx: 60, id: 3 }]);
+  });
+
+  test("stray release without a press fires nothing", () => {
+    const stub = createStubEnv();
+    let ups = 0;
+    stub.defineGame((options: GameOptions) => {
+      options.input.on("up", () => {
+        ups += 1;
+      });
+      options.loop.update = () => {};
+      options.loop.render = () => {};
+    });
+    stub.api.fire("win:pointerup", { pointerId: 42 });
+    stub.api.fire("win:pointercancel", { pointerId: 42 });
+    expect(ups).toBe(0);
+  });
+
+  test("hover moves fire only when a handler exists, anchored to the last point", () => {
+    const stub = createStubEnv();
+    const moves: Array<{ dx: number; dy: number }> = [];
+    stub.defineGame((options: GameOptions) => {
+      options.input.on("move", (p) => {
+        moves.push({ dx: p.dx, dy: p.dy });
+      });
+      options.loop.update = () => {};
+      options.loop.render = () => {};
+    });
+    stub.api.fire("win:pointermove", { clientX: 10, clientY: 20 });
+    stub.api.fire("win:pointermove", { clientX: 25, clientY: 28 });
+    expect(moves).toEqual([
+      { dx: 0, dy: 0 }, // first hover has no anchor
+      { dx: 15, dy: 8 }, // delta from the previous hover point
+    ]);
+  });
+
+  test("hover without a registered handler is a silent no-op", () => {
+    const stub = createStubEnv();
+    let crashed = false;
+    stub.defineGame((options: GameOptions) => {
+      options.loop.update = () => {};
+      options.loop.render = () => {};
+      try {
+        stub.api.fire("win:pointermove", { clientX: 10, clientY: 20 });
+      } catch {
+        crashed = true;
+      }
+    });
+    expect(crashed).toBeFalse();
+  });
+
+  test("blur releases active touches with up events", () => {
+    const stub = createStubEnv();
+    const ups: number[] = [];
+    stub.defineGame((options: GameOptions) => {
+      options.input.on("up", (p) => {
+        ups.push(p.id ?? -1);
+      });
+      options.loop.update = () => {};
+      options.loop.render = () => {};
+    });
+    stub.api.fire("win:pointerdown", { clientX: 100, clientY: 500, pointerId: 1 });
+    stub.api.fire("win:pointerdown", { clientX: 300, clientY: 200, pointerId: 2 });
+    stub.api.fire("win:blur");
+    expect(ups.sort()).toEqual([1, 2]);
   });
 });
