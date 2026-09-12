@@ -4,7 +4,7 @@
 
 **Always read the relevant skill before writing or modifying game code.** Skills encode the frogoe contract and creative direction that generic docs don't cover. Skipping them produces broken games.
 
-**Doing anything with frogoe?** Start at the `/frogoe` skill — it confirms the BRIEF (verb, mood, palette) up front and routes every request. The domain skills it routes to:
+**Doing anything with frogoe?** Read the `/frogoe` skill — it confirms the BRIEF (verb, mood, palette) up front and routes every request. The domain skills it routes to:
 
 - `/frogoe-core` — the technical contract: folder form, `defineGame` closure, four nouns, HUD bindings, external libraries, the identity-art assets (`assets/poster.js` + `assets/icon.js`). Read before writing any game code.
 - `/frogoe-creative` — house style: three dials (VARIANCE/MOTION/DENSITY), lazy defaults, typography, palettes, game feel, identity art (the poster + icon are authored, 1:1 with gameplay). Read when choosing how a game looks — including its face.
@@ -71,7 +71,7 @@ bundle`. Use `--json` for machine-readable findings that can be fixed programmat
 
 - `index.html` — entry shell: `<canvas id="c">` + import map + `.hud` layer (HUD blocks land here)
 - `game.js` — the whole simulation: `defineGame(({stage, input, loop, finish}) => {...})`
-- `BRIEF.md` — the game's identity: verb, mood, palette (validated by `frogoe check`)
+- `BRIEF.md` — the game's identity: verb, session, mood, palette (validated by `frogoe check`)
 - `assets/poster.js` + `assets/icon.js` — REQUIRED identity art: canvas scenes importing the game's own sprites (`art/missing` gates the check; frogoe-creative → `references/art.md`)
 - `frogoe.json` — contract version pin
 - `.frogoe/` — tool-owned, gitignored (the contract runtime — never edit)
@@ -89,17 +89,20 @@ frogoe check             # full gate: + browser — runtime errors, canvas paint
 
 Fix all errors before presenting the result. Common findings:
 
-| Code                     | Meaning                                                 | Fix                                                                                           |
-| ------------------------ | ------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `brief/todo`             | BRIEF.md still has TODO markers                         | Fill in verb, mood, palette                                                                   |
-| `art/missing`            | `assets/poster.js` / `assets/icon.js` absent            | Author both scenes — they import sprites from game.js (frogoe-creative → `references/art.md`) |
-| `art/title-band`         | poster declares no lettering-block band                 | Set `ctx.__frogoeTitleBand = [x0,y0,x1,y1]` from the layout variables (never hand-typed)      |
-| `input/incremental-drag` | `x += p.dx` (wall-rocket bug)                           | Use `x = grabX + p.dx` or track lastX                                                         |
-| `folder/touch-select`    | Phone long-press summons text selection (iOS + Android) | Add `-webkit-user-select: none; user-select: none; -webkit-touch-callout: none` on html/body  |
-| `audio/suspended-only`   | Resume gated on `=== "suspended"` (iOS silent bug)      | Resume when `state !== "running"` — see frogoe-core `references/audio.md`                     |
-| `live/hud-outline`       | HUD text missing text-shadow/stroke                     | Add `text-shadow: 0 2px 0 <dark>`                                                             |
-| `live/fps`               | Below 30fps                                             | Cache gradients, reduce shadowBlur, cut particles                                             |
-| `live/not-playable`      | Scripted taps changed nothing                           | Wire `input.on("down")` to actual game logic                                                  |
+| Code                     | Meaning                                                  | Fix                                                                                           |
+| ------------------------ | -------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `brief/todo`             | BRIEF.md still has TODO markers                          | Fill in verb, mood, palette                                                                   |
+| `art/missing`            | `assets/poster.js` / `assets/icon.js` absent             | Author both scenes — they import sprites from game.js (frogoe-creative → `references/art.md`) |
+| `art/title-band`         | poster declares no lettering-block band                  | Set `ctx.__frogoeTitleBand = [x0,y0,x1,y1]` from the layout variables (never hand-typed)      |
+| `input/incremental-drag` | `x += p.dx` (wall-rocket bug)                            | Use `x = grabX + p.dx` or track lastX                                                         |
+| `folder/touch-select`    | Phone long-press summons text selection (iOS + Android)  | Add `-webkit-user-select: none; user-select: none; -webkit-touch-callout: none` on html/body  |
+| `audio/suspended-only`   | Resume gated on `=== "suspended"` (iOS silent bug)       | Resume when `state !== "running"` — see frogoe-core `references/audio.md`                     |
+| `brief/verb`             | Verb not in the 9-value enum                             | Pick from: tap\|hold\|steer\|aim\|swap\|place\|type\|draw\|idle — frogoe-core → brief-format  |
+| `brief/session`          | Session not blitz/round/toy                              | blitz = short arcade (default), round = turn-based, toy = never ends — frogoe-core → genres   |
+| `input/verb-mismatch`    | Declared verb requires input wiring the game never wrote | Wire the required handlers — frogoe-core → brief-format (verb → handler table)                |
+| `live/hud-outline`       | HUD text missing text-shadow/stroke                      | Add `text-shadow: 0 2px 0 <dark>`                                                             |
+| `live/fps`               | Below 30fps                                              | Cache gradients, reduce shadowBlur, cut particles                                             |
+| `live/not-playable`      | Scripted taps changed nothing                            | Wire `input.on("down")` to actual game logic                                                  |
 
 ## Key rules
 
@@ -109,4 +112,5 @@ Fix all errors before presenting the result. Common findings:
 4. **Fixed furniture respects `stage.safe`** — notches cover screen edges. Score at fixed y=34 sits under the Dynamic Island on modern phones.
 5. **One page, zero runtime requests** after bundling. Author-time CDN dependencies are fine — `frogoe bundle` dissolves them (allowlist + pin + hash + inline).
 6. **`finish(score)`** ends the run. The results card is a HUD block (`game-over-card`), never something the platform draws.
-7. **Identity art is authored, never captured** — `assets/poster.js` + `assets/icon.js` draw with the game's own sprite functions (1:1 by construction; `art/*` findings gate them). Iterate with `frogoe vision` — render, LOOK at the ASCII map, fix; agents that draw blind ship blobs.
+7. **Declare your session honestly** — `session: blitz` (default) expects death ≤45s with retry; `session: round` (turn-based) waits a short grace, never warns on no-death; `session: toy` (idle/drawing) never ends, no game-over-card needed. The sandbox reads BRIEF to shape its gate (frogoe-core → references/genres.md).
+8. **Identity art is authored, never captured** — `assets/poster.js` + `assets/icon.js` draw with the game's own sprite functions (1:1 by construction; `art/*` findings gate them). Iterate with `frogoe vision` — render, LOOK at the ASCII map, fix; agents that draw blind ship blobs.

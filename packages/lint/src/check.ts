@@ -2,7 +2,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { parseBrief } from "./brief.ts";
+import { parseBrief, SESSIONS, VERBS, type Brief } from "./brief.ts";
 import { contrastRatio, isHex } from "./contrast.ts";
 import { checkArt } from "./art.ts";
 
@@ -24,7 +24,42 @@ export interface CheckResult {
   warnings: number;
 }
 
-const VERBS = new Set(["tap", "hold", "steer", "aim"]);
+/** Which input wiring each core verb REQUIRES in game.js. The floor is
+ *  input.on("down") for every touchable game; drag/up layer on top for
+ *  verbs whose core gesture needs them. Static regexes over the source —
+ *  the same style as input/incremental-drag. `type` only requires down:
+ *  a touch-first platform cannot demand keyboards (mobile word games
+ *  draw their own keys); the sandbox ladder still exercises a keyboard. */
+const HANDLER_PATTERNS = {
+  down: /input\.on\(\s*["']down["']/u,
+  drag: /input\.on\(\s*["']drag["']/u,
+  up: /input\.on\(\s*["']up["']/u,
+} as const;
+
+const VERB_REQUIREMENTS: Record<string, Array<{ label: string; pattern: RegExp }>> = {
+  aim: [
+    { label: 'input.on("down"', pattern: HANDLER_PATTERNS.down },
+    { label: 'input.on("drag"', pattern: HANDLER_PATTERNS.drag },
+  ],
+  draw: [
+    { label: 'input.on("down"', pattern: HANDLER_PATTERNS.down },
+    { label: 'input.on("drag"', pattern: HANDLER_PATTERNS.drag },
+    { label: 'input.on("up"', pattern: HANDLER_PATTERNS.up },
+  ],
+  hold: [
+    { label: 'input.on("down"', pattern: HANDLER_PATTERNS.down },
+    { label: 'input.on("up"', pattern: HANDLER_PATTERNS.up },
+  ],
+  idle: [{ label: 'input.on("down"', pattern: HANDLER_PATTERNS.down }],
+  place: [{ label: 'input.on("down"', pattern: HANDLER_PATTERNS.down }],
+  steer: [
+    { label: 'input.on("down"', pattern: HANDLER_PATTERNS.down },
+    { label: 'input.on("drag"', pattern: HANDLER_PATTERNS.drag },
+  ],
+  swap: [{ label: 'input.on("down"', pattern: HANDLER_PATTERNS.down }],
+  tap: [{ label: 'input.on("down"', pattern: HANDLER_PATTERNS.down }],
+  type: [{ label: 'input.on("down"', pattern: HANDLER_PATTERNS.down }],
+};
 
 const read = (file: string): string => {
   try {
@@ -41,7 +76,7 @@ const findLine = (source: string, pattern: RegExp): number | undefined => {
   return idx === -1 ? undefined : idx + 1;
 };
 
-const checkBrief = (dir: string, findings: Finding[]): void => {
+const checkBrief = (dir: string, findings: Finding[]): Brief | null => {
   const file = path.join(dir, "BRIEF.md");
   if (!existsSync(file)) {
     findings.push({
@@ -51,7 +86,7 @@ const checkBrief = (dir: string, findings: Finding[]): void => {
       message: "feed games declare intent before code",
       severity: "error",
     });
-    return;
+    return null;
   }
   const source = read(file);
   const todoLine = findLine(source, /TODO/u);
@@ -74,14 +109,32 @@ const checkBrief = (dir: string, findings: Finding[]): void => {
       message: "no frontmatter block found",
       severity: "error",
     });
-    return;
+    return null;
+  }
+  if (brief.verb !== undefined && !VERBS.includes(brief.verb as never)) {
+    findings.push({
+      code: "brief/verb",
+      file: "BRIEF.md",
+      fix: `verb "${brief.verb}" is not in the enum (${VERBS.join("|")}) — pick the ONE word that names the core action (frogoe-core → brief-format)`,
+      message: "unknown core verb",
+      severity: "error",
+    });
+  }
+  if (brief.session !== undefined && !SESSIONS.includes(brief.session as never)) {
+    findings.push({
+      code: "brief/session",
+      file: "BRIEF.md",
+      fix: `session "${brief.session}" is not in the enum (${SESSIONS.join("|")}) — blitz is the short arcade loop (default), round is turn-based, toy never ends (frogoe-core → brief-format)`,
+      message: "unknown session shape",
+      severity: "error",
+    });
   }
   const problems: string[] = [];
   if (!brief.title || brief.title.length < 2 || brief.title.length > 40) {
     problems.push("title (2–40 chars)");
   }
-  if (!brief.verb || !VERBS.has(brief.verb)) {
-    problems.push("verb ∈ tap|hold|steer|aim");
+  if (!brief.verb || !VERBS.includes(brief.verb as never)) {
+    problems.push(`verb (${VERBS.join("|")})`);
   }
   if (!brief.mood) {
     problems.push("mood (one phrase)");
@@ -126,9 +179,10 @@ const checkBrief = (dir: string, findings: Finding[]): void => {
       });
     }
   }
+  return brief;
 };
 
-const checkFolder = (dir: string, findings: Finding[]): void => {
+const checkFolder = (dir: string, findings: Finding[], brief: Brief | null): void => {
   const index = read(path.join(dir, "index.html"));
   if (!index) {
     findings.push({
@@ -228,6 +282,27 @@ const checkFolder = (dir: string, findings: Finding[]): void => {
       message: "loop.render is never assigned",
       severity: "warning",
     });
+  }
+
+  // verb ↔ wiring: the declared core verb names the handlers the game
+  // must actually wire — a `draw` toy without drag handlers is a game
+  // that cannot be drawn in. The full table lives in frogoe-core →
+  // brief-format. Skipped when the verb itself is invalid (brief/verb
+  // already points there).
+  const requirements = brief?.verb !== undefined ? VERB_REQUIREMENTS[brief.verb] : undefined;
+  if (requirements !== undefined) {
+    const missing = requirements.filter((req) => !req.pattern.test(game));
+    if (missing.length > 0) {
+      findings.push({
+        code: "input/verb-mismatch",
+        file: "game.js",
+        fix: `verb "${String(brief?.verb)}" requires ${missing.map((m) => m.label).join(" + ")} — wire it inside defineGame (frogoe-core → brief-format, verb table)`,
+        line: findLine(game, HANDLER_PATTERNS.down) ?? undefined,
+        message: `declared verb "${String(brief?.verb)}" but its input wiring is missing`,
+        recipe: "frogoe-core → brief-format (verb → handler table)",
+        severity: "error",
+      });
+    }
   }
 
   const gameLine = (pattern: RegExp): number | undefined => findLine(game, pattern);
@@ -351,8 +426,8 @@ const checkPin = (dir: string, findings: Finding[]): void => {
 export const checkProject = (dir: string): CheckResult => {
   const findings: Finding[] = [];
   checkArt(dir, findings);
-  checkBrief(dir, findings);
-  checkFolder(dir, findings);
+  const brief = checkBrief(dir, findings);
+  checkFolder(dir, findings, brief);
   checkPin(dir, findings);
   findings.sort((a, b) => a.file.localeCompare(b.file) || (a.line ?? 0) - (b.line ?? 0));
   return {

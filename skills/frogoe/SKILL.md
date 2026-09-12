@@ -4,7 +4,8 @@ description: >
   Mandatory entry point: read this first to check, run, bundle, or diagnose an existing
   frogoe game (frogoe lint, frogoe check, frogoe run, frogoe bundle, frogoe add,
   frogoe report), or to make, create, edit, or ship a game — arcade, puzzle, runner,
-  hyper-casual, single-file or folder, interactive toy, micro-game, game jam prototype,
+  hyper-casual, board, card, word, match-3, tower defense, idle, drawing toy,
+  single-file or folder, interactive toy, micro-game, game jam prototype,
   web arcade, canvas toy, playable demo. Also use it to pick HUD
   recipe blocks from the registry, wire them to game state, or place a game in a
   feed/shell. Inputs may be a genre idea, a reference game, a brief, or an existing
@@ -40,7 +41,8 @@ If a fresh request does not identify the verb or mood, ask what the game is abou
 ## 2. Fresh creation — confirm the BRIEF first
 
 Before any code, `BRIEF.md` must exist and be honest (see `/frogoe-core` →
-`/frogoe-core/references/brief-format.md` (note: `/frogoe-core`, not `/frogoe`) for the schema and `references/brief-contract.md` for question invariants). If the user gave a genre or reference game, derive the brief and confirm it in one message: title, **one verb** (`tap`/`hold`/`steer`/`aim`), mood, and a **declared palette** (bg / fg / accent hex). A game whose core action cannot be named in one word is input soup — push back once, then proceed with the closest single verb.
+`/frogoe-core/references/brief-format.md` (note: `/frogoe-core`, not `/frogoe`) for the schema and `references/brief-contract.md` for question invariants). If the user gave a genre or reference game, derive the brief and confirm it in one message: title, **one verb** (`tap`/`hold`/`steer`/`aim`/`swap`/`place`/`type`/`draw`/`idle`),
+**session** when non-arcade (`round` turn-based, `toy` endless — `/frogoe-core → references/genres.md`), mood, and a **declared palette** (bg / fg / accent hex). A game whose core action cannot be named in one word is input soup — push back once, then proceed with the closest single verb.
 
 For unformed requests ("make me a fun game"), run the pitch round (`references/pitch-round.md`) before locking the brief — 5 divergent concepts, at least 2 from the tail, present all before recommending one. The capability menu (`references/capability-menu.md`) lists what frogoe can bring; recommend 1-2 rows traced to the confirmed concept.
 

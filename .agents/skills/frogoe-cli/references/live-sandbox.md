@@ -1,10 +1,25 @@
 # The live sandbox — the browser half of `frogoe check`
 
-`frogoe check` always runs this pass after the static one (chrome-headless-shell, pinned build, sha256-verified): loads the real game on the run server, both viewports (mobile 390×844 + desktop 1280×800). Mobile runs the FULL LIFECYCLE — boot → play (input ladder: jittered taps + one hold + one drag sweep) → end (passive death within 45s) → retry (click `[data-block-retry]`, expect reload, healthy reboot) → stability (the death→retry cycle runs twice; works-once bugs surface on round two). Severity follows the held-failure rule: a defect seen once is a warning; held across a window it is an error.
+`frogoe check` always runs this pass after the static one (chrome-headless-shell, pinned build, sha256-verified): loads the real game on the run server, both viewports (mobile 390×844 + desktop 1280×800). Mobile runs the FULL LIFECYCLE — boot → play (the declared verb's input ladder) → end (session-paced) → retry (click `[data-block-retry]`, expect reload, healthy reboot) → stability (the death→retry cycle runs twice; works-once bugs surface on round two). Severity follows the held-failure rule: a defect seen once is a warning; held across a window it is an error.
+
+## The ladder speaks the declared verb
+
+The sandbox reads BRIEF `verb` and scripts ITS gesture dialect (deterministic, center-weighted): `tap`/`hold`/`steer`/`aim`/`idle` get the classic seven steps (jittered taps + one hold + one sweep); `swap` gets adjacent tap pairs + both sweep directions; `place` gets select→drop sequences; `type` interleaves REAL keyboard text with taps; `draw` gets multi-stroke scribbles. The throttle replay runs the same ladder under 4× CPU.
+
+## Session policy (BRIEF `session:`)
+
+| | blitz (default) | round | toy |
+| --- | --- | --- | --- |
+| End wait | 45s budget | 8s grace | none |
+| `live/never-ends` | warning | silent (declared) | silent (declared) |
+| game-over-card / retry | required once dead | verified only when a death happens | exempt |
+| boot · playability · FPS · throttle · audio · HUD | full | full | full |
+
+A death that happens in ANY session gets full verification (finish-event agreement, card, retry ×2) — the session changes what the gate WAITS for, never what it VERIFIES. Genre pairings live in frogoe-core → `references/genres.md`.
 
 ## Browser lifecycle (no more "chrome timeout")
 
-One GLOBAL cache per machine (`~/Library/Caches/frogoe/chrome` on macOS, `~/.cache/frogoe/chrome` on Linux — the same root as the cloudflared cache) replaces the old per-project `node_modules/.frogoe-browser` copies (~172 MB per game folder). First run migrates an existing per-project install instead of re-downloading, then prunes the superseded copies. Downloads are sha256-pinned (integrity failures are treated like corruption: purge + retry exactly once), guarded by a cross-process install lock (concurrent CLIs wait with a notice instead of racing), and report progress on stderr so a slow line never looks like a hang. A truncated zip or half-unpacked install — the old "All providers failed" wedge — self-heals on the next run.
+One GLOBAL cache per machine (`~/Library/Caches/frogoe/chrome` on macOS, `~/.cache/frogoe/chrome` on Linux — the same root as the cloudflared cache) replaces the old per-project `node_modules/.frogoe-browser` copies (~172 MB per game folder). First run migrates an existing per-project install instead of re-downloading, then prunes the superseded copies. Downloads are sha256-pinned (integrity failures are treated like corruption: purge + retry exactly once), guarded by a cross-process install lock (concurrent CLIs wait with a notice instead of racing), and report progress on stderr so a slow line never looks like a hang. A truncated zip or half-unpacked install — the old "All providers failed" wedge — self-heals on the next run. Font CSS/woff2 ride a shared disk cache too (`.frogoe/font-cache`): the dev server proxies and caches them (upstream at most once per URL, 8s fail-fast — a slow font CDN can never hold the sandbox's domcontentloaded hostage), and `frogoe bundle` reads the same cache before touching the network (binary-safe raw bytes; a cold-cache + dead-CDN bundle fails as the teaching error `bundle/font-unreachable`).
 
 | Knob | Default | Effect |
 | ---- | ------- | ------ |
@@ -32,7 +47,7 @@ Values must be positive integers of milliseconds — anything else is a teaching
 | live/state-corrupt | error | state outside the contract's set — game code mutating window.__frogoe directly |
 | live/no-input / live/not-playable | error | game never wired input / scripted taps changed nothing |
 | live/audio-locked | error | audio stayed suspended after an INJECTED interruption plus real input — the game lacks gesture-scoped resume wiring (frogoe-core → references/audio.md) |
-| live/never-ends | warning | no death within 45s of passive play — fine for endless games; feed games are short loops |
+| live/never-ends | warning | no death within 45s of passive play (blitz only — declare `session: round`/`toy` in BRIEF.md and the gate stops waiting); feed games are short loops |
 | live/finish-event-missing | error | "over" without frogoe:finish, or the event without "over" — forged state machine |
 | live/no-gameover-card | warning | ended without a [data-block-gameover] overlay — install game-over-card |
 | live/no-retry | error | no [data-block-retry] button — the player is hard-stuck after death |

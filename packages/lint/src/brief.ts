@@ -4,6 +4,33 @@
  *  class with no overlapping quantifiers. The previous forms (\s+#.*$,
  *  ^\s{2,}key:\s*(.*), and the like) backtrack quadratically on
  *  whitespace-heavy input (CodeQL: js/polynomial-redos). */
+/** The core-action enum — ONE word naming the game's input verb. The
+ *  four arcade verbs plus the five that name non-arcade cores: swap
+ *  (match-3), place (chess/tower-defense/cards), type (word games),
+ *  draw (drawing toys), idle (no-goal toys). A game whose core action
+ *  cannot be named in one word is input soup. */
+export const VERBS = [
+  "aim",
+  "draw",
+  "hold",
+  "idle",
+  "place",
+  "steer",
+  "swap",
+  "tap",
+  "type",
+] as const;
+
+export type Verb = (typeof VERBS)[number];
+
+/** The run-shape enum — how the live sandbox treats "the run ends":
+ *  blitz (default) is the short arcade loop, round is a turn-based
+ *  session that ends by play (not by blind scripted input), toy never
+ *  ends by design. */
+export const SESSIONS = ["blitz", "round", "toy"] as const;
+
+export type Session = (typeof SESSIONS)[number];
+
 export interface Brief {
   accent?: string;
   bg?: string;
@@ -12,6 +39,8 @@ export interface Brief {
   fg?: string;
   mood?: string;
   outline?: string;
+  /** run shape: blitz | round | toy (optional, blitz when absent) */
+  session?: string;
   title?: string;
   verb?: string;
 }

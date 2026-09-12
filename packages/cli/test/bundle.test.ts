@@ -7,6 +7,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { assertAllowedRemote, bundle } from "../src/bundle.ts";
+import { writeCachedFont } from "../src/net/font-proxy.ts";
 import { scaffold } from "../src/init.ts";
 
 const tmp = path.join(import.meta.dir, "../.tmp-bundle");
@@ -194,6 +195,56 @@ describe("frogoe bundle", () => {
       });
       expect(report.artifact).toContain("defineGame");
       expect(report.warnings).toEqual([]);
+    } finally {
+      cdn.stop();
+    }
+  });
+
+  test("LEGACY css cache entries (proxy tokens) heal — fonts still dissolve", async () => {
+    // regression: a css cache entry from the pre-raw-cache code holds
+    // proxy-token refs; a bundle reading it saw zero upstream urls and
+    // shipped an artifact with broken font refs. The bundler must heal
+    // the tokens back to upstream urls, inline the fonts, and rewrite
+    // the cache entry as raw for good.
+    const cdn = startCdn();
+    try {
+      const parent = fixtureDir("legacy-cache");
+      const gameDir = buildGame(parent);
+      const cssUrl = "https://fonts.googleapis.com/css2?family=Dream:wght@600&display=swap";
+      const woffUrl = "https://fonts.gstatic.com/s/dream/v3/dream-600.woff2";
+      const html = readFileSync(path.join(gameDir, "index.html"), "utf-8").replace(
+        "https://fonts.googleapis.test/css2?family=Dream:wght@600&display=swap",
+        cssUrl,
+      );
+      writeFileSync(path.join(gameDir, "index.html"), html);
+      // no CDN module needed for this test — a local-only game
+      writeFileSync(
+        path.join(gameDir, "game.js"),
+        `import { defineGame } from "frogoe";\n\ndefineGame(({ stage, loop }) => {\n  loop.update = (dt) => {};\n  loop.render = (ctx) => {};\n});\n`,
+      );
+
+      // seed the cache with a legacy (token-rewritten) css body
+      const token = Buffer.from(woffUrl, "utf-8").toString("base64url");
+      const legacyCss = `@font-face{font-family:Dream;src:url(/__frogoe/font/${token}) format("woff2");}`;
+      const cacheDir = path.join(gameDir, ".frogoe", "font-cache");
+      const cachePath = writeCachedFont(cssUrl, cacheDir, legacyCss);
+
+      const report = await bundle({
+        dir: gameDir,
+        extraAllowedHosts: [
+          "fonts.googleapis.test",
+          "fonts.gstatic.test",
+          "fonts.googleapis.com",
+          "fonts.gstatic.com",
+        ],
+        fetchImpl: cdn.fetchImpl,
+      });
+      // the font dissolved despite the legacy cache entry
+      expect(report.artifact).toMatch(/data:font\/woff2;base64,/u);
+      expect(report.assets.some((a) => a.kind === "font")).toBeTrue();
+      // and the cache entry healed to raw upstream refs
+      expect(readFileSync(cachePath, "utf-8")).toContain(woffUrl);
+      expect(readFileSync(cachePath, "utf-8")).not.toContain("/__frogoe/font/");
     } finally {
       cdn.stop();
     }

@@ -7,6 +7,7 @@ Each row's last column reads **home → entry → what you get**: the owning ski
 | Capability | Say it to the user as… | Home → entry → what you get |
 | ---------- | ---------------------- | --------------------------- |
 | **Palette & typography** — one declared palette (bg/fg/accent + optional outline) and one display font that locks the game's look | "a palette and font that make this game unmistakably yours" | `frogoe-creative` → `references/palettes.md` + `typography.md` → `BRIEF.md` palette + fonts |
+| **Genre coverage** — the verb × session taxonomy (swap/place/type/draw/idle × blitz/round/toy) that lets one gate judge match-3, chess, word games and toys alike | "a gate that plays YOUR game's dialect, not flappy's" | `frogoe-core` → `references/genres.md` + `brief-format.md` → BRIEF verb/session |
 | **HUD blocks** — 11 installable HUD parts (score, hearts, fuel, timer, game-over) themed from one parent rule | "ready-made HUD we can drop in and retheme" | `frogoe-registry` → `frogoe add <block>` → `blocks/<block>.html` + bindings |
 | **Game feel & juice** — motion, easing, screen shake, hit stop, particle bursts, death and retry feel | "the game feel — hit feedback, juice, death and retry" | `frogoe-creative` → `references/game-feel.md` → `game.js` loop polish |
 | **Audio** — gesture-unlocked WebAudio, resume after interrupted, SFX and ambience | "sound that survives phones — gesture unlock, no silent bugs" | `frogoe-core` → `references/audio.md` → `game.js` audio wiring |

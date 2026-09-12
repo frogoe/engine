@@ -25,6 +25,26 @@ export const FPS_SUSTAINED_WINDOW = 3;
  *  is considered frozen. At the ~850ms sampling cadence this is ~2.5s. */
 export const FROZEN_STREAK = 3;
 
+// ── session policy (BRIEF `session:` — blitz | round | toy) ─────────────────
+//
+// blitz (default) is the short arcade loop: wait the full budget for a
+// death and warn when nothing ends. round is the turn-based session:
+// blind scripted input ending a chess game is a bonus, not the
+// expectation — wait a short grace, never warn. toy (idle, drawing)
+// never ends by design — no wait at all. In every session, a death that
+// DOES happen gets the full verification (finish agreement, card,
+// retry): the session changes what we WAIT for, never what we VERIFY.
+
+/** No blitz death after this much passive play → live/never-ends. */
+export const END_BUDGET_MS = 45_000;
+/** round grace: if scripted play happens to end the run, verify it. */
+export const ROUND_END_GRACE_MS = 8_000;
+
+export const endBudgetMs = (session: string): number =>
+  session === "round" ? ROUND_END_GRACE_MS : session === "toy" ? 0 : END_BUDGET_MS;
+
+export const warnsWhenItNeverEnds = (session: string): boolean => session === "blitz";
+
 // ── boot ────────────────────────────────────────────────────────────────────
 
 /**
@@ -307,7 +327,7 @@ export const neverEndsFinding = (budgetMs: number): LiveFinding =>
   finding({
     code: "live/never-ends",
     file: "game.js",
-    fix: `no death within ${Math.round(budgetMs / 1000)}s of passive play — fine for endless/sandbox games, but feed games are short replayable loops; most deaths should arrive in seconds`,
+    fix: `no death within ${Math.round(budgetMs / 1000)}s of passive play — blitz feed games are short loops; declare session: round in BRIEF.md for turn-based games or session: toy for endless toys, and the gate stops waiting`,
     message: "game never reached the over state",
     phase: "end",
     severity: "warning",

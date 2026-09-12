@@ -145,6 +145,7 @@ describe("card composer", () => {
     poster: null,
     posterSha256: null,
     iconSha256: null,
+    session: "blitz",
     title: "Ember Climb",
     verb: "hold",
   };
@@ -232,6 +233,7 @@ describe("manifest builder", () => {
       "palette",
       "poster",
       "posterSha256",
+      "session",
       "title",
       "verb",
     ]);

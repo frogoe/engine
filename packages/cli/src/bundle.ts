@@ -10,7 +10,14 @@ import path from "node:path";
 
 import type { Plugin } from "esbuild";
 
-import { fetchWithPolicy, type FetchImpl } from "./fetch-policy.ts";
+import { fetchBufferWithPolicy, fetchWithPolicy, type FetchImpl } from "./fetch-policy.ts";
+import {
+  decodeProxyToken,
+  FONT_UA,
+  PROXY_PATH_PREFIX,
+  readCachedFont,
+  writeCachedFont,
+} from "./net/font-proxy.ts";
 
 export interface BundleAsset {
   bytes: number;
@@ -48,8 +55,6 @@ const PIN_EXEMPT_HOSTS = new Set([
   "fonts.googleapis.test",
   "fonts.gstatic.test",
 ]);
-const FONT_UA =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36";
 const MIME: Record<string, string> = {
   gif: "image/gif",
   jpeg: "image/jpeg",
@@ -141,16 +146,42 @@ const importMapPlugin = (dir: string, imports: Record<string, string>): Plugin =
 
 /** Google-Fonts stylesheet → self-contained CSS (woff2 as data: URIs).
  *  Shared by the bundler (game HTML) and the art rasterizer (poster
- *  lettering must render in the game's own typography). */
+ *  lettering must render in the game's own typography).
+ *
+ *  Network-optional by design: font bytes come from the shared disk
+ *  cache (`.frogoe/font-cache`, warmed by the dev proxy — check/run
+ *  fetch upstream at most once per URL) before the network is tried,
+ *  and successful fetches are cached back. A dead CDN then only fails
+ *  a COLD cache — and fails as a teaching error, not an AbortError. */
 export const inlineFontCss = async (
   cssUrl: string,
   options: BundleOptions,
   assets: BundleAsset[],
 ): Promise<string> => {
-  const css = await fetchWithPolicy(cssUrl, {
-    fetchImpl: options.fetchImpl,
-    headers: { "user-agent": FONT_UA },
-  });
+  const cacheDir = path.join(path.resolve(options.dir), ".frogoe", "font-cache");
+  const fontFetchError = (url: string, cause: unknown): Error =>
+    new Error(
+      `bundle/font-unreachable — ${url} (${cause instanceof Error ? cause.message : String(cause)})\n` +
+        "No local cache for it and the network failed — retry when the network recovers,\n" +
+        "or run `frogoe check <game>` once first: it warms the shared font cache the bundler reads.",
+      { cause: cause instanceof Error ? cause : undefined },
+    );
+
+  let css: string;
+  const cachedCss = readCachedFont(cssUrl, cacheDir);
+  if (cachedCss !== null) {
+    css = cachedCss.toString("utf-8");
+  } else {
+    try {
+      css = await fetchWithPolicy(cssUrl, {
+        fetchImpl: options.fetchImpl,
+        headers: { "user-agent": FONT_UA },
+      });
+    } catch (error) {
+      throw fontFetchError(cssUrl, error);
+    }
+    writeCachedFont(cssUrl, cacheDir, css);
+  }
   assets.push({
     bytes: css.length,
     kind: "css",
@@ -164,10 +195,23 @@ export const inlineFontCss = async (
       return cached;
     }
     assertAllowedRemote(url, options.extraAllowedHosts);
-    const res = options.fetchImpl
-      ? await options.fetchImpl(url, { headers: { "user-agent": FONT_UA } })
-      : await fetch(url, { headers: { "user-agent": FONT_UA } });
-    const buffer = Buffer.from(await res.arrayBuffer());
+    let buffer: Buffer;
+    const raw = readCachedFont(url, cacheDir);
+    if (raw !== null) {
+      buffer = raw;
+    } else {
+      try {
+        // the same bounded-attempt policy as the css fetch — a brief
+        // CDN flap must not sink a COLD-cache bundle on attempt one
+        buffer = await fetchBufferWithPolicy(url, {
+          fetchImpl: options.fetchImpl,
+          headers: { "user-agent": FONT_UA },
+        });
+        writeCachedFont(url, cacheDir, buffer);
+      } catch (error) {
+        throw fontFetchError(url, error);
+      }
+    }
     const uri = `data:font/woff2;base64,${buffer.toString("base64")}`;
     seen.set(url, uri);
     assets.push({
@@ -178,6 +222,21 @@ export const inlineFontCss = async (
     });
     return uri;
   };
+  // legacy cache entries hold proxy tokens instead of upstream URLs —
+  // heal the css back to raw refs first, persist the healed raw, then
+  // run the normal inlining pass over it
+  let raw = css;
+  for (const match of css.matchAll(/url\((\/__frogoe\/font\/[A-Za-z0-9_-]+)\)/gu)) {
+    const ref = match[1] ?? "";
+    const decoded = ref === "" ? null : decodeProxyToken(ref.slice(PROXY_PATH_PREFIX.length));
+    if (decoded !== null) {
+      raw = raw.replaceAll(ref, decoded);
+    }
+  }
+  if (raw !== css) {
+    writeCachedFont(cssUrl, cacheDir, raw); // the entry becomes plain raw for good
+    css = raw;
+  }
   let out = css;
   const urls = [...css.matchAll(/url\((https:\/\/[^)]+)\)/gu)].map((m) => m[1] ?? "");
   for (const url of urls) {

@@ -7,12 +7,13 @@ The intent layer (`frogoe` → `references/intent-interview.md`) asks creation q
 | Field     | Meaning                                      | Policy                                                                 |
 | --------- | -------------------------------------------- | ---------------------------------------------------------------------- |
 | `title`   | game name (2-40 chars)                       | Ask once; confirm verbatim.                                            |
-| `verb`    | ONE core action: tap, hold, steer, aim       | Ask if not derivable from genre; push back if input soup.              |
+| `verb`    | ONE core action: tap, hold, steer, aim, swap, place, type, draw, idle | Ask if not derivable from genre; push back if input soup.   |
+| `session` | run shape: blitz (default), round, toy       | Optional; derive from genre (turn-based → round, toy → toy), confirm in one line. |
 | `mood`    | one phrase that drives palette and feel       | Derive from genre/mood words, confirm in one line.                     |
 | `palette` | bg/fg/accent hex (+ optional outline, fonts) | Declare from `frogoe-creative` → `palettes.md` or derive from mood.    |
 | `fonts`   | display font name                            | Optional; bundler inlines at build.                                    |
 
-`title`, `verb`, `mood`, `palette` are required. `fonts` and `palette.outline` are optional. The HUD layer inherits palette via `--block-*` custom properties. Contrast is measured fg vs outline when present, otherwise fg vs bg (see `packages/lint/src/check.ts:102`).
+`title`, `verb`, `mood`, `palette` are required. `session`, `fonts` and `palette.outline` are optional. The HUD layer inherits palette via `--block-*` custom properties. Contrast is measured fg vs outline when present, otherwise fg vs bg (see `packages/lint/src/check.ts:102`). Verb → required handler wiring and session → sandbox policy are enforced by `frogoe check` (see `brief-format.md` and `genres.md`).
 
 ## 2. Lifecycle
 

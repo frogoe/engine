@@ -81,7 +81,66 @@ export const fetchWithPolicy = async (
       const retryable =
         error instanceof FetchUnavailableError || !(error instanceof FetchNotServedError);
       if (!retryable || attempt === policy.maxAttempts) {
-        throw error;
+        if (error instanceof FetchUnavailableError || error instanceof FetchNotServedError) {
+          throw error;
+        }
+        // the final network-shaped failure (AbortError, ECONNRESET, …)
+        // must leave as the teaching-wrapped type — a raw DOMException
+        // dump teaches nothing
+        throw new FetchUnavailableError(url, error);
+      }
+      await sleep(Math.random() * policy.baseDelayMs * 2 ** (attempt - 1));
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  throw new FetchUnavailableError(url, new Error("unreachable"));
+};
+
+/** The binary twin of fetchWithPolicy — same bounded attempts, jittered
+ *  backoff and wrapped failures, but the body lands as a Buffer: woff2
+ *  must never survive a utf-8 round-trip. */
+export const fetchBufferWithPolicy = async (
+  url: string,
+  options?: {
+    headers?: Record<string, string>;
+    policy?: Partial<FetchPolicy>;
+    fetchImpl?: FetchImpl;
+  },
+): Promise<Buffer> => {
+  const policy = { ...DEFAULT_FETCH_POLICY, ...options?.policy };
+  const doFetch = options?.fetchImpl ?? fetch;
+  const started = Date.now();
+
+  for (let attempt = 1; attempt <= policy.maxAttempts; attempt += 1) {
+    if (Date.now() - started > policy.maxElapsedMs) {
+      throw new FetchUnavailableError(url, new Error("wall-clock budget exceeded"));
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      controller.abort();
+    }, policy.attemptTimeoutMs);
+    try {
+      const res = await doFetch(url, {
+        headers: options?.headers,
+        redirect: "follow",
+        signal: controller.signal,
+      });
+      if (res.status >= 500) {
+        throw new FetchUnavailableError(url, new Error(`upstream ${res.status}`));
+      }
+      if (res.status >= 400) {
+        throw new FetchNotServedError(url, res.status);
+      }
+      return Buffer.from(await res.arrayBuffer());
+    } catch (error) {
+      const retryable =
+        error instanceof FetchUnavailableError || !(error instanceof FetchNotServedError);
+      if (!retryable || attempt === policy.maxAttempts) {
+        if (error instanceof FetchUnavailableError || error instanceof FetchNotServedError) {
+          throw error;
+        }
+        throw new FetchUnavailableError(url, error);
       }
       await sleep(Math.random() * policy.baseDelayMs * 2 ** (attempt - 1));
     } finally {

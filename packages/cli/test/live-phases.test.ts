@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 /** Full lifecycle orchestration against a scripted FakeDriver — the
  *  same runLifecycle code the real chrome run executes, no browser. */
 import type { LiveDriver, RetryPresence, DomProbe } from "../src/live/driver.ts";
-import { runLifecycle } from "../src/live/phases.ts";
+import { ladderFor, runLifecycle } from "../src/live/phases.ts";
 import type { FinishEvent, LiveFinding } from "../src/live/types.ts";
 
 /** Scriptable game world. Defaults model a healthy arcade game: canvas
@@ -76,6 +76,7 @@ export class FakeDriver implements LiveDriver {
   taps = 0;
   holds = 0;
   drags = 0;
+  types: string[] = [];
   shots: string[] = [];
 
   constructor(public world: FakeWorld) {}
@@ -177,6 +178,10 @@ export class FakeDriver implements LiveDriver {
     this.drags += 1;
   }
 
+  async type(text: string): Promise<void> {
+    this.types.push(text);
+  }
+
   async clickRetryAwaitReload(): Promise<boolean> {
     if (!this.world.hasRetry || !this.world.retryReloads) {
       return false;
@@ -199,7 +204,7 @@ export class FakeDriver implements LiveDriver {
 
 const immediate = (): Promise<void> => Promise.resolve();
 
-const run = async (world: FakeWorld) => {
+const run = async (world: FakeWorld, ctx: Record<string, unknown> = {}) => {
   const driver = new FakeDriver(world);
   const outcome = await runLifecycle(driver, {
     settleMs: 0,
@@ -208,6 +213,7 @@ const run = async (world: FakeWorld) => {
     },
     sleep: immediate,
     viewport: { height: 844, name: "mobile", width: 390 },
+    ...ctx,
   });
   return { driver, outcome };
 };
@@ -374,5 +380,115 @@ describe("live lifecycle: broken games", () => {
   test("healthy fps under throttle stays clean", async () => {
     const { outcome } = await run(healthyWorld({ fpsThrottled: [55, 58, 56, 57, 55, 58, 56] }));
     expect(codes(outcome.findings)).not.toContain("live/fps-throttled");
+  });
+});
+
+describe("input ladders per declared verb", () => {
+  const viewport = { height: 844, name: "mobile", width: 390 };
+  const counts = (steps: ReturnType<typeof ladderFor>) => ({
+    drags: steps.filter((s) => s.kind === "drag").length,
+    holds: steps.filter((s) => s.kind === "hold").length,
+    taps: steps.filter((s) => s.kind === "tap").length,
+    types: steps.filter((s) => s.kind === "type").length,
+  });
+
+  test("every verb yields a non-empty, deterministic ladder", () => {
+    for (const verb of ["tap", "hold", "steer", "aim", "swap", "place", "type", "draw", "idle"]) {
+      const first = ladderFor(verb, viewport);
+      const second = ladderFor(verb, viewport);
+      expect(first.length).toBeGreaterThan(0);
+      expect(first).toEqual(second);
+    }
+  });
+
+  test("the classic verbs keep the original seven-step ladder byte-for-byte", () => {
+    for (const verb of ["tap", "hold", "steer", "aim", "idle"]) {
+      expect(ladderFor(verb, viewport)).toEqual(ladderFor("tap", viewport));
+      expect(counts(ladderFor(verb, viewport))).toEqual({
+        drags: 1,
+        holds: 1,
+        taps: 5,
+        types: 0,
+      });
+    }
+  });
+
+  test("swap speaks match-3: adjacent tap pairs plus both sweep directions", () => {
+    const c = counts(ladderFor("swap", viewport));
+    expect(c).toEqual({ drags: 2, holds: 0, taps: 6, types: 0 });
+  });
+
+  test("place speaks select-then-drop sequences", () => {
+    const c = counts(ladderFor("place", viewport));
+    expect(c).toEqual({ drags: 1, holds: 0, taps: 6, types: 0 });
+  });
+
+  test("type interleaves real keyboard text with taps", () => {
+    const steps = ladderFor("type", viewport);
+    expect(counts(steps)).toEqual({ drags: 1, holds: 1, taps: 3, types: 3 });
+    expect(steps.flatMap((s) => (s.kind === "type" ? [s.text] : []))).toEqual([
+      "frogoe",
+      "glow",
+      "game",
+    ]);
+  });
+
+  test("draw is a scribble: strokes dominate, taps are punctuation", () => {
+    const c = counts(ladderFor("draw", viewport));
+    expect(c).toEqual({ drags: 3, holds: 1, taps: 2, types: 0 });
+  });
+
+  test("the lifecycle executes the declared verb's ladder", async () => {
+    const { driver } = await run(healthyWorld(), { verb: "draw" });
+    // draw ladder once + throttle replay once (start bursts are taps)
+    expect(driver.drags).toBe(6);
+    expect(driver.types).toEqual([]);
+  });
+
+  test("the type ladder reaches the page as keyboard text", async () => {
+    const { driver } = await run(healthyWorld(), { verb: "type" });
+    // the ladder runs twice: scripted play + the cpu-throttle replay
+    expect(driver.types).toEqual(["frogoe", "glow", "game", "frogoe", "glow", "game"]);
+  });
+});
+
+describe("session policies (BRIEF session: blitz | round | toy)", () => {
+  test("round: a game that never ends under blind input is NOT a finding", async () => {
+    const { outcome } = await run(healthyWorld({ dieAfterCalls: 0 }), { session: "round" });
+    expect(outcome.findings).toEqual([]);
+    expect(outcome.lifecycle).toEqual({ ends: false, retryReloads: 0 });
+    expect(outcome.playability).toBe("pass");
+  });
+
+  test("round: a death that happens anyway gets full verification", async () => {
+    const { outcome } = await run(healthyWorld({ dieAfterCalls: 12 }), { session: "round" });
+    expect(outcome.findings).toEqual([]);
+    expect(outcome.lifecycle).toEqual({ ends: true, retryReloads: 2 });
+  });
+
+  test("toy: no end wait, no warning — and a canvas that answers is enough", async () => {
+    const { outcome } = await run(healthyWorld({ dieAfterCalls: 0 }), { session: "toy" });
+    expect(outcome.findings).toEqual([]);
+    expect(outcome.lifecycle).toEqual({ ends: false, retryReloads: 0 });
+  });
+
+  test("toy: a misdeclared toy that dies anyway is still verified honestly", async () => {
+    const { outcome } = await run(healthyWorld({ dieAfterCalls: 5 }), { session: "toy" });
+    expect(outcome.findings).toEqual([]);
+    expect(outcome.lifecycle).toEqual({ ends: true, retryReloads: 2 });
+  });
+
+  test("blitz (default): never-ending still warns — the arcade contract holds", async () => {
+    const noSession = await run(healthyWorld({ dieAfterCalls: 0 }));
+    expect(noSession.outcome.findings.map((f) => f.code)).toEqual(["live/never-ends"]);
+    const explicit = await run(healthyWorld({ dieAfterCalls: 0 }), { session: "blitz" });
+    expect(explicit.outcome.findings.map((f) => f.code)).toEqual(["live/never-ends"]);
+  });
+
+  test("round: broken death wiring is still gated when a death happens", async () => {
+    const { outcome } = await run(healthyWorld({ dieAfterCalls: 10, finishAtDeath: false }), {
+      session: "round",
+    });
+    expect(outcome.findings.filter((f) => f.code === "live/finish-event-missing").length).toBe(2);
   });
 });

@@ -16,6 +16,7 @@ import { getConnInfo } from "@hono/node-server/conninfo";
 import { Hono } from "hono";
 
 import { isLoopback, resolveLan, selfAddresses } from "./net/ip.ts";
+import { decodeProxyToken, proxyFontRequest, rewriteFontLinks } from "./net/font-proxy.ts";
 import { beaconToRecords, type BeaconPayload } from "./telemetry/records.ts";
 import { createSessionStore } from "./telemetry/session.ts";
 
@@ -130,6 +131,25 @@ export const startServer = async (
   app.get("/__frogoe/version", (c) =>
     c.text(String(version), 200, { "cache-control": "no-store" }),
   );
+  // the font proxy: upstream once per URL, cached under .frogoe/font-cache
+  // (see net/font-proxy.ts — the render-blocking-CSS/DCL story). The
+  // x-frogoe-cache header makes hit/miss observable in dev tools.
+  const fontCacheDir = path.join(root, ".frogoe", "font-cache");
+  app.get("/__frogoe/font/:token", async (c) => {
+    const url = decodeProxyToken(c.req.param("token"));
+    if (url === null) {
+      return c.text("forbidden", 403);
+    }
+    const result = await proxyFontRequest(url, fontCacheDir);
+    return new Response(result.body, {
+      headers: {
+        "cache-control": "no-store",
+        "content-type": result.contentType,
+        "x-frogoe-cache": result.fromCache ? "hit" : "miss",
+      },
+      status: result.status,
+    });
+  });
   app.post("/__frogoe/metrics", async (c) => {
     try {
       // explicit text→parse: runtime json() helpers swallow bad bodies
@@ -166,9 +186,12 @@ export const startServer = async (
     const type = MIME[ext] ?? "application/octet-stream";
     if (ext === "html" || ext === "htm") {
       const html = body.toString("utf-8");
-      const injected = /<\/body>/iu.test(html)
-        ? html.replace(/<\/body>/iu, `${buildDevScript(version)}</body>`)
-        : html + buildDevScript(version);
+      // font links go through the proxy FIRST (cacheable, fail-fast),
+      // then the dev script lands — DCL never waits on a CDN again
+      const proxied = rewriteFontLinks(html);
+      const injected = /<\/body>/iu.test(proxied)
+        ? proxied.replace(/<\/body>/iu, `${buildDevScript(version)}</body>`)
+        : proxied + buildDevScript(version);
       return c.body(injected, 200, {
         "cache-control": "no-store",
         "content-type": type,

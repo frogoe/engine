@@ -1,9 +1,13 @@
 /** frogoe check — live entry. Owns the environment (dev server, headless
  *  chrome, snapshot dir) and wires viewports to the phase runner:
  *  desktop gets boot + FPS, mobile gets the full lifecycle
- *  (boot → play → end → retry → stability). */
-import { mkdirSync, writeFileSync } from "node:fs";
+ *  (boot → play → end → retry → stability). The BRIEF's declared verb
+ *  selects the scripted input ladder; its session shapes the end-of-run
+ *  policy (see decisions.ts). */
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+
+import { parseBrief, SESSIONS, VERBS } from "@frogoe/lint";
 
 import { launchBrowser } from "../browser/launch.ts";
 import { legacyCacheDir } from "../browser/manager.ts";
@@ -18,6 +22,23 @@ const VIEWPORTS = [
   { height: 844, name: "mobile", width: 390 },
   { height: 800, name: "desktop", width: 1280 },
 ];
+
+/** Declared intent from BRIEF.md, defensive: the static pass already
+ *  flags a bad verb/session — the sandbox just needs sane defaults. */
+const declaredIntent = (dir: string): { session: string; verb: string } => {
+  try {
+    const brief = parseBrief(readFileSync(path.join(dir, "BRIEF.md"), "utf-8"));
+    return {
+      session:
+        brief?.session !== undefined && SESSIONS.includes(brief.session as never)
+          ? brief.session
+          : "blitz",
+      verb: brief?.verb !== undefined && VERBS.includes(brief.verb as never) ? brief.verb : "tap",
+    };
+  } catch {
+    return { session: "blitz", verb: "tap" };
+  }
+};
 
 const waitForServer = async (url: string): Promise<void> => {
   for (let attempt = 0; attempt < 10; attempt++) {
@@ -47,6 +68,7 @@ export const collectLive = async (options: LiveOptions): Promise<LiveResult> => 
   const server = await startServer(dir);
   const snapshotDir = path.join(dir, "snapshots");
   mkdirSync(snapshotDir, { recursive: true });
+  const intent = declaredIntent(dir);
 
   const browser = await launchBrowser({ legacyDirs: [legacyCacheDir(dir)] });
 
@@ -82,6 +104,8 @@ export const collectLive = async (options: LiveOptions): Promise<LiveResult> => 
           const outcome = await runLifecycle(driver, {
             settleMs: settle,
             shot,
+            verb: intent.verb,
+            session: intent.session,
             viewport,
           });
           findings.push(...outcome.findings);

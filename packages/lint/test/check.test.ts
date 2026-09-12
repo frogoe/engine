@@ -180,6 +180,163 @@ defineGame(({ input, loop }) => {
   });
 });
 
+describe("genre taxonomy: verbs and sessions", () => {
+  test("all nine verbs pass the enum and the session enum is exactly three", () => {
+    const dir = freshDir("verbs");
+    for (const verb of ["tap", "hold", "steer", "aim", "swap", "place", "type", "draw", "idle"]) {
+      writeGame(dir, {
+        brief: `---
+title: Enum Walk
+verb: ${verb}
+session: blitz
+mood: taxonomy walk
+palette:
+  bg: "#101418"
+  fg: "#fffdf7"
+  accent: "#ffd166"
+  outline: "#26180a"
+---
+x
+`,
+        // wire every handler so no verb-mismatch clouds the enum check
+        game: `defineGame(({ input, loop }) => {
+  input.on("down", () => {});
+  input.on("drag", () => {});
+  input.on("up", () => {});
+  loop.update = (dt) => {};
+  loop.render = (ctx) => {};
+});
+`,
+      });
+      const result = checkProject(dir);
+      expect(result.findings.some((f) => f.code.startsWith("brief/"))).toBeFalse();
+    }
+    for (const session of ["blitz", "round", "toy"]) {
+      writeGame(dir, {
+        brief: `---
+title: Enum Walk
+verb: tap
+session: ${session}
+mood: taxonomy walk
+palette:
+  bg: "#101418"
+  fg: "#fffdf7"
+  accent: "#ffd166"
+  outline: "#26180a"
+---
+x
+`,
+      });
+      expect(checkProject(dir).findings.some((f) => f.code === "brief/session")).toBeFalse();
+    }
+  });
+
+  test("an unknown verb gets its own teaching finding (not folded into frontmatter)", () => {
+    const dir = freshDir("verb-bad");
+    writeGame(dir, {
+      brief: `---
+title: Flyer
+verb: flutter
+mood: test
+palette:
+  bg: "#101418"
+  fg: "#fffdf7"
+  accent: "#ffd166"
+  outline: "#26180a"
+---
+x
+`,
+    });
+    const codes = checkProject(dir).findings.map((f) => f.code);
+    expect(codes).toContain("brief/verb");
+    expect(codes).toContain("brief/frontmatter"); // verb still counts as missing/invalid
+  });
+
+  test("an unknown session shape is a brief/session error", () => {
+    const dir = freshDir("session-bad");
+    writeGame(dir, {
+      brief: `---
+title: Sessioned
+verb: tap
+session: marathon
+mood: test
+palette:
+  bg: "#101418"
+  fg: "#fffdf7"
+  accent: "#ffd166"
+  outline: "#26180a"
+---
+x
+`,
+    });
+    const codes = checkProject(dir).findings.map((f) => f.code);
+    expect(codes).toContain("brief/session");
+  });
+
+  test("session is optional — absent means blitz, never a finding", () => {
+    const dir = freshDir("session-absent");
+    writeGame(dir);
+    expect(checkProject(dir).errors).toBe(0);
+  });
+
+  test("verb ↔ wiring: every verb's required handlers are enforced", () => {
+    // draw needs down+drag+up; hold needs down+up; steer/aim need down+drag;
+    // tap/swap/place/type/idle need down
+    const cases: Array<{ game: string; clean: boolean; verb: string }> = [
+      { verb: "draw", clean: false, game: `input.on("down", () => {}); input.on("up", () => {});` },
+      { verb: "hold", clean: false, game: `input.on("down", () => {});` },
+      {
+        verb: "steer",
+        clean: false,
+        game: `input.on("down", () => {}); input.on("up", () => {});`,
+      },
+      { verb: "tap", clean: true, game: `input.on("down", () => {});` },
+      { verb: "type", clean: true, game: `input.on("down", () => {});` },
+    ];
+    for (const c of cases) {
+      const dir = freshDir(`mismatch-${c.verb}-${c.clean ? "ok" : "bad"}`);
+      writeGame(dir, {
+        brief: `---
+title: Wiring
+verb: ${c.verb}
+mood: test
+palette:
+  bg: "#101418"
+  fg: "#fffdf7"
+  accent: "#ffd166"
+  outline: "#26180a"
+---
+x
+`,
+        game: `defineGame(({ input, loop }) => {
+  ${c.game}
+  loop.update = (dt) => {};
+  loop.render = (ctx) => {};
+});
+`,
+      });
+      const has = checkProject(dir).findings.some((f) => f.code === "input/verb-mismatch");
+      expect(has).toBe(!c.clean);
+    }
+  });
+
+  test("declared tap but only drag wired — the documented mismatch, now real", () => {
+    const dir = freshDir("tap-drag");
+    writeGame(dir, {
+      game: `defineGame(({ input, loop }) => {
+  input.on("drag", (p) => { const x = grab + p.dx; });
+  loop.update = (dt) => {};
+  loop.render = (ctx) => {};
+});
+`,
+    });
+    const finding = checkProject(dir).findings.find((f) => f.code === "input/verb-mismatch");
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe("error");
+    expect(finding?.fix).toContain('input.on("down"');
+  });
+});
+
 describe("brief parsing", () => {
   test("parses frontmatter with nested palette and inline comments", () => {
     const brief = parseBrief(

@@ -11,6 +11,8 @@ import {
   consoleErrorFinding,
   contractMissingFinding,
   earlyDeathFinding,
+  endBudgetMs,
+  END_BUDGET_MS,
   finishEventFinding,
   fpsFinding,
   fpsSustainedFinding,
@@ -28,11 +30,10 @@ import {
   stateCorruptFinding,
   stateStuckFinding,
   THROTTLE_RATE,
+  warnsWhenItNeverEnds,
 } from "./decisions.ts";
 import type { LifecycleMetrics, LiveFinding, Playability } from "./types.ts";
 
-/** No death after this much passive play → live/never-ends (warning). */
-export const END_BUDGET_MS = 45_000;
 /** Retry click must produce a reload within this window. */
 export const RETRY_NAV_MS = 8_000;
 /** Scripted play: input cadence and count. */
@@ -69,6 +70,10 @@ export interface PhaseContext {
   settleMs?: number;
   sleep?: SleepFn;
   viewport: { name: string; width: number; height: number };
+  /** declared BRIEF core verb — selects the scripted input ladder */
+  verb?: string;
+  /** declared BRIEF session (blitz|round|toy) — end-of-run policy */
+  session?: string;
 }
 
 /** Deterministic tap jitter — the ladder must not hammer one pixel:
@@ -76,6 +81,128 @@ export interface PhaseContext {
  *  inside a dead zone (a pause button). Pure function of the step. */
 export const jitterX = (step: number): number => ((step * 37) % 121) - 60;
 export const jitterY = (step: number): number => ((step * 53) % 181) - 90;
+
+// ── the input ladder — pure step programs per declared verb ─────────────────
+//
+// The ladder is how the sandbox plays the game BLIND. Every verb gets a
+// deterministic program that speaks ITS gesture dialect: adjacent tap
+// pairs for swap, select→place sequences, keyboard text for type,
+// multi-stroke sweeps for draw. Data, not code — the runner and the
+// throttle replay execute the same steps, and tests count them.
+
+export type LadderStep =
+  | { kind: "tap"; x: number; y: number }
+  | { kind: "hold"; ms: number; x: number; y: number }
+  | { kind: "drag"; x1: number; x2: number; y1: number; y2: number }
+  | { kind: "type"; text: string };
+
+export const ladderFor = (
+  verb: string,
+  viewport: { height: number; width: number },
+): LadderStep[] => {
+  const cx = Math.round(viewport.width / 2);
+  const cy = Math.round(viewport.height / 2);
+  const tap = (step: number): { kind: "tap"; x: number; y: number } => ({
+    kind: "tap",
+    x: Math.round(cx + jitterX(step)),
+    y: Math.round(cy + jitterY(step)),
+  });
+  const sweep = (
+    step: number,
+  ): { kind: "drag"; x1: number; x2: number; y1: number; y2: number } => {
+    const x = Math.round(cx + jitterX(step));
+    const y = Math.round(cy + jitterY(step));
+    return { kind: "drag", x1: x - DRAG_SPAN, x2: x + DRAG_SPAN, y1: y, y2: y };
+  };
+
+  // tap/hold/steer/aim/idle: the original seven-step ladder, unchanged —
+  // jittered taps, one hold (step 3), one horizontal sweep (step 5)
+  const base = (): LadderStep[] =>
+    Array.from({ length: PLAY_STEPS }, (_, step): LadderStep => {
+      if (step === HOLD_STEP_INDEX) {
+        return { kind: "hold", ms: HOLD_MS, x: tap(step).x, y: tap(step).y };
+      }
+      if (step === DRAG_STEP_INDEX) return sweep(step);
+      return tap(step);
+    });
+
+  switch (verb) {
+    case "swap": {
+      // match-3 dialect: adjacent tap PAIRS (tap a, tap the neighbor —
+      // the tap-tap swap) plus both sweep directions (drag-swap)
+      const gap = 34;
+      return [
+        { kind: "tap", x: cx - gap, y: Math.round(cy + jitterY(0)) },
+        { kind: "tap", x: cx + gap, y: Math.round(cy + jitterY(0)) },
+        { kind: "tap", x: Math.round(cx + jitterX(2)), y: cy - gap },
+        { kind: "tap", x: Math.round(cx + jitterX(2)), y: cy + gap },
+        { kind: "tap", x: cx - gap, y: Math.round(cy + jitterY(4)) },
+        { kind: "tap", x: cx + gap, y: Math.round(cy + jitterY(4)) },
+        sweep(0),
+        { kind: "drag", x1: cx, x2: cx, y1: cy + DRAG_SPAN, y2: cy - DRAG_SPAN },
+      ];
+    }
+    case "place": {
+      // board/tower-defense dialect: select at one point, place at
+      // another — three pairs at spread positions plus one sweep
+      return [
+        { kind: "tap", x: cx - 80, y: cy - 60 },
+        { kind: "tap", x: cx + 40, y: cy + 20 },
+        { kind: "tap", x: cx + 80, y: cy - 40 },
+        { kind: "tap", x: cx - 30, y: cy + 70 },
+        { kind: "tap", x: Math.round(cx + jitterX(4)), y: cy },
+        { kind: "tap", x: cx - 70, y: cy + 80 },
+        { kind: "drag", x1: cx - 60, x2: cx + 60, y1: cy, y2: cy },
+      ];
+    }
+    case "type": {
+      // word-game dialect: real keyboard text between taps — taps cover
+      // the touch-first surface (on-screen keys), typing covers the
+      // desktop path; the hold and sweep keep those affordances alive
+      return [
+        { kind: "type", text: "frogoe" },
+        tap(0),
+        { kind: "type", text: "glow" },
+        tap(2),
+        { kind: "hold", ms: HOLD_MS, x: tap(3).x, y: tap(3).y },
+        sweep(5),
+        { kind: "type", text: "game" },
+        tap(6),
+      ];
+    }
+    case "draw": {
+      // drawing dialect: long multi-direction strokes between marks —
+      // a scribble, not a tap pattern
+      return [
+        { kind: "drag", x1: cx - 90, x2: cx + 90, y1: cy - 50, y2: cy + 30 },
+        { kind: "tap", x: cx + 60, y: cy - 60 },
+        { kind: "drag", x1: cx + 80, x2: cx - 70, y1: cy - 20, y2: cy + 70 },
+        { kind: "hold", ms: HOLD_MS, x: cx, y: cy },
+        { kind: "drag", x1: cx - 40, x2: cx + 70, y1: cy + 90, y2: cy - 90 },
+        { kind: "tap", x: cx - 60, y: cy + 20 },
+      ];
+    }
+    default:
+      return base();
+  }
+};
+
+const execStep = async (driver: LiveDriver, step: LadderStep): Promise<void> => {
+  switch (step.kind) {
+    case "tap":
+      await driver.tap(step.x, step.y);
+      break;
+    case "hold":
+      await driver.hold(step.x, step.y, step.ms);
+      break;
+    case "drag":
+      await driver.drag(step.x1, step.y1, step.x2, step.y2);
+      break;
+    case "type":
+      await driver.type(step.text);
+      break;
+  }
+};
 
 const hasError = (findings: LiveFinding[]): boolean => findings.some((f) => f.severity === "error");
 
@@ -174,8 +301,12 @@ const overShotName = (cycle: number): string =>
 const retryShotName = (cycle: number): string =>
   cycle === 0 ? "live-mobile-retry.png" : `live-mobile-retry-${cycle + 1}.png`;
 
-const waitForOver = async (driver: LiveDriver, doSleep: SleepFn): Promise<boolean> => {
-  for (let waited = 0; waited < END_BUDGET_MS; waited += POLL_MS) {
+const waitForOver = async (
+  driver: LiveDriver,
+  doSleep: SleepFn,
+  budgetMs: number,
+): Promise<boolean> => {
+  for (let waited = 0; waited < budgetMs; waited += POLL_MS) {
     await doSleep(POLL_MS);
     if ((await driver.gameState()) === "over") {
       return true;
@@ -242,8 +373,9 @@ export const runLifecycle = async (
     return { findings, lifecycle: { ends: false, retryReloads: 0 }, playability: "no-input" };
   }
 
-  // PLAY — input ladder with deterministic jitter; one hold exercises
-  // press-and-release verbs, taps cover the rest
+  // PLAY — the verb's scripted ladder with deterministic jitter; one
+  // hold exercises press-and-release verbs, taps cover the rest
+  const ladder = ladderFor(ctx.verb ?? "tap", ctx.viewport);
   const mark = await driver.fpsMark();
   const hashes: number[] = [];
   let streak = 0;
@@ -252,18 +384,8 @@ export const runLifecycle = async (
   let sawPaused = false;
   let sawStuck = false;
   let corrupt: string | null = null;
-  for (let step = 0; step < PLAY_STEPS; step++) {
-    const x = Math.round(ctx.viewport.width / 2 + jitterX(step));
-    const y = Math.round(ctx.viewport.height / 2 + jitterY(step));
-    if (step === HOLD_STEP_INDEX) {
-      await driver.hold(x, y, HOLD_MS);
-    } else if (step === DRAG_STEP_INDEX) {
-      // horizontal sweep across the play column — exercises the
-      // drag/steer handlers (movement while pressed)
-      await driver.drag(x - DRAG_SPAN, y, x + DRAG_SPAN, y);
-    } else {
-      await driver.tap(x, y);
-    }
+  for (const step of ladder) {
+    await execStep(driver, step);
     await doSleep(PLAY_STEP_MS);
     const state = await driver.gameState();
     if (state === "over") {
@@ -342,14 +464,20 @@ export const runLifecycle = async (
     }
   }
 
-  // END → RETRY → STABILITY
+  // END → RETRY → STABILITY — session-aware: blitz waits the full
+  // budget and warns; round waits a grace; toy does not wait. A death
+  // that happens in ANY session gets the full verification below.
+  const session = ctx.session ?? "blitz";
+  const budget = endBudgetMs(session);
   let ends = false;
   let retryReloads = 0;
-  if (!sawOver) {
-    sawOver = await waitForOver(driver, doSleep);
+  if (!sawOver && budget > 0) {
+    sawOver = await waitForOver(driver, doSleep, budget);
   }
   if (!sawOver) {
-    findings.push(neverEndsFinding(END_BUDGET_MS));
+    if (warnsWhenItNeverEnds(session)) {
+      findings.push(neverEndsFinding(END_BUDGET_MS));
+    }
   } else {
     ends = true;
     let canRetry = await verifyDeath(driver, ctx, findings, 0);
@@ -379,7 +507,7 @@ export const runLifecycle = async (
         // restart the run (input-gated ready screens need a tap), then
         // die again: one-shot bugs only surface on the second run
         await runStartBurst(driver, ctx);
-        const overAgain = await waitForOver(driver, doSleep);
+        const overAgain = await waitForOver(driver, doSleep, END_BUDGET_MS);
         if (!overAgain) {
           findings.push(neverEndsFinding(END_BUDGET_MS));
           break;
@@ -395,16 +523,8 @@ export const runLifecycle = async (
   const throttleMark = await driver.fpsMark();
   await driver.setCpuThrottling(THROTTLE_RATE);
   await runStartBurst(driver, ctx);
-  for (let step = 0; step < PLAY_STEPS; step++) {
-    const x = Math.round(ctx.viewport.width / 2 + jitterX(step));
-    const y = Math.round(ctx.viewport.height / 2 + jitterY(step));
-    if (step === HOLD_STEP_INDEX) {
-      await driver.hold(x, y, HOLD_MS);
-    } else if (step === DRAG_STEP_INDEX) {
-      await driver.drag(x - DRAG_SPAN, y, x + DRAG_SPAN, y);
-    } else {
-      await driver.tap(x, y);
-    }
+  for (const step of ladder) {
+    await execStep(driver, step);
     await doSleep(PLAY_STEP_MS);
   }
   const throttledBuckets = await driver.fpsSince(throttleMark);

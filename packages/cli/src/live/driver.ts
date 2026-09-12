@@ -63,6 +63,9 @@ export interface LiveDriver {
   /** Press at (x1,y1), sweep to (x2,y2), release — the drag/steer
    *  verb: games that only respond to movement-while-pressed. */
   drag(x1: number, y1: number, x2: number, y2: number): Promise<void>;
+  /** Type real keyboard text — the `type` verb ladder (word games and
+   *  any keydown-driven surface). Touch-first games ignore it safely. */
+  type(text: string): Promise<void>;
   /** Clicks [data-block-retry] and resolves true only if a navigation
    *  (reload) follows within timeoutMs. Returns false when the button
    *  is absent or the click produces no reload. */
@@ -152,6 +155,9 @@ export const createPuppeteerDriver = ({ page, size }: PuppeteerDriverOptions): L
         setTimeout(resolve, 80);
       });
       await page.mouse.up();
+    },
+    async type(text: string) {
+      await page.keyboard.type(text, { delay: 30 });
     },
     async clickRetryAwaitReload(timeoutMs: number) {
       // the card animates in AFTER state flips "over" — clicking a

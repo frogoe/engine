@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { parseBrief } from "@frogoe/lint";
+import { parseBrief, SESSIONS } from "@frogoe/lint";
 
 export interface GameManifest {
   artifact: string;
@@ -19,11 +19,13 @@ export interface GameManifest {
   entry: string;
   fonts: string | null;
   icon: string | null;
+  iconSha256: string | null;
   mood: string | null;
   palette: { accent: string; bg: string; fg: string; outline?: string };
   poster: string | null;
   posterSha256: string | null;
-  iconSha256: string | null;
+  /** run shape: blitz | round | toy — how a feed treats "the run ends" */
+  session: string;
   title: string;
   verb: string;
 }
@@ -93,6 +95,10 @@ export const buildManifest = (options: BuildManifestOptions): GameManifest | nul
     },
     poster: existsSync(path.join(dir, "dist", "assets", "poster.png")) ? "assets/poster.png" : null,
     posterSha256: mediaSha("poster.png"),
+    session:
+      brief.session !== undefined && SESSIONS.includes(brief.session as never)
+        ? brief.session
+        : "blitz",
     title: brief.title,
     verb: brief.verb ?? "tap",
   };

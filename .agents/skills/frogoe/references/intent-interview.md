@@ -8,7 +8,7 @@ Fresh creation only — the SKILL.md state table already decides whether this la
 
 **2 — Triage the input.** What is the game about — a genre, a reference game, a verb, a mood, a palette? And is the request **formed** — the verb, mood, and palette are readable from what the user gave — or **unformed**, a subject with no take on it? A request whose only shape comes from its genre ("make a fun game") is formed about the subject and unformed about the telling, and enters the pitch round. A formed request runs the layer exactly as it always has; nothing below is added for it. An unformed one goes through the pitch round after step 3 and earns one question here before any concept work: what is the user already picturing? Their answer seeds the round. For a genuinely exploratory request ("we need a game but I'm not sure what kind"), establish the verb and mood one question at a time, then close by recommending a palette plus how the run will loop: build → check → eyeball.
 
-**3 — Confirm the must-haves.** One question per field, recommended option first with its receipt (rules: `frogoe-core` → `references/brief-contract.md` §3). Skip a question only when the request already answered it — inference is not an answer, but a chosen pitch is: fields the pitch round settled are locked with the pitch as their receipt. Required fields: `title` (2-40 chars), `verb` (tap|hold|steer|aim), `mood` (one phrase), `palette` (bg/fg/accent hex + optional outline). Then announce any deferred asks in one line ("after I scaffold, I'll offer HUD blocks and audio options") so the user hears the run's full shape before it starts.
+**3 — Confirm the must-haves.** One question per field, recommended option first with its receipt (rules: `frogoe-core` → `references/brief-contract.md` §3). Skip a question only when the request already answered it — inference is not an answer, but a chosen pitch is: fields the pitch round settled are locked with the pitch as their receipt. Required fields: `title` (2-40 chars), `verb` (tap|hold|steer|aim|swap|place|type|draw|idle), `session` (blitz|round|toy — optional, non-arcade genres declare it; see frogoe-core → references/genres.md), `mood` (one phrase), `palette` (bg/fg/accent hex + optional outline). Then announce any deferred asks in one line ("after I scaffold, I'll offer HUD blocks and audio options") so the user hears the run's full shape before it starts.
 
 **4 — Hand off.** Two disciplines close the conversation (invariants: `frogoe-core` → `references/brief-contract.md` §3):
 
@@ -24,7 +24,8 @@ The interview's deliverable. Every later "what did the brief require?" re-reads 
 | Key      | Meaning                                      | Example          |
 | -------- | -------------------------------------------- | ---------------- |
 | `title`  | the game's name (2-40 chars)                 | `Ember Climb`    |
-| `verb`   | the ONE core action: tap, hold, steer, aim   | `hold`           |
+| `verb`   | the ONE core action: tap, hold, steer, aim, swap, place, type, draw, idle | `hold` |
+| `session` | run shape: blitz, round (turn-based), toy (never ends) — optional | `blitz` (arcade) |
 | `mood`   | one phrase that drives palette and feel       | `urgent warmth`  |
 | `palette`| bg/fg/accent hex (+ optional outline)        | `#1a0f0d`        |
 | `fonts`  | optional display font name                   | `Fredoka`        |

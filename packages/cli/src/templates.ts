@@ -12,7 +12,8 @@ export const contractHeader = (version: string): string =>
 
 export const briefTemplate = `---
 title: My Game
-verb: tap        # tap | hold | steer | aim — ONE word, the core action
+verb: tap        # tap|hold|steer|aim|swap|place|type|draw|idle — ONE word, the core action
+session: blitz   # blitz (default) | round | toy — how the run ends
 mood: TODO — one phrase: "dawn uplift", "arcade cabinet at midnight"...
 palette:
   bg: "#101418"  # TODO
