@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/frogoe/engine/compare/v0.5.5...v0.6.0) (2026-09-12)
+
+
+### Features
+
+* **cli:** port hyperframes-grade browser robustness to check ([2934f5e](https://github.com/frogoe/engine/commit/2934f5e32e48c47d6425c6eaa0709a29fdc175a1))
+
 ## [0.5.5](https://github.com/frogoe/engine/compare/v0.5.4...v0.5.5) (2026-09-07)
 
 
