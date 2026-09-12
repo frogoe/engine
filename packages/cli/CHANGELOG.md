@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/frogoe/engine/compare/v0.6.0...v0.7.0) (2026-09-12)
+
+
+### Features
+
+* genre taxonomy — 9 verbs, session model, verb-aware sandbox ([b09fe54](https://github.com/frogoe/engine/commit/b09fe5457dab37c41fdd0f7d02d7a31ea8a839d1))
+
 ## [0.6.0](https://github.com/frogoe/engine/compare/v0.5.5...v0.6.0) (2026-09-12)
 
 
