@@ -13,7 +13,7 @@ import path from "node:path";
 import { composeEmbedHtml } from "../src/embed/card.ts";
 import { composePayload } from "../src/embed/compose.ts";
 import { buildManifest } from "../src/manifest.ts";
-import { ensureBrowser } from "../src/browser.ts";
+import { launchBrowser } from "../src/browser/launch.ts";
 
 const FIXTURE_GAME = `<!doctype html><html><body>
 <script>
@@ -64,13 +64,7 @@ Tap once. The run ends.
 
 const main = async (): Promise<void> => {
   const cardPath = path.resolve(process.argv[2] ?? (await buildFixtureCard()));
-  const { default: puppeteer } = await import("puppeteer-core");
-  const browser = await puppeteer.launch({
-    args: ["--no-sandbox", "--disable-gpu"],
-    defaultViewport: { height: 844, width: 390 },
-    executablePath: await ensureBrowser(),
-    headless: true,
-  });
+  const browser = await launchBrowser({ defaultViewport: { height: 844, width: 390 } });
   try {
     const page = await browser.newPage();
     const errors: string[] = [];

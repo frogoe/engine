@@ -20,7 +20,7 @@ Run commands as `bun packages/cli/src/bin.ts <cmd>` from the repo (published:
 | File | Read it to… |
 | ---- | ----------- |
 | `references/finding-codes.md` | look up every static finding code (stable, never renumbered) |
-| `references/live-sandbox.md` | understand the live headless-browser lifecycle and held-failure rule |
+| `references/live-sandbox.md` | understand the live headless-browser lifecycle, held-failure rule, and the browser cache knobs (FROGOE_BROWSER_PATH, launch/protocol timeouts) |
 | `references/bundle.md` | how externals dissolve into one HTML and the allowlist |
 | `references/embed.md` | the card, the frogoe-card protocol, and dist/manifest.json |
 | `references/vision.md` | `frogoe vision` — ASCII eyes for draw code (objects, frames, art) |

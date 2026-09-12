@@ -1,6 +1,18 @@
 # The live sandbox — the browser half of `frogoe check`
 
-`frogoe check` always runs this pass after the static one (chrome-headless-shell, auto-downloaded and cached, pinned build): loads the real game on the run server, both viewports (mobile 390×844 + desktop 1280×800). Mobile runs the FULL LIFECYCLE — boot → play (input ladder: jittered taps + one hold + one drag sweep) → end (passive death within 45s) → retry (click `[data-block-retry]`, expect reload, healthy reboot) → stability (the death→retry cycle runs twice; works-once bugs surface on round two). Severity follows the held-failure rule: a defect seen once is a warning; held across a window it is an error.
+`frogoe check` always runs this pass after the static one (chrome-headless-shell, pinned build, sha256-verified): loads the real game on the run server, both viewports (mobile 390×844 + desktop 1280×800). Mobile runs the FULL LIFECYCLE — boot → play (input ladder: jittered taps + one hold + one drag sweep) → end (passive death within 45s) → retry (click `[data-block-retry]`, expect reload, healthy reboot) → stability (the death→retry cycle runs twice; works-once bugs surface on round two). Severity follows the held-failure rule: a defect seen once is a warning; held across a window it is an error.
+
+## Browser lifecycle (no more "chrome timeout")
+
+One GLOBAL cache per machine (`~/Library/Caches/frogoe/chrome` on macOS, `~/.cache/frogoe/chrome` on Linux — the same root as the cloudflared cache) replaces the old per-project `node_modules/.frogoe-browser` copies (~172 MB per game folder). First run migrates an existing per-project install instead of re-downloading, then prunes the superseded copies. Downloads are sha256-pinned (integrity failures are treated like corruption: purge + retry exactly once), guarded by a cross-process install lock (concurrent CLIs wait with a notice instead of racing), and report progress on stderr so a slow line never looks like a hang. A truncated zip or half-unpacked install — the old "All providers failed" wedge — self-heals on the next run.
+
+| Knob | Default | Effect |
+| ---- | ------- | ------ |
+| `FROGOE_BROWSER_PATH` | — | use this Chrome/Chromium executable instead of the managed one (fails loudly if the path is wrong) |
+| `FROGOE_LAUNCH_TIMEOUT_MS` | 120000 | puppeteer launch budget (the silent 30s default was the classic "timed out after 30000 ms") |
+| `FROGOE_PROTOCOL_TIMEOUT_MS` | 300000 | per-CDP-command budget; positive integers only (0 = forever is rejected) |
+
+Values must be positive integers of milliseconds — anything else is a teaching error, never a silent fallback. Download/launch failures print message-only teaching errors naming the knob or the `FROGOE_BROWSER_PATH` escape hatch (any Chrome build works for the sandbox).
 
 | Code | Severity | Meaning |
 | ---- | -------- | ------- |

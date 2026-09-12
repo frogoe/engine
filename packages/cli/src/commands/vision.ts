@@ -12,6 +12,9 @@ import { defineCommand } from "citty";
 
 import { parseBrief } from "@frogoe/lint";
 
+import { launchBrowser } from "../browser/launch.ts";
+import { legacyCacheDir } from "../browser/manager.ts";
+
 import {
   charFor,
   compositionMetrics,
@@ -30,7 +33,6 @@ import {
   type IconCornerReport,
   type TitleBandReport,
 } from "../art-verify.ts";
-import { ensureBrowser } from "../browser.ts";
 
 /** The pure cartography + analyzers, serialized into the page in
  *  dependency order — the tested code IS the shipped code. */
@@ -202,12 +204,9 @@ export const command = defineCommand({
 
     const { startServer } = await import("../run.ts");
     const server = await startServer(dir);
-    const { default: puppeteer } = await import("puppeteer-core");
-    const browser = await puppeteer.launch({
-      args: ["--no-sandbox", "--disable-gpu"],
+    const browser = await launchBrowser({
       defaultViewport: { height: 844, width: 390 },
-      executablePath: await ensureBrowser(),
-      headless: true,
+      legacyDirs: [legacyCacheDir(dir)],
     });
     let report: VisionReport;
     try {

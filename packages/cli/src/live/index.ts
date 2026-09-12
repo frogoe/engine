@@ -5,7 +5,8 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { ensureBrowser } from "../browser.ts";
+import { launchBrowser } from "../browser/launch.ts";
+import { legacyCacheDir } from "../browser/manager.ts";
 import { createPuppeteerDriver } from "./driver.ts";
 import { runDesktopPass, runLifecycle, sleep } from "./phases.ts";
 import type { LiveFinding, LiveMetrics, LiveOptions, LiveResult } from "./types.ts";
@@ -47,14 +48,7 @@ export const collectLive = async (options: LiveOptions): Promise<LiveResult> => 
   const snapshotDir = path.join(dir, "snapshots");
   mkdirSync(snapshotDir, { recursive: true });
 
-  const { default: puppeteer } = await import("puppeteer-core");
-  const executablePath = await ensureBrowser();
-  const browser = await puppeteer.launch({
-    args: ["--no-sandbox", "--disable-gpu"],
-    defaultViewport: null,
-    executablePath,
-    headless: true,
-  });
+  const browser = await launchBrowser({ legacyDirs: [legacyCacheDir(dir)] });
 
   try {
     let serverReady = false;

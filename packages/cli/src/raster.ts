@@ -24,7 +24,8 @@ import {
   type TitleBandReport,
 } from "./art-verify.ts";
 import { runtimeFunctions } from "./runtime-source.ts";
-import { ensureBrowser } from "./browser.ts";
+import { launchBrowser } from "./browser/launch.ts";
+import { legacyCacheDir } from "./browser/manager.ts";
 
 export interface RasterizedFile {
   bytes: number;
@@ -111,14 +112,7 @@ export const rasterizeArt = async (options: { dir: string }): Promise<RasterRepo
   const { startServer } = await import("./run.ts");
   const server = await startServer(dir);
 
-  const { default: puppeteer } = await import("puppeteer-core");
-  const executablePath = await ensureBrowser();
-  const browser = await puppeteer.launch({
-    args: ["--no-sandbox", "--disable-gpu"],
-    defaultViewport: null,
-    executablePath,
-    headless: true,
-  });
+  const browser = await launchBrowser({ legacyDirs: [legacyCacheDir(dir)] });
   try {
     const base = server.urls.local.replace(/\/$/u, "");
     const brief = parseBrief(readFileSync(path.join(dir, "BRIEF.md"), "utf-8"));
