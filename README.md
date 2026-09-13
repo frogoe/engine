@@ -87,6 +87,7 @@ frogoe ships 5 skills agents load on demand. Read `/frogoe` first — it's the r
 - Puzzle games with objectives, moves counters, timers
 - Casual games with lives, fuel, combo streaks, leaderboards
 - Hold-to-charge, drag-to-steer, aim-and-release mechanics
+- Word & typing games — keyboard flows through the contract (`input.on("key")`, `input.keys`), and the `hud-keyboard` block brings the same events to touch screens
 - Games with CDN dependencies (three.js, GSAP, web fonts) bundled into one file
 
 ## How It Works
@@ -137,6 +138,8 @@ frogoe add game-over-card   # end-of-run results + retry button
 frogoe add ready-hint       # verb affordance (replaces start menus)
 frogoe add ready-gate       # tap-to-start overlay — the audio-unlock tap
 frogoe add timer-ring       # circular countdown
+frogoe add hud-keyboard     # on-screen keys for word games — presses are real
+                            # KeyboardEvents, the contract hears them natively
 ```
 
 Each block is themeable via `--block-*` custom properties from your BRIEF palette, ships a working `demo.html`, and is validated against the registry schema. `frogoe add` auto-injects styles + markup into `index.html` (idempotent — re-add replaces).
@@ -156,15 +159,15 @@ Each block is themeable via `--block-*` custom properties from your BRIEF palett
 
 ## Packages
 
-| Package                                                | Description                                                                                                                                    |
-| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`frogoe`](https://www.npmjs.com/package/frogoe) (npm) | The CLI: `init`, `add`, `run` (+ `--tunnel`), `lint` (fast static), `check` (full gate: static + live sandbox), `report`, `bundle`, `skills`   |
-| `@frogoe/contract`                                     | The whole platform (~190 lines, zero taste): defineGame, four nouns, `__frogoe` host handle — workspace-internal, materialized into every game |
-| `@frogoe/lint`                                         | Pure static contract checks, zero browser deps — bundled into the CLI                                                                          |
-| `skills/`                                              | 5 AI agent skills (router, core, creative, cli, registry) — mirrored to `.claude/skills` + `.agents/skills`                                    |
-| `registry/blocks/`                                     | 11 themeable HUD blocks with demos — the catalog grows                                                                                         |
-| `examples/flappy/`                                     | Reference game: Flappy Chick (tap runner) at Flappy Bird quality                                                                               |
-| `examples/sawstorm/`                                   | Reference game: Sawstorm — arena survival with touch pad, sudden death, safe persistence                                                       |
+| Package                                                | Description                                                                                                                                        |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`frogoe`](https://www.npmjs.com/package/frogoe) (npm) | The CLI: `init`, `add`, `run` (+ `--tunnel`), `lint` (fast static), `check` (full gate: static + live sandbox), `report`, `bundle`, `skills`       |
+| `@frogoe/contract`                                     | The whole platform (zero taste, contract 0.2.0): defineGame, four nouns, `__frogoe` host handle — workspace-internal, materialized into every game |
+| `@frogoe/lint`                                         | Pure static contract checks, zero browser deps — bundled into the CLI                                                                              |
+| `skills/`                                              | 5 AI agent skills (router, core, creative, cli, registry) — mirrored to `.claude/skills` + `.agents/skills`                                        |
+| `registry/blocks/`                                     | 12 themeable HUD blocks with demos — the catalog grows                                                                                             |
+| `examples/flappy/`                                     | Reference game: Flappy Chick (tap runner) at Flappy Bird quality                                                                                   |
+| `examples/sawstorm/`                                   | Reference game: Sawstorm — arena survival with touch pad, sudden death, safe persistence                                                           |
 
 ## Development
 

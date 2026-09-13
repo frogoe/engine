@@ -72,13 +72,13 @@ shadowBlur) · `live/not-playable` (wire `input.on("down")` to real logic).
 
 ```
 packages/
-  contract/             → The whole platform (~190 lines, zero taste):
+  contract/             → The whole platform (zero taste, contract 0.2.0):
                           defineGame, stage/input/loop/finish, __frogoe handle
   lint/                 → Pure static checks, zero browser deps
                           (importable by server, pipeline, studio)
   cli/                  → frogoe CLI: init, add, run, check, bundle
 registry/
-  blocks/               → Installable HUD blocks (11, themeable, with demos)
+  blocks/               → Installable HUD blocks (12, themeable, with demos)
 skills/                 → AI agent skill definitions (5, mirrored to .claude/skills + .agents/skills; plugins .claude-plugin/.cursor-plugin/.codex-plugin)
 examples/
   flappy/               → Reference game: Flappy Chick (tap) at full quality
@@ -100,6 +100,7 @@ docs/
 - **Readability via outline**: game HUD text uses `text-shadow` or `-webkit-text-stroke`, not pixel-contrast against changing backgrounds
 - **Externals dissolve at build**: allowlisted CDN dependencies are fetched, pinned, hashed, and inlined by `frogoe bundle` — the artifact has zero runtime requests
 - **Identity art is authored and 1:1 by construction** (`assets/poster.js` + `assets/icon.js` canvas scenes importing sprites from `game.js`; `art/*` findings gate it): bundle renders them on the game page (poster 1080×1920, icon 1024), `frogoe embed` composes the card (poster loading state → fade on running) + `dist/manifest.json`
+- **Keyboard and multi-touch flow through the contract** — `input.on("key")` for edges (repeat suppressed), `input.keys` for held codes, per-touch `id` snapshots for pads; raw `addEventListener("keydown")` is an `input/raw-keyboard` error. A stale contract pin upgrades via `frogoe init --force` (game code and BRIEF preserved).
 - **pointer.dx is anchor-relative** (since touch-down): steer with `x = grabX + p.dx` or track lastX. NEVER `x += p.dx`
 - **Gameplay uses `stage.play`** (capped centered column), never raw innerWidth
 - **One artifact, one fetch**: `frogoe bundle` output is a single self-contained HTML file — verified == played
@@ -107,6 +108,6 @@ docs/
 ## Documentation
 
 - Skills: `skills/frogoe/SKILL.md` (the router — start here)
-- Contract: `packages/contract/src/contract.js` (~190 lines, heavily commented)
+- Contract: `packages/contract/src/contract.js` (heavily commented)
 - Registry: `registry/registry.json` + `registry/blocks/*/demo.html`
 - Specs: `docs/spec/bundler.md` + `docs/spec/cli.md` + `docs/spec/embed.md`
