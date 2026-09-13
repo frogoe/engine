@@ -174,9 +174,9 @@ describe("export shell generation (command-level, toolchain mocked)", () => {
       readFileSync(path.join(tmp, "export", "src-tauri", "tauri.conf.json"), "utf-8"),
     ) as { identifier: string };
     expect(conf.identifier).toBe("com.deni.testgame");
-    expect(
-      readFileSync(path.join(tmp, "export", "src-tauri", "web", "index.html"), "utf-8"),
-    ).toContain("artifact");
+    expect(readFileSync(path.join(tmp, "export", "web", "index.html"), "utf-8")).toContain(
+      "artifact",
+    );
     expect(readFileSync(path.join(tmp, ".gitignore"), "utf-8")).toContain("export/");
     expect(existsSync(path.join(tmp, "export", "frogoe-export.json"))).toBeTrue();
   });
@@ -209,9 +209,7 @@ describe("export shell generation (command-level, toolchain mocked)", () => {
       "<!doctype html><title>artifact v2</title>",
     );
     const result = generate();
-    expect(
-      readFileSync(path.join(tmp, "export", "src-tauri", "web", "index.html"), "utf-8"),
-    ).toContain("v2");
+    expect(readFileSync(path.join(tmp, "export", "web", "index.html"), "utf-8")).toContain("v2");
     const record = JSON.parse(
       readFileSync(path.join(tmp, "export", "frogoe-export.json"), "utf-8"),
     ) as { artifactSha: string };

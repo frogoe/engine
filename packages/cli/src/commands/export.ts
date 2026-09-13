@@ -79,9 +79,10 @@ export const generateShell = (
     written.push(rel);
   }
 
-  // 2) payload: the verified artifact, byte-identical
+  // 2) payload: the verified artifact, byte-identical — at web/, where
+  //    the template's frontendDist ("../web", relative to src-tauri/) points
   const artifact = readFileSync(path.join(gameDir, "dist", "index.html"));
-  const webDir = path.join(exportDir, "src-tauri", "web");
+  const webDir = path.join(exportDir, "web");
   mkdirSync(webDir, { recursive: true });
   writeFileSync(path.join(webDir, "index.html"), artifact);
 
@@ -157,7 +158,7 @@ export const command = defineCommand({
       version?: string;
     };
 
-    if (!args["no-bundle"]) {
+    if (args.noBundle !== true) {
       console.log("  bundling first — export always carries the freshest verified artifact");
       await bundle({ dir });
     }

@@ -3,7 +3,7 @@
 **Status: LIVE (`frogoe export desktop`; `frogoe run desktop`).**
 
 `frogoe export [desktop]` turns the game into a buildable native app project in
-`export/` — a Tauri 2 shell with the artifact embedded (`src-tauri/web/index.html`).
+`export/` — a Tauri 2 shell with the artifact embedded (`web/index.html`).
 Desktop (macOS/Windows/Linux) ships now; iOS/Android attach to the SAME project
 (`tauri ios/android init`) without template changes — the mobile entry point is
 declared from day one.
@@ -63,8 +63,7 @@ All via environment — nothing is stored in the project.
 
 ## Integrity (no-cheat)
 
-`export/frogoe-export.json` carries the artifact's sha256 — `shasum -a 256
-src-tauri/web/index.html` must match `artifactSha`. The shell has zero plugins,
+`export/frogoe-export.json` carries the artifact's sha256 — `shasum -a 256 web/index.html` must match `artifactSha`. The shell has zero plugins,
 zero invoke commands, one `core:default` capability, and the embed doctrine's
 CSP: the game cannot cross into Rust, and nothing loads off-disk.
 

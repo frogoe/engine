@@ -1,7 +1,7 @@
 # Exported frogoe game — finishing guide
 
 This directory is a complete, buildable [Tauri 2](https://v2.tauri.app) project
-with your game bundled inside (`src-tauri/web/index.html`, injected by
+with your game bundled inside (`web/index.html`, injected by
 `frogoe export`). Everything deterministic is already done. What remains
 needs YOUR credentials — that part is yours (or your agent's).
 

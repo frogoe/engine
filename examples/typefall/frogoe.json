@@ -1,3 +1,4 @@
 {
-  "contract": "0.2.0"
+  "contract": "0.2.0",
+  "appId": "com.denidev.typefall"
 }
