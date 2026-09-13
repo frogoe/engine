@@ -7,11 +7,13 @@ Pure static checks via `packages/lint`. Zero browser deps. Every finding carries
 | brief/missing, brief/frontmatter, brief/todo, brief/contrast | error | intent undeclared or incomplete |
 | brief/verb, brief/session | error | unknown verb / session value — the enums live in frogoe-core → brief-format.md |
 | input/verb-mismatch | error | the declared verb requires input wiring the game never wrote (verb → handler table in frogoe-core → brief-format.md) |
+| input/raw-keyboard | error | raw `addEventListener("keydown")` bypasses the contract — use `input.on("key")` + poll `input.keys` (blur-safe, repeat-suppressed, sandbox-verified) |
 | art/missing | error | identity scenes absent — author assets/poster.js + assets/icon.js (frogoe-creative → art.md) |
 | art/scene-export, art/scene-source, art/color-drift, art/text-font, art/empty | error | authored art breaks the 1:1 contract (missing draw entry, no ../game.js import, a color the game never draws, lettering outside the BRIEF font, placeholder scene) |
 | art/title-presence | warning | poster has no canvas lettering — Steam's logotype law, taught not banned (shape-lettering is legal) |
 | art/title-band | warning | poster declares no ctx.__frogoeTitleBand — bundle's collision check stays off; declare from layout variables |
 | folder/index-missing, folder/canvas, folder/viewport-fit, folder/touch-select, folder/importmap, folder/game-missing, folder/contract-pin | error | shell/pin broken (touch-select: phone long-press summons text selection — iOS + Android) |
+| folder/contract-stale | warning | pinned contract predates the current one — bump frogoe.json and run `frogoe init --force` (the upgrade path preserves game code and BRIEF) |
 | input/incremental-drag | error | the shipped wall-rocket bug (incremental dx) |
 | input/absolute-steering, layout/innerwidth-spawn | warning | thumb-ghosting / parity risks |
 | audio/suspended-only | warning | resume gated on suspended only — iOS interrupted contexts stay silent (frogoe-core → audio.md) |

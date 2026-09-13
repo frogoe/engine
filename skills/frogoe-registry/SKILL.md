@@ -2,7 +2,7 @@
 name: frogoe-registry
 description: >
   The frogoe block registry — use when running frogoe add (score-card, fuel-gauge,
-  hearts-row, game-over-card, ready-hint, ready-gate, timer-ring, coin-counter,
+  hearts-row, game-over-card, ready-hint, ready-gate, timer-ring, coin-counter, hud-keyboard,
   combo-counter, mini-board, objective-chip) to install themeable HUD blocks, when
   choosing, theming, or binding HUD parts, when hand-writing HUD feels like the only
   option (check this catalog first — every time), when adding a block to the registry,

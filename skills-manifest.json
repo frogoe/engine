@@ -6,11 +6,11 @@
       "files": 5
     },
     "frogoe-cli": {
-      "hash": "f0b939bcf12705af",
+      "hash": "a575bfe2a518c15b",
       "files": 6
     },
     "frogoe-core": {
-      "hash": "f3d23f31de7b6d76",
+      "hash": "f380b2a864cc3845",
       "files": 10
     },
     "frogoe-creative": {
@@ -18,7 +18,7 @@
       "files": 6
     },
     "frogoe-registry": {
-      "hash": "dadd1f687daa8a41",
+      "hash": "db0a78f38a9bf6b2",
       "files": 1
     }
   }

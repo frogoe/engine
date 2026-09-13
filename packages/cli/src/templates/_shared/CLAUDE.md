@@ -40,12 +40,12 @@ defineGame(({ stage, input, loop, finish }) => {
 });
 ```
 
-| Noun     | What it gives                                                        | Guarantees                                                                |
-| -------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `stage`  | `width/height`, `safe` (notch insets), `play` (capped column), `ctx` | DPR-capped canvas, notch-proof, identical challenge on every screen width |
-| `input`  | `on("down"\|"drag"\|"up")`, `pointer {x,y,dx,dy,down}`               | Unified touch+mouse, full cancel path, dx/dy anchor-relative              |
-| `loop`   | you fill `loop.update(dt)` + `loop.render(ctx)`                      | Fixed 60 Hz, dt clamped, pauses when hidden                               |
-| `finish` | report the run's score                                               | fires once, flips `__frogoe.state` to `over`                              |
+| Noun     | What it gives                                                                    | Guarantees                                                                                                        |
+| -------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `stage`  | `width/height`, `safe` (notch insets), `play` (capped column), `ctx`             | DPR-capped canvas, notch-proof, identical challenge on every screen width                                         |
+| `input`  | `on("down"\|"drag"\|"up"\|"move"\|"key")`, `pointer`, `keys` (Set of held codes) | Unified multi-touch (per-touch `id`), keyboard edges (repeat suppressed, blur-safe), hover, dx/dy anchor-relative |
+| `loop`   | you fill `loop.update(dt)` + `loop.render(ctx)`                                  | Fixed 60 Hz, dt clamped, pauses when hidden                                                                       |
+| `finish` | report the run's score                                                           | fires once, flips `__frogoe.state` to `over`                                                                      |
 
 The platform draws NOTHING. Everything visible is your code + HUD blocks from the registry.
 
@@ -98,6 +98,8 @@ Fix all errors before presenting the result. Common findings:
 | `folder/touch-select`    | Phone long-press summons text selection (iOS + Android)  | Add `-webkit-user-select: none; user-select: none; -webkit-touch-callout: none` on html/body  |
 | `audio/suspended-only`   | Resume gated on `=== "suspended"` (iOS silent bug)       | Resume when `state !== "running"` — see frogoe-core `references/audio.md`                     |
 | `brief/verb`             | Verb not in the 9-value enum                             | Pick from: tap\|hold\|steer\|aim\|swap\|place\|type\|draw\|idle — frogoe-core → brief-format  |
+| `input/raw-keyboard`     | Raw `addEventListener("keydown")` bypasses the contract  | `input.on("key", ...)` + poll `input.keys` — blur-safe, repeat-suppressed                     |
+| `folder/contract-stale`  | Pinned contract predates the current one                 | Bump frogoe.json + `frogoe init --force` (game code and BRIEF are preserved)                  |
 | `brief/session`          | Session not blitz/round/toy                              | blitz = short arcade (default), round = turn-based, toy = never ends — frogoe-core → genres   |
 | `input/verb-mismatch`    | Declared verb requires input wiring the game never wrote | Wire the required handlers — frogoe-core → brief-format (verb → handler table)                |
 | `live/hud-outline`       | HUD text missing text-shadow/stroke                      | Add `text-shadow: 0 2px 0 <dark>`                                                             |

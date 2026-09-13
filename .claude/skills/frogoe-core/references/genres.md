@@ -46,11 +46,13 @@ gate exercises more of your game.
 - **Match-3 (`swap` + `blitz`)** — the grid engine is pure functions over an
   Int grid (`findMatches`, `gravity`, `refill`); cascades resolve as tween
   states driven by `update(dt)`. Bind `combo-counter` tiers to cascade depth.
-- **Word / typing (`type`)** — mobile-first: draw the keyboard in-world (canvas
-  or HUD buttons = taps); a desktop `keydown` listener via
-  `window.addEventListener` is a legal enhancement the sandbox also exercises
-  (the `type` ladder sends real keyboard text). Declaring `type` only requires
-  `input.on("down")` — never demand keyboards.
+- **Word / typing (`type`)** — `input.on("key", ...)` for edges (submit on
+  Enter, delete on Backspace) + the registry's `hud-keyboard` block for touch:
+  its presses dispatch real KeyboardEvents, so ONE listener serves hardware
+  keys and the on-screen keys alike. Declaring `type` requires
+  `input.on("down")` + `input.on("key")`. Raw `addEventListener("keydown")` is
+  an error (`input/raw-keyboard`) — no blur safety, no repeat suppression,
+  invisible to the sandbox's type ladder.
 - **Idle / toys (`idle`/`draw` + `toy`)** — no `finish()`, no card, no retry:
   the feed shows a living toy. Keep the canvas evolving (ambient drift, fading
   strokes) so playability and frozen-frame hold structurally. Glowdoodle
