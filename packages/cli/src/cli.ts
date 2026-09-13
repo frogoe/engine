@@ -47,6 +47,7 @@ Commands:
   report [dir]             last playtest session: fps dips, errors, when
   bundle [dir]             dissolve externals → one self-contained HTML
   embed [dir]              wrap the bundle in a card (poster + manifest)
+  export [desktop]         native app project in export/ (buildable, signable)
   vision [dir]             see the game: objects, frames, art as ASCII maps
                            --poster/--icon/--gameplay/--objects: one window only
                            --full: all windows (default is poster + gameplay)
@@ -144,6 +145,7 @@ const main = defineCommand({
     bundle: () => import("./commands/bundle.ts").then((m) => m.command),
     check: () => import("./commands/check.ts").then((m) => m.command),
     embed: () => import("./commands/embed.ts").then((m) => m.command),
+    export: () => import("./commands/export.ts").then((m) => m.command),
     vision: () => import("./commands/vision.ts").then((m) => m.command),
     init: () => import("./commands/init.ts").then((m) => m.command),
     lint: () => import("./commands/lint.ts").then((m) => m.command),

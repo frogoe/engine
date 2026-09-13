@@ -14,8 +14,10 @@ const config: KnipConfig = {
     "scripts/lib/hashSkill.mjs",
   ],
   ignoreDependencies: ["@commitlint/config-conventional"],
-  // system probes, not npm binaries: the tunnel daemon we manage ourselves
-  ignoreBinaries: ["cloudflared"],
+  // system probes, not npm binaries: the tunnel daemon we manage ourselves;
+  // tauri runs inside the GENERATED export/ project (its own package.json),
+  // never as a dependency of this CLI
+  ignoreBinaries: ["cloudflared", "tauri"],
 };
 
 export default config;

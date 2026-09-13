@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 /** frogoe export — the filler layer. Pure functions, no toolchain. */
 import {
   ExportConfigError,
@@ -8,7 +8,16 @@ import {
   fill,
   validateAppId,
 } from "../src/export.ts";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { generateShell, type IconRunner } from "../src/commands/export.ts";
 import path from "node:path";
 
 describe("export config derivation", () => {
@@ -121,5 +130,95 @@ describe("template integrity (the shipped templates)", () => {
 
   test("exportTemplatesFor resolves the repo templates", () => {
     expect(exportTemplatesFor(path.join(import.meta.dir, "../src")).length).toBeGreaterThan(0);
+  });
+});
+
+describe("export shell generation (command-level, toolchain mocked)", () => {
+  afterAll(() => rmSync(tmp, { recursive: true, force: true }));
+  const tmp = path.join(import.meta.dir, "../.tmp-export");
+
+  const freshGame = (withAppId: boolean) => {
+    rmSync(tmp, { recursive: true, force: true });
+    mkdirSync(path.join(tmp, "dist"), { recursive: true });
+    writeFileSync(
+      path.join(tmp, "BRIEF.md"),
+      '---\ntitle: Test Game\nverb: tap\nmood: test\npalette:\n  bg: "#101418"\n  fg: "#fff"\n  accent: "#ffd"\n---\nx\n',
+    );
+    writeFileSync(
+      path.join(tmp, "frogoe.json"),
+      JSON.stringify(
+        withAppId ? { contract: "0.2.0", appId: "com.deni.testgame" } : { contract: "0.2.0" },
+      ),
+    );
+    writeFileSync(path.join(tmp, "dist", "index.html"), "<!doctype html><title>artifact</title>");
+    writeFileSync(path.join(tmp, ".gitignore"), "dist/\n");
+  };
+
+  const noIcon: IconRunner = () => {
+    mkdirSync(path.join(tmp, "export", "src-tauri", "icons"), { recursive: true });
+    writeFileSync(path.join(tmp, "export", "src-tauri", "icons", "icon.icns"), "stub");
+  };
+
+  const generate = (force?: boolean) =>
+    generateShell(tmp, deriveExportConfig({ appId: "com.deni.testgame", title: "Test Game" }), {
+      force,
+      iconRunner: noIcon,
+    });
+
+  test("generates a filled project + payload + record + gitignore line", () => {
+    freshGame(true);
+    const result = generate();
+    expect(result.artifactSha.length).toBe(64);
+    const conf = JSON.parse(
+      readFileSync(path.join(tmp, "export", "src-tauri", "tauri.conf.json"), "utf-8"),
+    ) as { identifier: string };
+    expect(conf.identifier).toBe("com.deni.testgame");
+    expect(
+      readFileSync(path.join(tmp, "export", "src-tauri", "web", "index.html"), "utf-8"),
+    ).toContain("artifact");
+    expect(readFileSync(path.join(tmp, ".gitignore"), "utf-8")).toContain("export/");
+    expect(existsSync(path.join(tmp, "export", "frogoe-export.json"))).toBeTrue();
+  });
+
+  test("re-export is idempotent; creator edits to tool files are kept", () => {
+    freshGame(true);
+    generate();
+    // the creator (or their agent) tunes the window via Cargo/Cargo edits:
+    const confPath = path.join(tmp, "export", "src-tauri", "tauri.conf.json");
+    const edited = readFileSync(confPath, "utf-8").replace('"height": 880', '"height": 900');
+    writeFileSync(confPath, edited);
+    // a creator-added file of their own:
+    writeFileSync(path.join(tmp, "export", "NOTES.md"), "mine");
+    const result = generate();
+    expect(result.skipped).toContain("src-tauri/tauri.conf.json");
+    expect(readFileSync(confPath, "utf-8")).toContain('"height": 900');
+    expect(readFileSync(path.join(tmp, "export", "NOTES.md"), "utf-8")).toBe("mine");
+  });
+
+  test("--force overwrites the creator edit", () => {
+    const result = generate(true);
+    expect(result.skipped).toEqual([]);
+    const confPath = path.join(tmp, "export", "src-tauri", "tauri.conf.json");
+    expect(readFileSync(confPath, "utf-8")).toContain('"height": 880');
+  });
+
+  test("payload refresh follows dist/ (artifact swap recorded)", () => {
+    writeFileSync(
+      path.join(tmp, "dist", "index.html"),
+      "<!doctype html><title>artifact v2</title>",
+    );
+    const result = generate();
+    expect(
+      readFileSync(path.join(tmp, "export", "src-tauri", "web", "index.html"), "utf-8"),
+    ).toContain("v2");
+    const record = JSON.parse(
+      readFileSync(path.join(tmp, "export", "frogoe-export.json"), "utf-8"),
+    ) as { artifactSha: string };
+    expect(record.artifactSha).toBe(result.artifactSha);
+  });
+
+  test("missing appId is a teaching error from derive (the command's gate)", () => {
+    freshGame(false);
+    expect(() => deriveExportConfig({ appId: undefined, title: "Test Game" })).toThrow(/"appId"/u);
   });
 });
