@@ -1,7 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test";
 /** frogoe export — the filler layer. Pure functions, no toolchain. */
 import {
-  ExportConfigError,
   TOKENS,
   deriveExportConfig,
   exportTemplatesFor,
@@ -25,13 +24,17 @@ import path from "node:path";
 describe("export config derivation", () => {
   test("happy path: title + appId + default version", () => {
     const config = deriveExportConfig({ appId: "com.deni.typefall", title: "Typefall" });
-    expect(config).toEqual({
-      appName: "Typefall",
-      appId: "com.deni.typefall",
-      version: "1.0.0",
-      crate: "typefall",
-      crateLib: "typefall_lib",
-    });
+    expect(config.appId).toBe("com.deni.typefall");
+    expect(config.appIdIsDefault).toBeFalse();
+    expect(config.version).toBe("1.0.0");
+    expect(config.crate).toBe("typefall");
+    expect(config.crateLib).toBe("typefall_lib");
+  });
+
+  test("missing appId falls back to the com.frogoe.* dev default (Expo-style)", () => {
+    const config = deriveExportConfig({ title: "Typefall" });
+    expect(config.appId).toBe("com.frogoe.typefall");
+    expect(config.appIdIsDefault).toBeTrue();
   });
 
   test("titles with spaces/apostrophes kebab cleanly", () => {
@@ -40,9 +43,10 @@ describe("export config derivation", () => {
     expect(config.crateLib).toBe("denis_spell_storm_lib");
   });
 
-  test("missing appId is a teaching error, not a crash", () => {
-    expect(() => deriveExportConfig({ title: "Typefall" })).toThrow(ExportConfigError);
-    expect(() => deriveExportConfig({ title: "Typefall" })).toThrow(/"appId"/u);
+  test("a malformed author appId is still a teaching error", () => {
+    expect(() => deriveExportConfig({ appId: "Not!.valid", title: "Typefall" })).toThrow(
+      /reverse-DNS/u,
+    );
   });
 
   test("appId must be reverse-DNS", () => {
@@ -217,9 +221,11 @@ describe("export shell generation (command-level, toolchain mocked)", () => {
     expect(record.artifactSha).toBe(result.artifactSha);
   });
 
-  test("missing appId is a teaching error from derive (the command's gate)", () => {
+  test("missing appId exports fine under the dev default", () => {
     freshGame(false);
-    expect(() => deriveExportConfig({ appId: undefined, title: "Test Game" })).toThrow(/"appId"/u);
+    const config = deriveExportConfig({ title: "Test Game" });
+    expect(config.appId).toBe("com.frogoe.test-game");
+    expect(config.appIdIsDefault).toBeTrue();
   });
 });
 

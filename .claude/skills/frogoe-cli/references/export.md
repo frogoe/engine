@@ -61,11 +61,13 @@ when it exits — creator edits survive it.
   `export/README-android.md`) — agent-completes, credentials via env/config
   files that never live in the repo
 
-## appId (required)
+## appId (optional — Expo-style default)
 
-`frogoe.json` gains `"appId": "com.yourname.yourgame"` — reverse-DNS, at least
-two lowercase segments. It becomes the bundle identifier on every platform.
-`"version"` is optional (default `"1.0.0"`).
+`frogoe.json` may set `"appId": "com.yourname.yourgame"` — reverse-DNS, at
+least two lowercase segments; it becomes the bundle identifier on every
+platform. Absent, export defaults to `com.frogoe.<game>` for instant local
+dev and WARNS: stores require your own id (two games named alike from
+different authors would collide). `"version"` defaults to `"1.0.0"`.
 
 ## Finishing (agent-completes — from the generated README)
 

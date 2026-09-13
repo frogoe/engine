@@ -58,6 +58,7 @@ Use the first matching row. Match the requested **capability**, not a keyword in
 | 3        | Choosing, theming, or binding HUD blocks (score, hearts, fuel, game-over) — always try `frogoe add` before hand-writing | `/frogoe-registry`                                             |
 | 4        | Anything 3D or with external libs (three.js, gsap, fonts)                                                          | `/frogoe-core` → `references/externals.md`                   |
 | 5        | CLI dev loop: init, add, run, check, bundle, report, finding codes, live sandbox                                   | `/frogoe-cli`                                                |
+| 5b       | Native apps: export the game to desktop/iOS/Android projects, or run the dev loop inside the native shell          | `/frogoe-cli` → `references/export.md`                        |
 | 6        | Audio, gesture unlock, interrupted state, WebAudio resume                                                          | `/frogoe-core` → `references/audio.md`                       |
 
 Always load `/frogoe-core` once for any code-touching task; add `/frogoe-creative`
@@ -82,6 +83,7 @@ refreshed by the user, not by you.
 | Palettes, typography, VARIANCE/MOTION/DENSITY dials, lazy defaults, game feel       | `/frogoe-creative`  |
 | HUD blocks: find, evaluate, install, theme, bind                                    | `/frogoe-registry`  |
 | CLI: init, add, run, check, bundle, report, live sandbox, finding codes            | `/frogoe-cli`       |
+| Native app export/run (desktop · iOS · Android)                                     | `/frogoe-cli`       |
 | Audio: gesture unlock, interrupted state, silent buffer                              | `/frogoe-core` → `audio.md` |
 | Externals: three.js, gsap, fonts, bundler dissolve                                   | `/frogoe-core` → `externals.md` |
 

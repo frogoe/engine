@@ -28,8 +28,11 @@ export type Token = (typeof TOKENS)[number];
 export interface ExportConfig {
   /** display name — BRIEF title (also productName; Tauri forbids /\:*?"<>|) */
   appName: string;
-  /** reverse-DNS identifier, the one field ONLY the author can supply */
+  /** reverse-DNS identifier. Defaults to com.frogoe.<crate> (local dev —
+   *  Expo-style instant start); store submission needs the author's own. */
   appId: string;
+  /** true when appId came from the com.frogoe.* default, not the author */
+  appIdIsDefault: boolean;
   /** semver-ish display version, default "1.0.0" */
   version: string;
   /** cargo package name — kebab(title) */
@@ -73,30 +76,29 @@ export const deriveExportConfig = (input: {
       `frogoe export: the BRIEF title "${title}" contains a character Tauri forbids in product names (/\\:*?"<>|) — retitle it`,
     );
   }
-  const appId = input.appId?.trim() ?? "";
-  if (appId.length === 0) {
-    throw new ExportConfigError(
-      'frogoe export: frogoe.json needs an "appId" (reverse-DNS, e.g. "com.yourname.typefall") — it becomes the bundle/identifier on every platform. Add it and re-run.',
-    );
-  }
-  if (!validateAppId(appId)) {
-    throw new ExportConfigError(
-      `frogoe export: appId "${appId}" is not reverse-DNS (lowercase segments, at least two, e.g. "com.yourname.typefall") — fix frogoe.json`,
-    );
-  }
   const crate = kebab(title);
   if (crate.length === 0 || /^[0-9]/u.test(crate)) {
     throw new ExportConfigError(
       `frogoe export: the BRIEF title "${title}" yields no valid crate name — it needs at least one letter`,
     );
   }
+  const authorAppId = input.appId?.trim() ?? "";
+  if (authorAppId.length > 0 && !validateAppId(authorAppId)) {
+    throw new ExportConfigError(
+      `frogoe export: appId "${authorAppId}" is not reverse-DNS (lowercase segments, at least two, e.g. "com.yourname.typefall") — fix frogoe.json`,
+    );
+  }
+  // Expo-style instant start: a working default for local dev; the export
+  // command warns that com.frogoe.* is reserved and stores need your own
+  const appIdIsDefault = authorAppId.length === 0;
+  const appId = appIdIsDefault ? `com.frogoe.${crate}` : authorAppId;
   const version = input.version?.trim() || "1.0.0";
   if (!/^\d+(\.\d+){0,3}(-[a-z0-9.-]+)?$/u.test(version)) {
     throw new ExportConfigError(
       `frogoe export: version "${version}" is not semver-ish (e.g. "1.0.0") — fix frogoe.json`,
     );
   }
-  return { appName: title, appId, version, crate, crateLib: `${snake(crate)}_lib` };
+  return { appName: title, appId, appIdIsDefault, version, crate, crateLib: `${snake(crate)}_lib` };
 };
 
 const tokenPattern = /\{\{FROGOE_[A-Z_]+\}\}/gu;

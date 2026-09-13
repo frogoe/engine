@@ -229,6 +229,11 @@ export const command = defineCommand({
       console.log(JSON.stringify(result, null, 2));
     } else {
       console.log(`  frogoe export → ${result.dir}`);
+      if (config.appIdIsDefault) {
+        console.log(
+          '  ⚠ appId defaulted to com.frogoe.* — fine for local dev, but stores require your own reverse-DNS id (frogoe.json → "appId": "com.yourname.game")',
+        );
+      }
       console.log(
         `  artifact sha256 ${result.artifactSha.slice(0, 12)} · ${result.written.length} file(s) written`,
       );

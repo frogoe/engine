@@ -53,13 +53,14 @@ The platform draws NOTHING. Everything visible is your code + HUD blocks from th
 
 ```bash
 frogoe run                  # serve with live reload + phone QR (safe-area only exists on real devices)
+frogoe run desktop|ios|android     # the same loop inside the native shell (export first)
 frogoe run --tunnel         # + public URL — phone works on any network (cloudflared, auto-downloaded once)
 frogoe add <block>          # copy a HUD block into blocks/ (score, hearts, fuel, game-over, etc.)
 frogoe lint                 # fast static contract lint (stable finding codes; --json for CI)
 frogoe check                # full gate: lint + headless Chrome — FPS, playability, HUD outline, screenshots
 frogoe vision               # eyes: your draw code as ASCII maps (objects, frames, identity art)
 frogoe bundle               # one self-contained HTML (externals dissolved) — only after check passes
-frogoe export desktop      # native app project in export/ (buildable; appId required in frogoe.json)
+frogoe export desktop|ios|android  # native app project in export/ (appId defaults to com.frogoe.* for dev)
 frogoe embed                # the card: poster loading state + sandboxed game + manifest — after bundle
 ```
 

@@ -16,5 +16,6 @@ Each row's last column reads **home → entry → what you get**: the owning ski
 | **Externals: fonts** — Google Fonts inlined at bundle | "a display font that ships inside the artifact" | `frogoe-core` → `references/externals.md` + `frogoe-creative` → `typography.md` → `@font-face` in `dist/` |
 | **Live dev loop** — run with QR, tunnel, playtest telemetry, check until clean | "live reload on phone plus contract checks" | `frogoe-cli` → `frogoe run / check / report` → `check` findings + `snapshots/` |
 | **One-file artifact** — externals dissolved, single HTML, provenance banner | "one self-contained HTML — verified means played" | `frogoe-cli` → `frogoe bundle` → `dist/index.html` |
+| **Native apps** — the verified artifact as a buildable desktop/iOS/Android project, plus the native dev loop | "your game as a real installable app — desktop, iPhone, Android" | `frogoe-cli` → `references/export.md` + `frogoe export desktop\|ios\|android` → `export/` project (+ `frogoe run <target>` hot-reload) |
 
 Offer, do not unload: the intent layer recommends the one or two rows the confirmed concept itself calls for, each traced to something in the brief, and asks once — the full table appears only when the user asks what else is possible.

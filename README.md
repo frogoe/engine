@@ -47,6 +47,8 @@ frogoe lint                 # fast static contract lint (stable finding codes; -
 frogoe check                # full gate: + headless Chrome — FPS, playability, audio recovery, phone-class throttle
 frogoe vision               # eyes for draw code: objects, gameplay frames, identity art as ASCII maps (--pretty: color)
 frogoe bundle               # one self-contained HTML (zero runtime requests) — only after check
+frogoe export desktop|ios|android  # buildable native app project in export/ (Tauri shell)
+frogoe run desktop|ios|android     # the dev loop inside the native shell — same hot reload
 frogoe embed                # the card: poster loading state + sandboxed game + dist/manifest.json
 frogoe skills check         # skill freshness (hash = per-bundle SHA16)
 ```
