@@ -41,6 +41,7 @@ Commands:
   init [name]              scaffold a runnable game folder
   add <block>              copy a registry HUD block into blocks/
   run [dir]                serve with live reload + phone QR (--tunnel: any network)
+  run desktop              the same loop inside the exported native shell
   lint [dir]               static contract lint — fast iteration (stable codes; --json)
   check [dir]              full gate: lint + live Chrome sandbox (FPS, HUD outline)
                            --fast: static only, no Chrome (quick iteration)

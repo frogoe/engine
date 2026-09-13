@@ -18,6 +18,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { generateShell, type IconRunner } from "../src/commands/export.ts";
+import { injectDevUrl } from "../src/export.ts";
 import path from "node:path";
 
 describe("export config derivation", () => {
@@ -220,5 +221,28 @@ describe("export shell generation (command-level, toolchain mocked)", () => {
   test("missing appId is a teaching error from derive (the command's gate)", () => {
     freshGame(false);
     expect(() => deriveExportConfig({ appId: undefined, title: "Test Game" })).toThrow(/"appId"/u);
+  });
+});
+
+describe("injectDevUrl (the run-desktop conf transform)", () => {
+  const release = `{
+  "productName": "Test Game",
+  "build": { "frontendDist": "../web", "beforeDevCommand": "bun dev" },
+  "app": {}
+}`;
+
+  test("injecting points dev at the server and drops beforeDevCommand", () => {
+    const conf = JSON.parse(injectDevUrl(release, "http://localhost:4199")) as {
+      build: { beforeDevCommand?: string; devUrl?: string; frontendDist?: string };
+    };
+    expect(conf.build.devUrl).toBe("http://localhost:4199");
+    expect(conf.build.beforeDevCommand).toBeUndefined();
+    expect(conf.build.frontendDist).toBe("../web");
+  });
+
+  test("empty url strips devUrl (self-heal / release shape)", () => {
+    const dev = injectDevUrl(release, "http://localhost:4199");
+    const healed = JSON.parse(injectDevUrl(dev, "")) as { build: { devUrl?: string } };
+    expect(healed.build.devUrl).toBeUndefined();
   });
 });

@@ -133,3 +133,22 @@ export const exportTemplatesFor = (base: string): string => {
     "frogoe export: templates not found (neither src/export-templates nor dist) — the CLI install is broken; report it",
   );
 };
+
+/** Dev-loop config transform for the shell: point `tauri dev` at the
+ *  frogoe dev server (live reload flows through the native webview) and
+ *  drop beforeDevCommand — the CLI owns the server, not Tauri. Injecting
+ *  an empty url strips both (self-heal after a crashed session, and the
+ *  release shape export expects). */
+export const injectDevUrl = (confJson: string, url: string): string => {
+  const conf = JSON.parse(confJson) as {
+    build?: { beforeDevCommand?: string; devUrl?: string; frontendDist?: string };
+  };
+  conf.build ??= {};
+  delete conf.build.beforeDevCommand;
+  if (url.length === 0) {
+    delete conf.build.devUrl;
+  } else {
+    conf.build.devUrl = url;
+  }
+  return `${JSON.stringify(conf, null, 2)}\n`;
+};

@@ -3,6 +3,11 @@
  *  no-phone nudge, and clean ctrl+c teardown. All decisions live in
  *  net/plan.ts (pure); this layer only executes and prints. */
 import { defineCommand } from "citty";
+import { spawn, spawnSync } from "node:child_process";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+
+import { injectDevUrl } from "../export.ts";
 
 import { probeFirewall } from "../net/firewall.ts";
 import { resolveLan } from "../net/ip.ts";
@@ -31,7 +36,11 @@ const message = (error: unknown): string =>
 
 export const command = defineCommand({
   args: {
-    dir: { type: "positional", required: false, description: "game folder (default: cwd)" },
+    dir: {
+      type: "positional",
+      required: false,
+      description: '"desktop" or a game folder (default: cwd)',
+    },
     port: { type: "string", description: "port (default: random free)" },
     tunnel: {
       type: "boolean",
@@ -41,6 +50,10 @@ export const command = defineCommand({
   async run({ args }) {
     const dir = args.dir ? String(args.dir) : process.cwd();
     const port = args.port ? Number(args.port) : 0;
+    if (dir === "desktop") {
+      await runDesktop(port);
+      return;
+    }
     if (!Number.isInteger(port) || port < 0) {
       throw new Error(`frogoe run: invalid port "${String(args.port)}"`);
     }
@@ -135,3 +148,58 @@ export const command = defineCommand({
   },
   meta: { description: "serve with live reload + phone QR" },
 });
+
+/** The native dev loop: frogoe dev server + `bun tauri dev` pointing at
+ *  it. Edits to game.js hot-reload inside the desktop shell — the same
+ *  reload channel the browser path uses, because the shell IS just a
+ *  webview onto the same server. The shell's config is tool-owned but
+ *  creator-respecting: whatever bytes are there get restored on exit. */
+const runDesktop = async (port: number): Promise<void> => {
+  const dir = process.cwd();
+  const exportDir = path.join(dir, "export");
+  if (!existsSync(path.join(exportDir, "package.json"))) {
+    throw new Error(
+      "frogoe run desktop: no export/ project here — run `frogoe export desktop` once first (it builds the shell from the verified artifact)",
+    );
+  }
+  const cargo = spawnSync("cargo", ["--version"], { encoding: "utf-8" });
+  if (cargo.status !== 0) {
+    throw new Error(
+      "frogoe run desktop: Rust toolchain not found — install it via https://rustup.rs, then re-run (full prerequisites: export/README.md)",
+    );
+  }
+
+  const server = await startServer(dir, port);
+  console.log(`\n  frogoe run desktop — dev server + native shell`);
+  console.log(`  local  ${server.urls.local}   (the shell hot-reloads from this)`);
+
+  const confPath = path.join(exportDir, "src-tauri", "tauri.conf.json");
+  const releaseConf = readFileSync(confPath, "utf-8");
+  // self-heal: a crashed session may have left a devUrl in place
+  const healed = injectDevUrl(releaseConf, "");
+  writeFileSync(confPath, injectDevUrl(healed, server.urls.local), "utf-8");
+
+  console.log("  launching bun tauri dev — ctrl+c to stop\n");
+  const child = spawn("bun", ["tauri", "dev"], { cwd: exportDir, stdio: "inherit" });
+  const shutdown = (): void => {
+    try {
+      writeFileSync(confPath, healed, "utf-8");
+    } catch {
+      // best effort — the next export self-heals anyway
+    }
+    server.stop();
+  };
+  child.on("exit", () => {
+    shutdown();
+    process.exit(0);
+  });
+  for (const signal of ["SIGINT", "SIGTERM"] as const) {
+    process.on(signal, () => {
+      shutdown();
+      child.kill(signal);
+      process.exit(0);
+    });
+  }
+  // keep this function alive for the child's lifetime
+  await new Promise(() => {});
+};
