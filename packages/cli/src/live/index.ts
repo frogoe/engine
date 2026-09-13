@@ -11,6 +11,7 @@ import { parseBrief, SESSIONS, VERBS } from "@frogoe/lint";
 
 import { launchBrowser } from "../browser/launch.ts";
 import { legacyCacheDir } from "../browser/manager.ts";
+import { registryRoot } from "../init.ts";
 import { createPuppeteerDriver } from "./driver.ts";
 import { runDesktopPass, runLifecycle, sleep } from "./phases.ts";
 import type { LiveFinding, LiveMetrics, LiveOptions, LiveResult } from "./types.ts";
@@ -38,6 +39,37 @@ const declaredIntent = (dir: string): { session: string; verb: string } => {
   } catch {
     return { session: "blitz", verb: "tap" };
   }
+};
+
+/** Registry block bindings → placement, for the anchor gate. bindings[0]
+ *  is the block's ROOT element (registry convention — the inner bindings
+ *  like data-block-retry live INSIDE the root and must not be checked).
+ *  The registry is the single source of which blocks self-position;
+ *  unknown blocks are simply not checked (no false positives). */
+const loadBlockBindings = (): Record<string, string> => {
+  const map: Record<string, string> = {};
+  try {
+    const root = registryRoot();
+    const items = JSON.parse(readFileSync(path.join(root, "registry.json"), "utf-8")) as {
+      items: Array<{ name: string }>;
+    };
+    for (const entry of items.items) {
+      try {
+        const item = JSON.parse(
+          readFileSync(path.join(root, "blocks", entry.name, "registry-item.json"), "utf-8"),
+        ) as { bindings?: string[]; placement?: string };
+        const rootBinding = item.bindings?.[0];
+        if (rootBinding !== undefined) {
+          map[rootBinding] = item.placement ?? "overlay";
+        }
+      } catch {
+        // unreadable item — the registry validator owns that failure
+      }
+    }
+  } catch {
+    // no registry resolvable (unusual layouts) — the gate no-ops
+  }
+  return map;
 };
 
 const waitForServer = async (url: string): Promise<void> => {
@@ -69,6 +101,7 @@ export const collectLive = async (options: LiveOptions): Promise<LiveResult> => 
   const snapshotDir = path.join(dir, "snapshots");
   mkdirSync(snapshotDir, { recursive: true });
   const intent = declaredIntent(dir);
+  const bindings = loadBlockBindings();
 
   const browser = await launchBrowser({ legacyDirs: [legacyCacheDir(dir)] });
 
@@ -102,6 +135,7 @@ export const collectLive = async (options: LiveOptions): Promise<LiveResult> => 
 
         if (viewport.name === "mobile") {
           const outcome = await runLifecycle(driver, {
+            blockBindings: bindings,
             settleMs: settle,
             shot,
             verb: intent.verb,
@@ -115,7 +149,11 @@ export const collectLive = async (options: LiveOptions): Promise<LiveResult> => 
             metrics.mobileFps = outcome.mobileFps;
           }
         } else {
-          const outcome = await runDesktopPass(driver, { shot, viewport });
+          const outcome = await runDesktopPass(driver, {
+            blockBindings: bindings,
+            shot,
+            viewport,
+          });
           findings.push(...outcome.findings);
           if (outcome.fps !== undefined) {
             metrics.desktopFps = outcome.fps;

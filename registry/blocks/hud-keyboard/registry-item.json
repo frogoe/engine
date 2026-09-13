@@ -3,7 +3,7 @@
   "name": "hud-keyboard",
   "type": "frogoe:block",
   "title": "On-Screen Keyboard",
-  "description": "Touch keyboard for the type verb — presses dispatch real KeyboardEvents through the frogoe contract (input.on(\"key\") and input.keys hear them like hardware); themeable via --block-* custom properties",
+  "description": "Touch keyboard for the type verb \u2014 presses dispatch real KeyboardEvents through the frogoe contract (input.on(\"key\") and input.keys hear them like hardware); themeable via --block-* custom properties",
   "tags": [
     "hud",
     "keyboard",
@@ -19,9 +19,10 @@
     }
   ],
   "bindings": [
+    "data-block-keyboard",
     "data-block-key"
   ],
-  "placement": "overlay",
+  "placement": "overlay-anchored",
   "preview": {
     "demo": "demo.html"
   }

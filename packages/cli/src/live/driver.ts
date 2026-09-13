@@ -14,9 +14,11 @@ import {
   FPS_MARK_SCRIPT,
   GAME_STATE_SCRIPT,
   HUD_MEASURE_SCRIPT,
+  HUD_OVERLAP_SCRIPT,
   INTERRUPT_AUDIO_SCRIPT,
   PROBE_SCRIPT,
   RETRY_PRESENCE_SCRIPT,
+  blockAnchorScript,
   fpsSinceScript,
 } from "./sampler.ts";
 
@@ -58,6 +60,11 @@ export interface LiveDriver {
   fpsSince(mark: number): Promise<number[]>;
   hudMeasures(): Promise<Array<OutlineMeasure & CollapseMeasure>>;
   retryPresence(): Promise<RetryPresence>;
+  /** Self-positioning blocks that are NOT direct .hud children (mis-
+   *  anchored — the shipped-twice bug class). Registry-driven. */
+  blockAnchors(bindings: Record<string, string>): Promise<string[]>;
+  /** Visible [data-pos] wrappers intersecting each other (piled HUD). */
+  hudOverlaps(): Promise<string[]>;
   tap(x: number, y: number): Promise<void>;
   hold(x: number, y: number, ms: number): Promise<void>;
   /** Press at (x1,y1), sweep to (x2,y2), release — the drag/steer
@@ -143,6 +150,12 @@ export const createPuppeteerDriver = ({ page, size }: PuppeteerDriverOptions): L
     },
     async retryPresence() {
       return await read<RetryPresence>(RETRY_PRESENCE_SCRIPT);
+    },
+    async blockAnchors(bindings: Record<string, string>) {
+      return await read<string[]>(blockAnchorScript(bindings));
+    },
+    async hudOverlaps() {
+      return await read<string[]>(HUD_OVERLAP_SCRIPT);
     },
     async tap(x: number, y: number) {
       await page.mouse.click(x, y);

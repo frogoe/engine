@@ -167,6 +167,18 @@ export class FakeDriver implements LiveDriver {
     return { gameover: this.world.hasGameover, retry: this.world.hasRetry };
   }
 
+  misanchored: string[] = [];
+
+  overlaps: string[] = [];
+
+  async blockAnchors(): Promise<string[]> {
+    return this.misanchored;
+  }
+
+  async hudOverlaps(): Promise<string[]> {
+    return this.overlaps;
+  }
+
   async tap(): Promise<void> {
     this.taps += 1;
   }
@@ -213,18 +225,18 @@ export class FakeDriver implements LiveDriver {
 
 const immediate = (): Promise<void> => Promise.resolve();
 
-const run = async (world: FakeWorld, ctx: Record<string, unknown> = {}) => {
-  const driver = new FakeDriver(world);
-  const outcome = await runLifecycle(driver, {
+const run = async (world: FakeWorld, ctx: Record<string, unknown> = {}, driver?: FakeDriver) => {
+  const d = driver ?? new FakeDriver(world);
+  const outcome = await runLifecycle(d, {
     settleMs: 0,
     shot: async (name) => {
-      driver.shots.push(name);
+      d.shots.push(name);
     },
     sleep: immediate,
     viewport: { height: 844, name: "mobile", width: 390 },
     ...ctx,
   });
-  return { driver, outcome };
+  return { driver: d, outcome };
 };
 
 const codes = (findings: LiveFinding[]): string[] => findings.map((f) => f.code);
@@ -512,5 +524,40 @@ describe("session policies (BRIEF session: blitz | round | toy)", () => {
       session: "round",
     });
     expect(outcome.findings.filter((f) => f.code === "live/finish-event-missing").length).toBe(2);
+  });
+});
+
+describe("block placement gates (the shipped-twice bug class)", () => {
+  test("self-positioning block wrapped in a div → live/block-anchor error", async () => {
+    const driver = new FakeDriver(healthyWorld());
+    driver.misanchored = ["data-block-gameover"];
+    const { outcome } = await run(
+      driver.world,
+      { blockBindings: { "data-block-gameover": "overlay-fullscreen" } },
+      driver,
+    );
+    const anchor = outcome.findings.find((f) => f.code === "live/block-anchor");
+    expect(anchor?.severity).toBe("error");
+    expect(anchor?.fix).toContain("DIRECT child");
+  });
+
+  test("overlapping visible HUD wrappers → live/hud-overlap warning", async () => {
+    const driver = new FakeDriver(healthyWorld());
+    driver.overlaps = ["top-left+top-left"];
+    const { outcome } = await run(driver.world, {}, driver);
+    const overlap = outcome.findings.find((f) => f.code === "live/hud-overlap");
+    expect(overlap?.severity).toBe("warning");
+    expect(overlap?.message).toContain("1 HUD overlap");
+  });
+
+  test("clean anchors and no overlaps → neither finding", async () => {
+    const driver = new FakeDriver(healthyWorld());
+    const { outcome } = await run(
+      driver.world,
+      { blockBindings: { "data-block-gameover": "overlay-fullscreen" } },
+      driver,
+    );
+    expect(codes(outcome.findings)).not.toContain("live/block-anchor");
+    expect(codes(outcome.findings)).not.toContain("live/hud-overlap");
   });
 });

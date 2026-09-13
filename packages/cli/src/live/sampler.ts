@@ -120,6 +120,9 @@ export const fpsSinceScript = (mark: number): string =>
 export const HUD_MEASURE_SCRIPT = `(() => {
   const out = [];
   for (const el of document.querySelectorAll(".hud *")) {
+    // non-rendered elements (a block's inline <script>/<style>) carry
+    // text nodes but never paint — they are not HUD text
+    if (el.tagName === "SCRIPT" || el.tagName === "STYLE" || el.tagName === "LINK") continue;
     const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.nodeValue.trim());
     if (!own) continue;
     const text = el.textContent ?? "";
@@ -138,6 +141,50 @@ export const RETRY_PRESENCE_SCRIPT = `(() => ({
   gameover: Boolean(document.querySelector("[data-block-gameover]")),
   retry: Boolean(document.querySelector("[data-block-retry]")),
 }))()`;
+
+/** Block anchoring — the class of bug that shipped twice: self-positioning
+ *  blocks (game-over card, ready gate, docked keyboards) landing inside a
+ *  shrink-wrapped wrapper instead of directly on .hud, where their own
+ *  absolute/inset CSS anchors correctly. `bindings` maps each data-block-*
+ *  attribute to its registry placement; non-overlay placements must be
+ *  direct children of the hud layer. */
+export const blockAnchorScript = (bindings: Record<string, string>): string => `(() => {
+  const hud = document.querySelector(".hud");
+  if (!hud) return [];
+  const placements = ${JSON.stringify(bindings)};
+  const bad = [];
+  for (const attr of Object.keys(placements)) {
+    for (const el of hud.querySelectorAll("[" + attr + "]")) {
+      if (placements[attr] === "overlay") continue;
+      if (el.parentElement !== hud) bad.push(attr);
+    }
+  }
+  return [...new Set(bad)];
+})()`;
+
+/** Visible-corner overlap — two rendered [data-pos] wrappers intersecting
+ *  means HUD furniture is piled on one spot (the everything-top-left
+ *  smell). Only counts wrappers that actually paint (visible + sized). */
+export const HUD_OVERLAP_SCRIPT = `(() => {
+  const rects = [];
+  for (const el of document.querySelectorAll(".hud [data-pos]")) {
+    const cs = getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden" || Number(cs.opacity) < 0.1) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 4 || r.height < 4) continue;
+    rects.push({ corner: el.getAttribute("data-pos"), x0: r.x, x1: r.x + r.width, y0: r.y, y1: r.y + r.height });
+  }
+  const hits = [];
+  for (let i = 0; i < rects.length; i++) {
+    for (let j = i + 1; j < rects.length; j++) {
+      const a = rects[i], b = rects[j];
+      const w = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+      const h = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
+      if (w > 4 && h > 4) hits.push(a.corner + "+" + b.corner);
+    }
+  }
+  return hits;
+})()`;
 
 /** Inject the iOS "interrupted" shape: suspend every context the game
  * created. The phases follow with real input — a healthy game's wiring

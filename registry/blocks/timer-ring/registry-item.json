@@ -24,5 +24,6 @@
   "placement": "overlay",
   "preview": {
     "demo": "demo.html"
-  }
+  },
+  "pos": "top-right"
 }

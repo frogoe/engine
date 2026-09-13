@@ -20,52 +20,52 @@ interface RegistryItem {
   files: Array<{ path: string; type: string }>;
   name: string;
   placement?: string;
+  pos?: string;
 }
 
 /** Extract CSS and markup from a block file. Linear string ops — the old
  *  `</style>\s*([\s\S]*)$` regex overlapped two unbounded quantifiers and
  *  backtracked quadratically (CodeQL: js/polynomial-redos); the `\s*` was
- *  redundant anyway because the caller trims. */
+ *  redundant anyway because the caller trims.
+ *
+ *  Style handling is placement-critical (the shipped bug: blocks whose
+ *  copy region carries its own <style> rode INTO .hud, where the text
+ *  nodes trip the outline/collapse gates): every <style> inside the copy
+ *  region is hoisted to <head> css, and NONE remain in the markup. */
 export const parseBlock = (source: string): { css: string | null; markup: string } => {
-  const styleOpen = source.indexOf("<style>");
-  const styleClose = source.indexOf("</style>");
-  const css =
-    styleOpen === -1 || styleClose === -1 || styleClose < styleOpen
-      ? null
-      : source.slice(styleOpen + "<style>".length, styleClose);
-  // Block files are full HTML documents (viewable in a browser). The markup
-  // lives between COPY FROM HERE / COPY TO HERE markers — extracting
-  // "everything after </style>" would drag </head><body> scaffolding into
-  // the game (the shipped bug: score-card injected <head> inside .hud).
   const fromMarker = source.indexOf("COPY FROM HERE");
   const toMarker = source.indexOf("COPY TO HERE");
-  let markup: string;
+  let region: string;
   if (fromMarker !== -1 && toMarker !== -1 && toMarker > fromMarker) {
     const afterFrom = source.indexOf("-->", fromMarker);
     const beforeTo = source.lastIndexOf("<!--", toMarker);
-    markup =
+    region =
       afterFrom !== -1 && beforeTo !== -1 && beforeTo > afterFrom
         ? source.slice(afterFrom + 3, beforeTo).trim()
         : "";
   } else {
     // Fallback: no markers — strip document scaffolding
-    markup = (styleClose === -1 ? "" : source.slice(styleClose + "</style>".length)).trim();
-    // Remove trailing document closers
+    region = source.trim();
     for (const closer of ["</body>", "</html>"]) {
-      const idx = markup.lastIndexOf(closer);
-      if (idx !== -1) markup = markup.slice(0, idx).trim();
+      const idx = region.lastIndexOf(closer);
+      if (idx !== -1) region = region.slice(0, idx).trim();
     }
-    // Remove leading document openers
     for (const opener of ["</head>", "<body>", "<html...>"]) {
-      const idx = markup.toLowerCase().indexOf(opener.toLowerCase());
-      if (idx === 0) markup = markup.slice(opener.length).trim();
+      const idx = region.toLowerCase().indexOf(opener.toLowerCase());
+      if (idx === 0) region = region.slice(opener.length).trim();
     }
   }
-  return { css: css?.trim() ?? null, markup };
+  const styles = [...region.matchAll(/<style>([\s\S]*?)<\/style>/gu)].map((m) => m[1] ?? "");
+  const css = styles.length > 0 ? styles.join("\n").trim() : null;
+  const markup = region.replace(/<style>[\s\S]*?<\/style>/gu, "").trim();
+  return { css, markup };
 };
 
 /** Generate a stable marker comment for idempotent injection. */
 const blockMarker = (name: string): string => `<!-- frogoe:block:${name} -->`;
+
+/** The five safe-area corners the hud layer positions wrappers at. */
+const CORNERS = ["top-left", "top-center", "top-right", "bottom-left", "bottom-center"];
 
 /** Inject CSS + markup into index.html (replaces previous install of the
  *  same block). Returns the modified HTML or null if nothing to inject. */
@@ -75,6 +75,7 @@ export const injectIntoHtml = (
   css: string | null,
   markup: string,
   placement: string,
+  pos?: string,
 ): string | null => {
   if (!css && !markup) return null;
   const marker = blockMarker(name);
@@ -97,13 +98,24 @@ export const injectIntoHtml = (
     out = out.slice(0, styleClose) + cssBlock + out.slice(styleClose);
   }
 
-  // Inject markup inside the .hud layer
+  // Inject markup inside the .hud layer. TWO shapes, and the difference
+  // is load-bearing (the game-over card shipped mis-anchored twice):
+  //  - overlay blocks are FLOW content — they go inside a positioned
+  //    wrapper carrying the corner (data-pos from the registry)
+  //  - overlay-fullscreen / overlay-anchored blocks position THEMSELVES
+  //    (absolute inset:0, bottom-docked keyboards) — a wrapper would
+  //    shrink-wrap and become their anchoring box. They are injected as
+  //    DIRECT children of .hud, no wrapper.
   if (markup) {
-    const pos = placement === "overlay-fullscreen" ? "" : ' data-pos="top-left"';
-    const wrapped = `\n      ${marker}\n      <div${pos}>\n${markup
+    const corner = pos && CORNERS.includes(pos) ? pos : "top-left";
+    const direct = placement === "overlay-fullscreen" || placement === "overlay-anchored";
+    const indented = markup
       .split("\n")
       .map((l) => `        ${l}`)
-      .join("\n")}\n      </div>\n      ${marker}`;
+      .join("\n");
+    const wrapped = direct
+      ? `\n      ${marker}\n${indented}\n      ${marker}`
+      : `\n      ${marker}\n      <div data-pos="${corner}">\n${indented}\n      </div>\n      ${marker}`;
     // Find the .hud div's closing tag
     const hudOpen = out.indexOf('class="hud"');
     if (hudOpen === -1) return null;
@@ -184,7 +196,7 @@ export const addBlock = (
     if (existsSync(indexPath)) {
       const html = readFileSync(indexPath, "utf-8");
       const { css, markup } = parseBlock(source);
-      const modified = injectIntoHtml(html, name, css, markup, placement);
+      const modified = injectIntoHtml(html, name, css, markup, placement, item.pos);
       if (modified) {
         writeFileSync(indexPath, modified, "utf-8");
         injected = true;
