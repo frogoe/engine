@@ -67,9 +67,35 @@ export function syncLockstep(root, opts = {}) {
   return report;
 }
 
+/** The contract version lives in TWO places by design (the CLI materializes
+ *  it, the lint judges against it) — this check makes sure they are the
+ *  same byte-for-byte. A silent drift would mean new scaffolds pin one
+ *  version while the gate expects another. */
+export function checkContractVersionLockstep(root) {
+  const cli = readFileSync(join(root, "packages/cli/src/templates.ts"), "utf8");
+  const lint = readFileSync(join(root, "packages/lint/src/check.ts"), "utf8");
+  const cliVersion = /export const CONTRACT_VERSION = "([^"]+)"/.exec(cli)?.[1];
+  const lintVersion = /const LATEST_CONTRACT = "([^"]+)"/.exec(lint)?.[1];
+  if (!cliVersion || !lintVersion) {
+    throw new Error("could not extract contract version constants — rename?");
+  }
+  if (cliVersion !== lintVersion) {
+    return { ok: false, cliVersion, lintVersion };
+  }
+  return { ok: true, version: cliVersion };
+}
+
 function main() {
   const check = process.argv.includes("--check");
   const report = syncLockstep(REPO_ROOT, { check });
+  const contract = checkContractVersionLockstep(REPO_ROOT);
+  if (!contract.ok) {
+    console.error(
+      `contract version drift: templates.ts ${contract.cliVersion} vs check.ts ${contract.lintVersion} — move them together`,
+    );
+    process.exitCode = 1;
+    return;
+  }
   if (check) {
     if (report.changed.length > 0) {
       console.error(`version lockstep drift (packages/cli@${report.version}):`);
@@ -78,7 +104,9 @@ function main() {
       process.exitCode = 1;
       return;
     }
-    console.log(`Version lockstep OK — all targets at ${report.version}.`);
+    console.log(
+      `Version lockstep OK — all targets at ${report.version} (contract v${contract.version}).`,
+    );
     return;
   }
   if (report.changed.length === 0) {

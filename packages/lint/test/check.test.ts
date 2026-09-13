@@ -43,7 +43,7 @@ One tap flaps.
   );
   writeFileSync(
     path.join(dir, "frogoe.json"),
-    options?.pin ?? JSON.stringify({ contract: "0.1.0" }),
+    options?.pin ?? JSON.stringify({ contract: "0.2.0" }),
   );
   writeFileSync(
     path.join(dir, "index.html"),
@@ -74,7 +74,7 @@ defineGame(({ input, loop }) => {
   );
   writeFileSync(
     path.join(dir, ".frogoe", "contract.js"),
-    "// frogoe contract v0.1.0 (materialized by frogoe init — do not edit)\nexport {};\n",
+    "// frogoe contract v0.2.0 (materialized by frogoe init — do not edit)\nexport {};\n",
   );
   // authored identity art — part of the shippable game (art/* checks)
   mkdirSync(path.join(dir, "assets"), { recursive: true });
@@ -177,6 +177,101 @@ defineGame(({ input, loop }) => {
   test("dogfood: the reference game (examples/flappy) passes clean", () => {
     const result = checkProject(path.join(import.meta.dir, "../../../examples/flappy"));
     expect(result.errors).toBe(0);
+  });
+
+  test("input/raw-keyboard: raw keydown listener flagged, contract listener clean", () => {
+    const dir = freshDir("raw-keyboard");
+    writeGame(dir, {
+      game: `defineGame(({ input, loop }) => {
+  input.on("down", () => {});
+  window.addEventListener("keydown", (e) => {});
+  loop.update = (dt) => {};
+  loop.render = (ctx) => {};
+});
+`,
+    });
+    const finding = checkProject(dir).findings.find((f) => f.code === "input/raw-keyboard");
+    expect(finding?.severity).toBe("warning");
+    expect(finding?.line).toBe(3);
+
+    writeGame(dir, {
+      game: `defineGame(({ input, loop }) => {
+  input.on("down", () => {});
+  input.on("key", (k) => {});
+  loop.update = (dt) => {};
+  loop.render = (ctx) => {};
+});
+`,
+    });
+    expect(checkProject(dir).findings.some((f) => f.code === "input/raw-keyboard")).toBeFalse();
+  });
+
+  test("folder/contract-stale: old pin warns, current pin silent", () => {
+    const dir = freshDir("stale-pin");
+    writeGame(dir, { pin: JSON.stringify({ contract: "0.1.0" }) });
+    writeFileSync(
+      path.join(dir, ".frogoe", "contract.js"),
+      "// frogoe contract v0.1.0 (materialized by frogoe init — do not edit)\nexport {};\n",
+    );
+    const stale = checkProject(dir).findings.find((f) => f.code === "folder/contract-stale");
+    expect(stale?.severity).toBe("warning");
+    expect(stale?.message).toContain("0.1.0");
+
+    // current pin: no stale, no drift
+    writeGame(dir);
+    const codes = checkProject(dir).findings.map((f) => f.code);
+    expect(codes).not.toContain("folder/contract-stale");
+    expect(codes).not.toContain("folder/contract-pin");
+  });
+
+  test('type verb requires input.on("key") wiring', () => {
+    const dir = freshDir("type-verb");
+    writeGame(dir, {
+      brief: `---
+title: Word Game
+verb: type
+mood: cheerful
+palette:
+  bg: "#101418"
+  fg: "#fffdf7"
+  accent: "#ffd166"
+  outline: "#26180a"
+---
+Type words.
+`,
+      game: `defineGame(({ input, loop }) => {
+  input.on("down", () => {});
+  loop.update = (dt) => {};
+  loop.render = (ctx) => {};
+});
+`,
+    });
+    const mismatch = checkProject(dir).findings.find((f) => f.code === "input/verb-mismatch");
+    expect(mismatch?.severity).toBe("error");
+    expect(mismatch?.fix).toContain('input.on("key"');
+
+    writeGame(dir, {
+      brief: `---
+title: Word Game
+verb: type
+mood: cheerful
+palette:
+  bg: "#101418"
+  fg: "#fffdf7"
+  accent: "#ffd166"
+  outline: "#26180a"
+---
+Type words.
+`,
+      game: `defineGame(({ input, loop }) => {
+  input.on("down", () => {});
+  input.on("key", (k) => {});
+  loop.update = (dt) => {};
+  loop.render = (ctx) => {};
+});
+`,
+    });
+    expect(checkProject(dir).findings.some((f) => f.code === "input/verb-mismatch")).toBeFalse();
   });
 });
 
@@ -291,7 +386,11 @@ x
         game: `input.on("down", () => {}); input.on("up", () => {});`,
       },
       { verb: "tap", clean: true, game: `input.on("down", () => {});` },
-      { verb: "type", clean: true, game: `input.on("down", () => {});` },
+      {
+        verb: "type",
+        clean: true,
+        game: `input.on("down", () => {}); input.on("key", () => {});`,
+      },
     ];
     for (const c of cases) {
       const dir = freshDir(`mismatch-${c.verb}-${c.clean ? "ok" : "bad"}`);

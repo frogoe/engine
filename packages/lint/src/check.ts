@@ -26,13 +26,13 @@ export interface CheckResult {
 
 /** Which input wiring each core verb REQUIRES in game.js. The floor is
  *  input.on("down") for every touchable game; drag/up layer on top for
- *  verbs whose core gesture needs them. Static regexes over the source —
- *  the same style as input/incremental-drag. `type` only requires down:
- *  a touch-first platform cannot demand keyboards (mobile word games
- *  draw their own keys); the sandbox ladder still exercises a keyboard. */
+ *  verbs whose core gesture needs them. `type` requires down + key: the
+ *  keyboard flows through the contract (blur-safe, repeat-suppressed)
+ *  and touch devices get keys from the registry's hud-keyboard block. */
 const HANDLER_PATTERNS = {
   down: /input\.on\(\s*["']down["']/u,
   drag: /input\.on\(\s*["']drag["']/u,
+  key: /input\.on\(\s*["']key["']/u,
   up: /input\.on\(\s*["']up["']/u,
 } as const;
 
@@ -58,7 +58,10 @@ const VERB_REQUIREMENTS: Record<string, Array<{ label: string; pattern: RegExp }
   ],
   swap: [{ label: 'input.on("down"', pattern: HANDLER_PATTERNS.down }],
   tap: [{ label: 'input.on("down"', pattern: HANDLER_PATTERNS.down }],
-  type: [{ label: 'input.on("down"', pattern: HANDLER_PATTERNS.down }],
+  type: [
+    { label: 'input.on("down"', pattern: HANDLER_PATTERNS.down },
+    { label: 'input.on("key"', pattern: HANDLER_PATTERNS.key },
+  ],
 };
 
 const read = (file: string): string => {
@@ -306,6 +309,21 @@ const checkFolder = (dir: string, findings: Finding[], brief: Brief | null): voi
   }
 
   const gameLine = (pattern: RegExp): number | undefined => findLine(game, pattern);
+  // raw keyboard listeners bypass the contract entirely: no blur safety
+  // (alt-tab leaves held keys stuck), no repeat suppression, and the
+  // sandbox's type ladder never verifies them
+  const rawKeyLine = gameLine(/addEventListener\(\s*["']key(?:down|up|press)["']/u);
+  if (rawKeyLine !== undefined) {
+    findings.push({
+      code: "input/raw-keyboard",
+      file: "game.js",
+      fix: 'listen through the contract: input.on("key", (k) => ...) for edges, poll input.keys for held state — blur-safe and sandbox-verified',
+      line: rawKeyLine,
+      message: "raw keydown/keyup listener bypasses the contract",
+      recipe: "frogoe-core → contract (keyboard)",
+      severity: "warning",
+    });
+  }
   const dragLine = gameLine(/\+=\s*(?:p|pt|pointer)\.(?:dx|dy)\b/u);
   if (dragLine !== undefined) {
     findings.push({
@@ -384,13 +402,28 @@ const checkFolder = (dir: string, findings: Finding[], brief: Brief | null): voi
   }
 };
 
+/** The contract version this lint judges against. Moves in lockstep with
+ *  packages/cli/src/templates.ts CONTRACT_VERSION — the lockstep script
+ *  verifies the two can never drift. */
+const LATEST_CONTRACT = "0.2.0";
+
+const versionLt = (a: string, b: string): boolean => {
+  const pa = a.split(".").map(Number);
+  const pb = b.split(".").map(Number);
+  for (let i = 0; i < 3; i += 1) {
+    if ((pa[i] ?? 0) < (pb[i] ?? 0)) return true;
+    if ((pa[i] ?? 0) > (pb[i] ?? 0)) return false;
+  }
+  return false;
+};
+
 const checkPin = (dir: string, findings: Finding[]): void => {
   const pinFile = path.join(dir, "frogoe.json");
   if (!existsSync(pinFile)) {
     findings.push({
       code: "folder/contract-pin",
       file: "frogoe.json",
-      fix: '{"contract": "0.1.0"} — the single version source of truth',
+      fix: '{"contract": "0.2.0"} — the single version source of truth',
       message: "no frogoe.json pin",
       severity: "error",
     });
@@ -419,6 +452,15 @@ const checkPin = (dir: string, findings: Finding[]): void => {
       fix: `frogoe.json pins ${pin || "(none)"} but .frogoe carries ${marker?.[1] ?? "no marker"} — run frogoe init --force`,
       message: "contract version drift",
       severity: "error",
+    });
+  } else if (versionLt(pin, LATEST_CONTRACT)) {
+    findings.push({
+      code: "folder/contract-stale",
+      file: "frogoe.json",
+      fix: `contract ${LATEST_CONTRACT} is current (keyboard input, multi-touch, hover) — bump the pin and run frogoe init --force`,
+      message: `pinned contract ${pin} predates ${LATEST_CONTRACT}`,
+      recipe: "frogoe-core → contract (versioning)",
+      severity: "warning",
     });
   }
 };

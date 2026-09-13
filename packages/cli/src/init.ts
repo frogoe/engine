@@ -64,7 +64,7 @@ export const scaffold = (name: string, options?: { force?: boolean; dir?: string
     [".gitignore", gitignoreTemplate, true],
     ...(agentDocs ? ([["CLAUDE.md", agentDocs, true]] as Array<[string, string, boolean]>) : []),
     ...(agentsDocs ? ([["AGENTS.md", agentsDocs, true]] as Array<[string, string, boolean]>) : []),
-    ["BRIEF.md", briefTemplate, true],
+    ["BRIEF.md", briefTemplate, false], // filled by the author — never clobber on --force
     ["frogoe.json", frogoeJsonTemplate(CONTRACT_VERSION), true],
     ["index.html", indexTemplate, false],
     ["game.js", gameTemplate, false],

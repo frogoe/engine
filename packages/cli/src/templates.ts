@@ -1,7 +1,7 @@
 /** Scaffold templates — every file `frogoe init` writes, in one place.
  *  Zero taste in the shell; the stub game is explicitly marked replaceable. */
 
-export const CONTRACT_VERSION = "0.1.0";
+export const CONTRACT_VERSION = "0.2.0";
 
 export const contractHeader = (version: string): string =>
   [
