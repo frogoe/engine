@@ -5,6 +5,7 @@
 import type { LiveDriver } from "./driver.ts";
 import {
   audioLockedFinding,
+  blockAnchorFinding,
   canvasMissingFinding,
   canvasUnpaintedFinding,
   collapseFinding,
@@ -18,6 +19,7 @@ import {
   fpsSustainedFinding,
   fpsThrottledFinding,
   frozenFrameFinding,
+  hudOverlapFinding,
   neverEndsFinding,
   noGameoverCardFinding,
   noRetryFinding,
@@ -76,6 +78,8 @@ export interface PhaseContext {
   verb?: string;
   /** declared BRIEF session (blitz|round|toy) — end-of-run policy */
   session?: string;
+  /** registry block bindings → placement (drives the anchor gate) */
+  blockBindings?: Record<string, string>;
 }
 
 /** Deterministic tap jitter — the ladder must not hammer one pixel:
@@ -272,6 +276,18 @@ export const runBootChecks = async (
     const collapse = collapseFinding(measures);
     if (collapse) {
       findings.push(collapse);
+    }
+    // anchoring + piling — the placement bug class (shipped twice as
+    // game-over-card-in-a-wrapper; registry placement decides the rule)
+    if (ctx.blockBindings && Object.keys(ctx.blockBindings).length > 0) {
+      const anchored = blockAnchorFinding(await driver.blockAnchors(ctx.blockBindings));
+      if (anchored) {
+        findings.push(anchored);
+      }
+    }
+    const overlap = hudOverlapFinding(await driver.hudOverlaps());
+    if (overlap) {
+      findings.push(overlap);
     }
   }
   return findings;

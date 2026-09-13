@@ -366,6 +366,39 @@ export const noGameoverCardFinding = (): LiveFinding =>
     severity: "warning",
   });
 
+/** Self-positioning blocks (fullscreen cards, docked keyboards) anchored
+ *  to a shrink-wrapped wrapper instead of .hud directly — they render
+ *  top-left/side instead of centered. Shipped twice as hand-fixed game
+ *  bugs; this gate kills the class. */
+export const blockAnchorFinding = (bad: string[]): LiveFinding | null => {
+  if (bad.length === 0) return null;
+  return finding({
+    code: "live/block-anchor",
+    file: "index.html",
+    fix: `${bad.join(", ")} position${bad.length > 1 ? "" : "s"} itself (absolute inset/bottom) — a wrapping div shrink-wraps and becomes its anchor box. Make it a DIRECT child of .hud (frogoe add does this correctly now; re-add the block)`,
+    message: `self-positioning block${bad.length > 1 ? "s" : ""} wrapped — renders mis-anchored`,
+    phase: "boot",
+    recipe: "frogoe-registry → block placement",
+    severity: "error",
+  });
+};
+
+/** Two visible HUD wrappers occupying the same pixels — furniture piled
+ *  on one corner. A warning: sometimes intentional (stacked chips), but
+ *  the everything-top-left smell deserves eyes. */
+export const hudOverlapFinding = (hits: string[]): LiveFinding | null => {
+  if (hits.length === 0) return null;
+  return finding({
+    code: "live/hud-overlap",
+    file: "index.html",
+    fix: `visible HUD wrappers overlap (${hits.slice(0, 3).join(", ")}) — move one to another data-pos corner (registry blocks carry sensible default corners; frogoe add places them)`,
+    message: `${hits.length} HUD overlap pair(s)`,
+    phase: "boot",
+    recipe: "frogoe-registry → block placement",
+    severity: "warning",
+  });
+};
+
 /** The Lighthouse-mobile throttle (4x) is the industry anchor for a
  *  mid-range phone. Under it, gameplay should still clear half the
  *  floor — a warning, because it is predictive of weaker devices, not
