@@ -1,0 +1,243 @@
+<!doctype html>
+<!-- Demo for hud-keyboard — open in a browser (or phone), tap keys: the
+     readout shows what a frogoe game receives through the contract. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>frogoe block demo — hud-keyboard</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700&display=swap"
+    />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: radial-gradient(120% 120% at 20% 0%, #1d2a55 0%, #0c1022 60%, #070a18 100%);
+        font-family: "Baloo 2", system-ui, sans-serif;
+      }
+      .demo-readout {
+        align-items: center;
+        color: #fffdf7;
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: 10px;
+        justify-content: center;
+        padding: 24px;
+      }
+      .demo-word {
+        font-size: clamp(1.6rem, 8vmin, 2.6rem);
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        min-height: 1.2em;
+        text-shadow: 0 2px 0 #26180a;
+      }
+      .demo-edge {
+        color: #7ef2c9;
+        font-family: ui-monospace, monospace;
+        font-size: 0.8rem;
+        min-height: 1.2em;
+        opacity: 0.9;
+      }
+      /* retheme example: candy palette instead of the default ivory keys */
+      .demo-theme {
+        --block-key-bg: #2a3560;
+        --block-key-ink: #eaf1ff;
+        --block-key-press: #7ef2c9;
+        --block-key-edge: #0a1130;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo-readout">
+      <div class="demo-word" id="word"></div>
+      <div class="demo-edge" id="edge">tap keys — events flow as KeyboardEvents</div>
+    </div>
+    <div class="demo-theme" style="position: relative; flex: 0">
+      <!-- ===== block copy starts here (data-open toggled on for the demo) ===== -->
+      <style>
+        .block-hud-keyboard {
+          /* theme — override these */
+          --block-key-bg: #fffdf7;
+          --block-key-ink: #1e4a73;
+          --block-key-press: #ffd166;
+          --block-key-edge: #26180a;
+          --block-font: "Baloo 2", "Fredoka", system-ui, sans-serif;
+
+          bottom: calc(env(safe-area-inset-bottom) + 8px);
+          display: grid;
+          font-family: var(--block-font);
+          gap: 6px;
+          grid-template-columns: repeat(10, 1fr);
+          left: 50%;
+          pointer-events: auto;
+          position: absolute;
+          translate: -50% 0;
+          width: min(460px, calc(100vw - 16px));
+
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 160ms ease, translate 160ms ease;
+        }
+        .block-hud-keyboard[data-open] {
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .block-hud-keyboard__row {
+          display: grid;
+          gap: 6px;
+          grid-column: 1 / -1;
+          grid-template-columns: repeat(10, 1fr);
+        }
+        .block-hud-keyboard__row--offset-a {
+          padding-left: calc(5% + 3px);
+        }
+        .block-hud-keyboard__row--offset-z {
+          padding-left: calc(15% + 6px);
+        }
+        .block-hud-keyboard__key {
+          -webkit-appearance: none;
+          appearance: none;
+          background: var(--block-key-bg);
+          border: none;
+          border-radius: 10px;
+          box-shadow: 0 3px 0 var(--block-key-edge);
+          color: var(--block-key-ink);
+          cursor: pointer;
+          font-family: inherit;
+          font-size: clamp(1rem, 4.4vmin, 1.35rem);
+          font-weight: 700;
+          height: clamp(44px, 8.5vmin, 56px);
+          -webkit-user-select: none;
+          user-select: none;
+          -webkit-touch-callout: none;
+          touch-action: manipulation;
+        }
+        .block-hud-keyboard__key[data-pressed],
+        .block-hud-keyboard__key:active {
+          background: var(--block-key-press);
+          box-shadow: 0 1px 0 var(--block-key-edge);
+          transform: translateY(2px);
+        }
+        .block-hud-keyboard__key--wide {
+          font-size: clamp(0.85rem, 3.4vmin, 1.05rem);
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .block-hud-keyboard__key[data-pressed],
+          .block-hud-keyboard__key:active {
+            transform: none;
+          }
+        }
+      </style>
+
+      <div class="block-hud-keyboard" data-block-keyboard data-open>
+        <div class="block-hud-keyboard__row">
+          <button class="block-hud-keyboard__key" data-block-key data-key="q" data-code="KeyQ" type="button">q</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="w" data-code="KeyW" type="button">w</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="e" data-code="KeyE" type="button">e</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="r" data-code="KeyR" type="button">r</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="t" data-code="KeyT" type="button">t</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="y" data-code="KeyY" type="button">y</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="u" data-code="KeyU" type="button">u</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="i" data-code="KeyI" type="button">i</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="o" data-code="KeyO" type="button">o</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="p" data-code="KeyP" type="button">p</button>
+        </div>
+        <div class="block-hud-keyboard__row block-hud-keyboard__row--offset-a">
+          <button class="block-hud-keyboard__key" data-block-key data-key="a" data-code="KeyA" type="button">a</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="s" data-code="KeyS" type="button">s</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="d" data-code="KeyD" type="button">d</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="f" data-code="KeyF" type="button">f</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="g" data-code="KeyG" type="button">g</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="h" data-code="KeyH" type="button">h</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="j" data-code="KeyJ" type="button">j</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="k" data-code="KeyK" type="button">k</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="l" data-code="KeyL" type="button">l</button>
+        </div>
+        <div class="block-hud-keyboard__row block-hud-keyboard__row--offset-z">
+          <button class="block-hud-keyboard__key" data-block-key data-key="z" data-code="KeyZ" type="button">z</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="x" data-code="KeyX" type="button">x</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="c" data-code="KeyC" type="button">c</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="v" data-code="KeyV" type="button">v</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="b" data-code="KeyB" type="button">b</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="n" data-code="KeyN" type="button">n</button>
+          <button class="block-hud-keyboard__key" data-block-key data-key="m" data-code="KeyM" type="button">m</button>
+        </div>
+        <div class="block-hud-keyboard__row">
+          <button class="block-hud-keyboard__key block-hud-keyboard__key--wide" data-block-key data-key="Backspace" data-code="Backspace" style="grid-column: span 2" type="button">⌫ del</button>
+          <button class="block-hud-keyboard__key block-hud-keyboard__key--wide" data-block-key data-key=" " data-code="Space" style="grid-column: span 4" type="button">space</button>
+          <button class="block-hud-keyboard__key block-hud-keyboard__key--wide" data-block-key data-key="Enter" data-code="Enter" style="grid-column: span 4" type="button">↵ enter</button>
+        </div>
+      </div>
+
+      <script>
+        (() => {
+          const board = document.querySelector(".block-hud-keyboard");
+          if (!board || board.dataset.frogoeBound) return;
+          board.dataset.frogoeBound = "1";
+          const held = new Map();
+          const emit = (button, dir) => {
+            window.dispatchEvent(
+              new KeyboardEvent(dir === "down" ? "keydown" : "keyup", {
+                bubbles: true,
+                cancelable: true,
+                code: button.dataset.code ?? "",
+                key: button.dataset.key ?? "",
+              }),
+            );
+          };
+          const press = (button, id) => {
+            if (held.has(id)) return;
+            held.set(id, button);
+            button.toggleAttribute("data-pressed", true);
+            emit(button, "down");
+          };
+          const release = (id) => {
+            const button = held.get(id);
+            if (!button) return;
+            held.delete(id);
+            button.toggleAttribute("data-pressed", false);
+            emit(button, "up");
+          };
+          board.addEventListener("pointerdown", (e) => {
+            const button = e.target.closest?.("button[data-key]");
+            if (!button) return;
+            e.preventDefault();
+            press(button, e.pointerId);
+          });
+          board.addEventListener("contextmenu", (e) => e.preventDefault());
+          window.addEventListener("pointerup", (e) => release(e.pointerId));
+          window.addEventListener("pointercancel", (e) => release(e.pointerId));
+          window.addEventListener("blur", () => {
+            for (const id of [...held.keys()]) release(id);
+          });
+        })();
+      </script>
+      <!-- ===== block copy ends here ===== -->
+
+      <!-- demo harness: what a frogoe game receives through the contract -->
+      <script>
+        (() => {
+          let word = "";
+          const wordEl = document.getElementById("word");
+          const edgeEl = document.getElementById("edge");
+          // exactly how a frogoe game listens — the contract relays these
+          window.addEventListener("keydown", (e) => {
+            edgeEl.textContent = `keydown  key:"${e.key}"  code:"${e.code}"`;
+            if (e.key === "Backspace") word = word.slice(0, -1);
+            else if (e.key === "Enter") word = "";
+            else if (e.key.length === 1) word += e.key;
+            wordEl.textContent = word;
+          });
+          window.addEventListener("keyup", (e) => {
+            edgeEl.textContent = `keyup    key:"${e.key}"  code:"${e.code}"`;
+          });
+        })();
+      </script>
+    </div>
+  </body>
+</html>

@@ -165,11 +165,15 @@ export const createPuppeteerDriver = ({ page, size }: PuppeteerDriverOptions): L
       await page.mouse.up();
     },
     async dualTouch(x1: number, y1: number, x2: number, y2: number, ms: number) {
-      // coordinates are our own rounded ints — baked, never interpolated
-      // from page content
+      // hit-test dispatch: real touches originate at the deepest element
+      // under the point (a pad button, a block key), then bubble to the
+      // contract's window listeners — dispatching at window would skip
+      // every element-level listener. Coordinates are our own rounded
+      // ints — baked, never interpolated from page content.
       const script = `(() => {
-        const fire = (type, id, x, y) =>
-          window.dispatchEvent(
+        const fire = (type, id, x, y) => {
+          const el = document.elementFromPoint(x, y) ?? window;
+          el.dispatchEvent(
             new PointerEvent(type, {
               bubbles: true,
               cancelable: true,
@@ -177,8 +181,10 @@ export const createPuppeteerDriver = ({ page, size }: PuppeteerDriverOptions): L
               clientY: y,
               isPrimary: false,
               pointerId: id,
+              pointerType: "touch",
             }),
           );
+        };
         fire("pointerdown", 11, ${JSON.stringify(Math.round(x1))}, ${JSON.stringify(Math.round(y1))});
         fire("pointerdown", 12, ${JSON.stringify(Math.round(x2))}, ${JSON.stringify(Math.round(y2))});
         fire("pointermove", 11, ${JSON.stringify(Math.round(x1 + 18))}, ${JSON.stringify(Math.round(y1))});

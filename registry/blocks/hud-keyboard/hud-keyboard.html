@@ -1,0 +1,200 @@
+<!doctype html>
+<!-- frogoe block source: hud-keyboard — this file IS viewable in a browser (default
+     state on a neutral backdrop). Copy ONLY between the markers into your
+     game's blocks/ layer; the interactive playground is demo.html. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>frogoe block — hud-keyboard</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: end center;
+        background: radial-gradient(120% 120% at 50% 0%, #182031 0%, #0d1220 60%, #080b13 100%);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ===================== COPY FROM HERE ===================== -->
+    <!--
+  frogoe block: hud-keyboard
+  On-screen keyboard for the `type` verb. Presses dispatch REAL
+  KeyboardEvents on window, so the frogoe contract hears them natively:
+  input.on("key") fires and input.keys tracks held codes — exactly like a
+  hardware keyboard. Zero game-side glue.
+
+  Theme: every visual is a custom property — retheme by overriding
+  --block-* on .block-hud-keyboard (or a parent, e.g. body or .hud).
+
+  Show/hide: toggle [data-open] (the game reveals it when typing starts,
+  hides it on the game-over card).
+-->
+    <style>
+      .block-hud-keyboard {
+        /* theme — override these */
+        --block-key-bg: #fffdf7;
+        --block-key-ink: #1e4a73;
+        --block-key-press: #ffd166;
+        --block-key-edge: #26180a;
+        --block-font: "Baloo 2", "Fredoka", system-ui, sans-serif;
+
+        bottom: calc(env(safe-area-inset-bottom) + 8px);
+        display: grid;
+        font-family: var(--block-font);
+        gap: 6px;
+        grid-template-columns: repeat(10, 1fr);
+        left: 50%;
+        pointer-events: auto; /* the hud layer is pointer-events: none */
+        position: absolute;
+        translate: -50% 0;
+        width: min(460px, calc(100vw - 16px));
+
+        /* hidden until the game opens it */
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 160ms ease, translate 160ms ease;
+      }
+      .block-hud-keyboard[data-open] {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .block-hud-keyboard__row {
+        display: grid;
+        gap: 6px;
+        grid-column: 1 / -1;
+        grid-template-columns: repeat(10, 1fr);
+      }
+      .block-hud-keyboard__row--offset-a {
+        padding-left: calc(5% + 3px);
+      }
+      .block-hud-keyboard__row--offset-z {
+        padding-left: calc(15% + 6px);
+      }
+      .block-hud-keyboard__key {
+        -webkit-appearance: none;
+        appearance: none;
+        background: var(--block-key-bg);
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 3px 0 var(--block-key-edge);
+        color: var(--block-key-ink);
+        cursor: pointer;
+        font-family: inherit;
+        font-size: clamp(1rem, 4.4vmin, 1.35rem);
+        font-weight: 700;
+        height: clamp(44px, 8.5vmin, 56px);
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        touch-action: manipulation;
+      }
+      .block-hud-keyboard__key[data-pressed],
+      .block-hud-keyboard__key:active {
+        background: var(--block-key-press);
+        box-shadow: 0 1px 0 var(--block-key-edge);
+        transform: translateY(2px);
+      }
+      .block-hud-keyboard__key--wide {
+        font-size: clamp(0.85rem, 3.4vmin, 1.05rem);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .block-hud-keyboard__key[data-pressed],
+        .block-hud-keyboard__key:active {
+          transform: none;
+        }
+      }
+    </style>
+
+    <div class="block-hud-keyboard" data-block-keyboard>
+      <div class="block-hud-keyboard__row">
+        <button class="block-hud-keyboard__key" data-block-key data-key="q" data-code="KeyQ" type="button">q</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="w" data-code="KeyW" type="button">w</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="e" data-code="KeyE" type="button">e</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="r" data-code="KeyR" type="button">r</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="t" data-code="KeyT" type="button">t</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="y" data-code="KeyY" type="button">y</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="u" data-code="KeyU" type="button">u</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="i" data-code="KeyI" type="button">i</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="o" data-code="KeyO" type="button">o</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="p" data-code="KeyP" type="button">p</button>
+      </div>
+      <div class="block-hud-keyboard__row block-hud-keyboard__row--offset-a">
+        <button class="block-hud-keyboard__key" data-block-key data-key="a" data-code="KeyA" type="button">a</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="s" data-code="KeyS" type="button">s</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="d" data-code="KeyD" type="button">d</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="f" data-code="KeyF" type="button">f</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="g" data-code="KeyG" type="button">g</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="h" data-code="KeyH" type="button">h</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="j" data-code="KeyJ" type="button">j</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="k" data-code="KeyK" type="button">k</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="l" data-code="KeyL" type="button">l</button>
+      </div>
+      <div class="block-hud-keyboard__row block-hud-keyboard__row--offset-z">
+        <button class="block-hud-keyboard__key" data-block-key data-key="z" data-code="KeyZ" type="button">z</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="x" data-code="KeyX" type="button">x</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="c" data-code="KeyC" type="button">c</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="v" data-code="KeyV" type="button">v</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="b" data-code="KeyB" type="button">b</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="n" data-code="KeyN" type="button">n</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="m" data-code="KeyM" type="button">m</button>
+      </div>
+      <div class="block-hud-keyboard__row">
+        <button class="block-hud-keyboard__key block-hud-keyboard__key--wide" data-block-key data-key="Backspace" data-code="Backspace" style="grid-column: span 2" type="button">⌫ del</button>
+        <button class="block-hud-keyboard__key block-hud-keyboard__key--wide" data-block-key data-key=" " data-code="Space" style="grid-column: span 4" type="button">space</button>
+        <button class="block-hud-keyboard__key block-hud-keyboard__key--wide" data-block-key data-key="Enter" data-code="Enter" style="grid-column: span 4" type="button">↵ enter</button>
+      </div>
+    </div>
+
+    <script>
+      // Self-contained dispatch: presses emit REAL KeyboardEvents on
+      // window, so the frogoe contract (input.on("key"), input.keys)
+      // receives them exactly like hardware keys. One edge per press —
+      // held state is the reader's business (poll input.keys).
+      (() => {
+        const board = document.querySelector(".block-hud-keyboard");
+        if (!board || board.dataset.frogoeBound) return;
+        board.dataset.frogoeBound = "1";
+        const held = new Map(); // pointerId → button
+        const emit = (button, dir) => {
+          window.dispatchEvent(
+            new KeyboardEvent(dir === "down" ? "keydown" : "keyup", {
+              bubbles: true,
+              cancelable: true,
+              code: button.dataset.code ?? "",
+              key: button.dataset.key ?? "",
+            }),
+          );
+        };
+        const press = (button, id) => {
+          if (held.has(id)) return; // one key per pointer
+          held.set(id, button);
+          button.toggleAttribute("data-pressed", true);
+          emit(button, "down");
+        };
+        const release = (id) => {
+          const button = held.get(id);
+          if (!button) return;
+          held.delete(id);
+          button.toggleAttribute("data-pressed", false);
+          emit(button, "up");
+        };
+        board.addEventListener("pointerdown", (e) => {
+          const button = e.target.closest?.("button[data-key]");
+          if (!button) return;
+          e.preventDefault();
+          press(button, e.pointerId);
+        });
+        board.addEventListener("contextmenu", (e) => e.preventDefault());
+        window.addEventListener("pointerup", (e) => release(e.pointerId));
+        window.addEventListener("pointercancel", (e) => release(e.pointerId));
+        window.addEventListener("blur", () => {
+          for (const id of [...held.keys()]) release(id);
+        });
+      })();
+    </script>
+    <!-- ===================== COPY TO HERE ======================= -->
+  </body>
+</html>

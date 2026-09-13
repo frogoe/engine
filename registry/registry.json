@@ -36,6 +36,10 @@
       "type": "frogoe:block"
     },
     {
+      "name": "hud-keyboard",
+      "type": "frogoe:block"
+    },
+    {
       "name": "ready-hint",
       "type": "frogoe:block"
     },
