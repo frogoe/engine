@@ -128,7 +128,7 @@ describe("frogoe bundle", () => {
       expect(report.artifact).toContain("tiny-lib@1.2.3");
       // provenance rides the banner (esbuild strips source comments);
       // the host handle proves the contract itself is inside
-      expect(report.artifact).toContain("contract 0.1.0");
+      expect(report.artifact).toContain("contract 0.2.0"); // the pin fallback — the CLI current contract
       expect(report.artifact).toContain("__frogoe");
 
       // fonts dissolved: css inlined as <style>, woff2 as data:font

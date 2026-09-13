@@ -11,6 +11,7 @@ import path from "node:path";
 import type { Plugin } from "esbuild";
 
 import { fetchBufferWithPolicy, fetchWithPolicy, type FetchImpl } from "./fetch-policy.ts";
+import { CONTRACT_VERSION } from "./templates.ts";
 import {
   decodeProxyToken,
   FONT_UA,
@@ -346,7 +347,14 @@ export const bundle = async (options: BundleOptions): Promise<BundleReport> => {
   }
 
   const artifactHash = sha256(out);
-  const banner = `<!-- frogoe bundle | contract 0.1.0 | assets: ${assets.length} | sha256:${artifactHash} -->\n`;
+  // the banner reports the game's OWN pin (fallback: the CLI's current
+  // contract) — a hardcoded version here lied about every 0.2.0 game
+  const pinPath = path.resolve(options.dir ?? ".", "frogoe.json");
+  const pin = existsSync(pinPath)
+    ? ((JSON.parse(readFileSync(pinPath, "utf-8")) as { contract?: string }).contract ??
+      CONTRACT_VERSION)
+    : CONTRACT_VERSION;
+  const banner = `<!-- frogoe bundle | contract ${pin} | assets: ${assets.length} | sha256:${artifactHash} -->\n`;
   const artifact = banner + out;
   const bytes = Buffer.byteLength(artifact, "utf-8");
   if (bytes > 3_000_000) {

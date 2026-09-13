@@ -27,7 +27,7 @@ frogoe run ios          # dev server + simulator — hot reload in the iOS shell
 frogoe run android     # dev server + emulator/device (devUrl per target: 10.0.2.2 vs LAN)
 frogoe export desktop   # bundle → fill → payload → icons → export/ (+ README next steps)
 frogoe export --force   # overwrite creator-edited tool files (they are otherwise KEPT, listed)
-frogoe export --no-bundle  # payload refresh from dist/ as-is
+frogoe export --noBundle  # payload refresh from dist/ as-is
 frogoe run desktop      # dev server + bun tauri dev — game.js edits hot-reload in the native shell
 ```
 

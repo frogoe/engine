@@ -9,6 +9,8 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
+import { CONTRACT_VERSION } from "./templates.ts";
+
 import { parseBrief, SESSIONS } from "@frogoe/lint";
 
 export interface GameManifest {
@@ -65,8 +67,8 @@ export const buildManifest = (options: BuildManifestOptions): GameManifest | nul
 
   const pin = existsSync(path.join(dir, "frogoe.json"))
     ? ((JSON.parse(readFileSync(path.join(dir, "frogoe.json"), "utf-8")) as { contract?: string })
-        .contract ?? "0.1.0")
-    : "0.1.0";
+        .contract ?? CONTRACT_VERSION)
+    : CONTRACT_VERSION;
 
   const artifact =
     options.artifactHtml ?? readFileSync(path.join(dir, "dist", "index.html"), "utf-8");

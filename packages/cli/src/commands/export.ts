@@ -183,7 +183,7 @@ export const command = defineCommand({
     dir: { type: "string", description: "game folder (default: cwd)" },
     force: { type: "boolean", description: "overwrite creator-edited tool files" },
     json: { type: "boolean", description: "machine-readable report" },
-    "no-bundle": { type: "boolean", description: "skip bundling, use dist/ as-is" },
+    noBundle: { type: "boolean", description: "skip bundling, use dist/ as-is" },
   },
   async run({ args }) {
     const dir = args.dir ? path.resolve(String(args.dir)) : process.cwd();
