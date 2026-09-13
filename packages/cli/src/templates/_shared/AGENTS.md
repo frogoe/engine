@@ -59,6 +59,7 @@ frogoe lint                 # fast static contract lint (stable finding codes; -
 frogoe check                # full gate: lint + headless Chrome — FPS, playability, HUD outline, screenshots
 frogoe vision               # eyes: your draw code as ASCII maps (objects, frames, identity art)
 frogoe bundle               # one self-contained HTML (externals dissolved) — only after check passes
+frogoe export desktop      # native app project in export/ (buildable; appId required in frogoe.json)
 frogoe embed                # the card: poster loading state + sandboxed game + manifest — after bundle
 ```
 
@@ -77,6 +78,7 @@ bundle`. Use `--json` for machine-readable findings that can be fixed programmat
 - `.frogoe/` — tool-owned, gitignored (the contract runtime — never edit)
 - `blocks/` — HUD blocks copied from the registry (themed via `.hud` CSS custom properties)
 - `dist/` — `frogoe bundle` output (single self-contained HTML)
+- `export/` — `frogoe export` output (native app project; gitignored, tool-owned — see frogoe-cli → references/export.md)
 
 ## Check — ALWAYS RUN AFTER CHANGES
 

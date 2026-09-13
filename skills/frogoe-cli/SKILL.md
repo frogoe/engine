@@ -2,7 +2,7 @@
 name: frogoe-cli
 description: >
   The frogoe CLI development loop: frogoe init, frogoe add, frogoe run, frogoe lint,
-  frogoe check, frogoe bundle, frogoe report, frogoe skills. `frogoe lint` is the fast
+  frogoe check, frogoe bundle, frogoe export, frogoe report, frogoe skills. `frogoe lint` is the fast
   static contract lint (stable finding codes, --json for the self-heal loop); `frogoe
   check` is the full gate — lint plus the headless Chrome sandbox (FPS, playability,
   HUD outline, audio recovery, phone-class throttle, screenshots). Also use when
@@ -23,6 +23,7 @@ Run commands as `bun packages/cli/src/bin.ts <cmd>` from the repo (published:
 | `references/live-sandbox.md` | understand the live headless-browser lifecycle, held-failure rule, and the browser cache knobs (FROGOE_BROWSER_PATH, launch/protocol timeouts) |
 | `references/bundle.md` | how externals dissolve into one HTML and the allowlist |
 | `references/embed.md` | the card, the frogoe-card protocol, and dist/manifest.json |
+| `references/export.md` | native app projects (export/run desktop) and the agent-completes signing flow |
 | `references/vision.md` | `frogoe vision` — ASCII eyes for draw code (objects, frames, art) |
 
 ## Development loop
