@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.2](https://github.com/frogoe/engine/compare/v0.8.1...v0.8.2) (2026-09-13)
+
+
+### Bug Fixes
+
+* **security:** parseBlock style split goes linear — polynomial ReDoS out ([d2b819c](https://github.com/frogoe/engine/commit/d2b819c1eae78f2f8978226c4afdb7e5f849d22a))
+
 ## [0.8.1](https://github.com/frogoe/engine/compare/v0.8.0...v0.8.1) (2026-09-13)
 
 
