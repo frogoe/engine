@@ -21,96 +21,141 @@
     <!-- ===================== COPY FROM HERE ===================== -->
     <!--
   frogoe block: hud-keyboard
-  On-screen keyboard for the `type` verb. Presses dispatch REAL
-  KeyboardEvents on window, so the frogoe contract hears them natively:
-  input.on("key") fires and input.keys tracks held codes — exactly like a
-  hardware keyboard. Zero game-side glue.
+  On-screen keyboard for the `type` verb — double-bezel keys on a dark tray.
+  Presses dispatch REAL KeyboardEvents on window, so the frogoe contract
+  hears them natively: input.on("key") fires and input.keys tracks held
+  codes — exactly like a hardware keyboard. Zero game-side glue.
 
-  Theme: every visual is a custom property — retheme by overriding
-  --block-* on .block-hud-keyboard (or a parent, e.g. body or .hud).
+  Visibility is yours: add [data-open] when typing starts (the game knows),
+  remove it when the run ends. Touch-first by design — on precise-pointer
+  devices (desktop) it stays hidden even when open.
 
-  Show/hide: toggle [data-open] (the game reveals it when typing starts,
-  hides it on the game-over card).
+  Theme: --block-key-* custom properties. Font: --block-key-font (a mono
+  face is the intent — scores, keys, code-like text).
 -->
     <style>
       .block-hud-keyboard {
         /* theme — override these */
-        --block-key-bg: #fffdf7;
-        --block-key-ink: #1e4a73;
-        --block-key-press: #ffd166;
-        --block-key-edge: #26180a;
-        --block-font: "Baloo 2", "Fredoka", system-ui, sans-serif;
+        --block-key-ink: #f5f2ff;
+        --block-key-ink-dim: #6c6890;
+        --block-key-core: #0e0c18;
+        --block-key-tray: rgba(7, 6, 12, 0.95);
+        --block-key-hairline: rgba(255, 255, 255, 0.08);
+        --block-key-press: #ff6a3d;
+        --block-key-press-tint: rgba(255, 106, 61, 0.12);
+        --block-key-press-line: rgba(255, 106, 61, 0.5);
+        --block-key-font: "Space Mono", ui-monospace, monospace;
 
-        bottom: calc(env(safe-area-inset-bottom) + 8px);
-        display: grid;
-        font-family: var(--block-font);
-        gap: 6px;
-        grid-template-columns: repeat(10, 1fr);
-        left: 50%;
-        pointer-events: auto; /* the hud layer is pointer-events: none */
+        background: var(--block-key-tray);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 18px;
+        bottom: calc(env(safe-area-inset-bottom) + 10px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+        display: none;
+        left: 8px;
+        padding: 10px 8px 10px;
         position: absolute;
-        translate: -50% 0;
-        width: min(460px, calc(100vw - 16px));
-
-        /* hidden until the game opens it */
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 160ms ease, translate 160ms ease;
-      }
-      .block-hud-keyboard[data-open] {
-        opacity: 1;
+        right: 8px;
+        /* the tray is field furniture, not a floating card */
         pointer-events: auto;
       }
+      /* touch devices: the keyboard is an input surface; precise pointers
+         (desktop) have hardware keys — the tray never shows there */
+      @media (pointer: coarse) {
+        .block-hud-keyboard[data-open] {
+          display: block;
+        }
+      }
+      /* system-keyboard mechanics: every row FILLS the tray width, letter
+         keys share it equally (flex 1), special keys and half-key spacers
+         take what remains — rows read as one aligned grid at any width */
       .block-hud-keyboard__row {
-        display: grid;
+        display: flex;
         gap: 6px;
-        grid-column: 1 / -1;
-        grid-template-columns: repeat(10, 1fr);
       }
-      .block-hud-keyboard__row--offset-a {
-        padding-left: calc(5% + 3px);
+      .block-hud-keyboard__row + .block-hud-keyboard__row {
+        margin-top: 6px;
       }
-      .block-hud-keyboard__row--offset-z {
-        padding-left: calc(15% + 6px);
+      .block-hud-keyboard__spacer {
+        flex: 0.5 1 0;
+      }
+      .block-hud-keyboard__spacer--wide {
+        flex: 1.5 1 0;
       }
       .block-hud-keyboard__key {
         -webkit-appearance: none;
         appearance: none;
-        background: var(--block-key-bg);
-        border: none;
-        border-radius: 10px;
-        box-shadow: 0 3px 0 var(--block-key-edge);
+        /* double-bezel: dark core + hairline shell */
+        background: var(--block-key-core);
+        border: 1px solid var(--block-key-hairline);
+        border-radius: 8px;
         color: var(--block-key-ink);
         cursor: pointer;
-        font-family: inherit;
-        font-size: clamp(1rem, 4.4vmin, 1.35rem);
+        flex: 1 1 0;
+        font-family: var(--block-key-font);
+        font-size: clamp(0.9rem, 4.2vmin, 1.15rem);
         font-weight: 700;
-        height: clamp(44px, 8.5vmin, 56px);
+        height: clamp(42px, 8vmin, 52px);
         -webkit-user-select: none;
         user-select: none;
         -webkit-touch-callout: none;
         touch-action: manipulation;
-        text-shadow: 0 2px 0 var(--block-key-edge);
+        transition: transform 80ms cubic-bezier(0.32, 0.72, 0, 1), background 80ms,
+          border-color 80ms, box-shadow 80ms;
       }
       .block-hud-keyboard__key[data-pressed],
       .block-hud-keyboard__key:active {
-        background: var(--block-key-press);
-        box-shadow: 0 1px 0 var(--block-key-edge);
-        transform: translateY(2px);
+        background: var(--block-key-press-tint);
+        border-color: var(--block-key-press-line);
+        box-shadow: 0 0 8px var(--block-key-press-tint);
+        color: var(--block-key-press);
+        transform: scale(0.92);
       }
       .block-hud-keyboard__key--wide {
-        font-size: clamp(0.85rem, 3.4vmin, 1.05rem);
+        flex: 1.5 1 0;
+        font-size: clamp(0.8rem, 3.4vmin, 1rem);
+      }
+      .block-hud-keyboard__key--space {
+        flex: 5 1 0;
+      }
+      .block-hud-keyboard__key[data-disabled] {
+        opacity: 0.3;
+        pointer-events: none;
+      }
+      .block-hud-keyboard__key--special {
+        color: var(--block-key-ink-dim);
+        font-size: clamp(0.72rem, 3vmin, 0.9rem);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+      /* shift states: one-shot armed, double-tap caps lock */
+      .block-hud-keyboard__key--special[data-state="on"],
+      .block-hud-keyboard__key--special[data-state="lock"] {
+        color: var(--block-key-press);
+        border-color: var(--block-key-press-line);
+      }
+      .block-hud-keyboard__key--special[data-state="lock"] {
+        background: var(--block-key-press-tint);
+      }
+      /* layer switch: rows tagged data-layer, the tray carries the mode */
+      .block-hud-keyboard[data-mode="numbers"] .block-hud-keyboard__row[data-layer="letters"] {
+        display: none;
+      }
+      .block-hud-keyboard:not([data-mode="numbers"]) .block-hud-keyboard__row[data-layer="numbers"] {
+        display: none;
       }
       @media (prefers-reduced-motion: reduce) {
+        .block-hud-keyboard__key,
         .block-hud-keyboard__key[data-pressed],
         .block-hud-keyboard__key:active {
+          transition: none;
           transform: none;
         }
       }
     </style>
 
     <div class="block-hud-keyboard" data-block-keyboard>
-      <div class="block-hud-keyboard__row">
+      <div class="block-hud-keyboard__row" data-layer="letters">
         <button class="block-hud-keyboard__key" data-block-key data-key="q" data-code="KeyQ" type="button">q</button>
         <button class="block-hud-keyboard__key" data-block-key data-key="w" data-code="KeyW" type="button">w</button>
         <button class="block-hud-keyboard__key" data-block-key data-key="e" data-code="KeyE" type="button">e</button>
@@ -122,7 +167,7 @@
         <button class="block-hud-keyboard__key" data-block-key data-key="o" data-code="KeyO" type="button">o</button>
         <button class="block-hud-keyboard__key" data-block-key data-key="p" data-code="KeyP" type="button">p</button>
       </div>
-      <div class="block-hud-keyboard__row block-hud-keyboard__row--offset-a">
+      <div class="block-hud-keyboard__row" data-layer="letters"><div class="block-hud-keyboard__spacer"></div>
         <button class="block-hud-keyboard__key" data-block-key data-key="a" data-code="KeyA" type="button">a</button>
         <button class="block-hud-keyboard__key" data-block-key data-key="s" data-code="KeyS" type="button">s</button>
         <button class="block-hud-keyboard__key" data-block-key data-key="d" data-code="KeyD" type="button">d</button>
@@ -131,9 +176,9 @@
         <button class="block-hud-keyboard__key" data-block-key data-key="h" data-code="KeyH" type="button">h</button>
         <button class="block-hud-keyboard__key" data-block-key data-key="j" data-code="KeyJ" type="button">j</button>
         <button class="block-hud-keyboard__key" data-block-key data-key="k" data-code="KeyK" type="button">k</button>
-        <button class="block-hud-keyboard__key" data-block-key data-key="l" data-code="KeyL" type="button">l</button>
-      </div>
-      <div class="block-hud-keyboard__row block-hud-keyboard__row--offset-z">
+        <button class="block-hud-keyboard__key" data-block-key data-key="l" data-code="KeyL" type="button">l</button><div class="block-hud-keyboard__spacer"></div></div>
+      <div class="block-hud-keyboard__row" data-layer="letters">
+        <button class="block-hud-keyboard__key block-hud-keyboard__key--wide block-hud-keyboard__key--special" data-block-shift type="button" aria-label="shift">⇧</button>
         <button class="block-hud-keyboard__key" data-block-key data-key="z" data-code="KeyZ" type="button">z</button>
         <button class="block-hud-keyboard__key" data-block-key data-key="x" data-code="KeyX" type="button">x</button>
         <button class="block-hud-keyboard__key" data-block-key data-key="c" data-code="KeyC" type="button">c</button>
@@ -141,11 +186,49 @@
         <button class="block-hud-keyboard__key" data-block-key data-key="b" data-code="KeyB" type="button">b</button>
         <button class="block-hud-keyboard__key" data-block-key data-key="n" data-code="KeyN" type="button">n</button>
         <button class="block-hud-keyboard__key" data-block-key data-key="m" data-code="KeyM" type="button">m</button>
+        <button class="block-hud-keyboard__key block-hud-keyboard__key--wide" data-block-key data-key="Backspace" data-code="Backspace" type="button">⌫</button>
       </div>
-      <div class="block-hud-keyboard__row">
-        <button class="block-hud-keyboard__key block-hud-keyboard__key--wide" data-block-key data-key="Backspace" data-code="Backspace" style="grid-column: span 2" type="button">⌫ del</button>
-        <button class="block-hud-keyboard__key block-hud-keyboard__key--wide" data-block-key data-key=" " data-code="Space" style="grid-column: span 4" type="button">space</button>
-        <button class="block-hud-keyboard__key block-hud-keyboard__key--wide" data-block-key data-key="Enter" data-code="Enter" style="grid-column: span 4" type="button">↵ enter</button>
+      <div class="block-hud-keyboard__row" data-layer="letters">
+        <button class="block-hud-keyboard__key block-hud-keyboard__key--wide block-hud-keyboard__key--special" data-block-layer="numbers" type="button">123</button>
+        <button class="block-hud-keyboard__key block-hud-keyboard__key--space" data-block-key data-key=" " data-code="Space" type="button">space</button>
+        <button class="block-hud-keyboard__key block-hud-keyboard__key--wide block-hud-keyboard__key--special" data-block-key data-key="Enter" data-code="Enter" type="button">return</button>
+      </div>
+
+      <div class="block-hud-keyboard__row" data-layer="numbers">
+        <button class="block-hud-keyboard__key" data-block-key data-key="1" data-code="Digit1" type="button">1</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="2" data-code="Digit2" type="button">2</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="3" data-code="Digit3" type="button">3</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="4" data-code="Digit4" type="button">4</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="5" data-code="Digit5" type="button">5</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="6" data-code="Digit6" type="button">6</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="7" data-code="Digit7" type="button">7</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="8" data-code="Digit8" type="button">8</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="9" data-code="Digit9" type="button">9</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="0" data-code="Digit0" type="button">0</button>
+      </div>
+      <div class="block-hud-keyboard__row" data-layer="numbers"><div class="block-hud-keyboard__spacer"></div>
+        <button class="block-hud-keyboard__key" data-block-key data-key="-" data-code="Minus" type="button">-</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="/" data-code="Slash" type="button">/</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key=":" data-code="Semicolon" data-shift="1" type="button">:</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key=";" data-code="Semicolon" type="button">;</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="(" data-code="Digit9" data-shift="1" type="button">(</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key=")" data-code="Digit0" data-shift="1" type="button">)</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="$" data-code="Digit4" data-shift="1" type="button">$</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="&amp;" data-code="Digit7" data-shift="1" type="button">&amp;</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="@" data-code="Digit2" data-shift="1" type="button">@</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key='"' data-code="Quote" data-shift="1" type="button">"</button><div class="block-hud-keyboard__spacer"></div></div>
+      <div class="block-hud-keyboard__row" data-layer="numbers"><div class="block-hud-keyboard__spacer--wide block-hud-keyboard__spacer"></div>
+        <button class="block-hud-keyboard__key" data-block-key data-key="." data-code="Period" type="button">.</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="," data-code="Comma" type="button">,</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="?" data-code="Slash" data-shift="1" type="button">?</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="!" data-code="Digit1" data-shift="1" type="button">!</button>
+        <button class="block-hud-keyboard__key" data-block-key data-key="'" data-code="Quote" type="button">'</button>
+        <button class="block-hud-keyboard__key block-hud-keyboard__key--wide" data-block-key data-key="Backspace" data-code="Backspace" type="button">⌫</button>
+      </div>
+      <div class="block-hud-keyboard__row" data-layer="numbers">
+        <button class="block-hud-keyboard__key block-hud-keyboard__key--wide block-hud-keyboard__key--special" data-block-layer="letters" type="button">ABC</button>
+        <button class="block-hud-keyboard__key block-hud-keyboard__key--space" data-block-key data-key=" " data-code="Space" type="button">space</button>
+        <button class="block-hud-keyboard__key block-hud-keyboard__key--wide block-hud-keyboard__key--special" data-block-key data-key="Enter" data-code="Enter" type="button">return</button>
       </div>
     </div>
 
@@ -159,16 +242,52 @@
         if (!board || board.dataset.frogoeBound) return;
         board.dataset.frogoeBound = "1";
         const held = new Map(); // pointerId → button
-        const emit = (button, dir) => {
+        let shift = "off"; // off | on (one shot) | lock (double tap)
+        let lastShiftTap = 0;
+        const emitRaw = (dir, key, code, shiftKey) => {
           window.dispatchEvent(
             new KeyboardEvent(dir === "down" ? "keydown" : "keyup", {
               bubbles: true,
               cancelable: true,
-              code: button.dataset.code ?? "",
-              key: button.dataset.key ?? "",
+              code,
+              key,
+              shiftKey: shiftKey === true,
             }),
           );
         };
+        const emit = (button, dir) => {
+          const key = button.dataset.key ?? "";
+          const code = button.dataset.code ?? "";
+          const shifted = button.dataset.shift === "1" || (shift !== "off" && key.length === 1);
+          const outKey = shifted && key.length === 1 ? key.toUpperCase() : key;
+          emitRaw(dir, outKey, code, shifted);
+          if (dir === "down" && shift === "on") setShift("off"); // one shot spent
+        };
+        const setShift = (state) => {
+          shift = state;
+          const el = board.querySelector("[data-block-shift]");
+          if (!el) return;
+          el.removeAttribute("data-state");
+          if (state !== "off") el.setAttribute("data-state", state);
+        };
+        const shiftButton = board.querySelector("[data-block-shift]");
+        shiftButton?.addEventListener("pointerdown", (e) => {
+          e.preventDefault();
+          e.stopPropagation(); // a modifier press, not a text key
+          const t = performance.now();
+          if (shift === "off") setShift("on");
+          else if (shift === "on") setShift(t - lastShiftTap < 320 ? "lock" : "off");
+          else setShift("off");
+          lastShiftTap = t;
+          emitRaw("down", "Shift", "ShiftLeft", true);
+        });
+        shiftButton?.addEventListener("pointerup", () => emitRaw("up", "Shift", "ShiftLeft", true));
+        for (const toggle of board.querySelectorAll("[data-block-layer]")) {
+          toggle.addEventListener("pointerdown", (e) => {
+            e.preventDefault();
+            board.dataset.mode = toggle.dataset.blockLayer === "numbers" ? "numbers" : "letters";
+          });
+        }
         const press = (button, id) => {
           if (held.has(id)) return; // one key per pointer
           held.set(id, button);
@@ -184,7 +303,7 @@
         };
         board.addEventListener("pointerdown", (e) => {
           const button = e.target.closest?.("button[data-key]");
-          if (!button) return;
+          if (!button || button.hasAttribute("data-disabled")) return;
           e.preventDefault();
           press(button, e.pointerId);
         });

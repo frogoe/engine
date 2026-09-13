@@ -119,17 +119,39 @@ export const fpsSinceScript = (mark: number): string =>
 /** Outline + collapse measures over .hud text owners. */
 export const HUD_MEASURE_SCRIPT = `(() => {
   const out = [];
+  // outline exists to keep text readable over a CHANGING canvas. Text on
+  // an opaque surface (a keyboard tray, a solid card) has structural
+  // contrast — no outline required there. Walk the ancestor chain once.
+  const onSolid = (el) => {
+    for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+      const bg = getComputedStyle(n).backgroundColor;
+      const m = /rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)(?:,\\s*([\\d.]+))?\\)/.exec(bg);
+      if (m && (m[4] === undefined || Number(m[4]) >= 0.85)) return true;
+    }
+    return false;
+  };
+  const renders = (el) => {
+    // hidden-by-design (a docked keyboard before its phase, a card before
+    // death) is not layout — neither gate should judge invisible boxes.
+    for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+      const cs = getComputedStyle(n);
+      if (cs.display === "none" || cs.visibility === "hidden" || Number(cs.opacity) < 0.1) return false;
+    }
+    return true;
+  };
   for (const el of document.querySelectorAll(".hud *")) {
     // non-rendered elements (a block's inline <script>/<style>) carry
     // text nodes but never paint — they are not HUD text
     if (el.tagName === "SCRIPT" || el.tagName === "STYLE" || el.tagName === "LINK") continue;
+    if (!renders(el)) continue;
     const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.nodeValue.trim());
     if (!own) continue;
     const text = el.textContent ?? "";
     const s = getComputedStyle(el);
     const hasOutline =
       (s.webkitTextStroke && s.webkitTextStrokeWidth !== "0px") ||
-      (s.textShadow && s.textShadow !== "none");
+      (s.textShadow && s.textShadow !== "none") ||
+      onSolid(el);
     const r = el.getBoundingClientRect();
     out.push({ hasOutline, height: r.height, label: text.trim().slice(0, 24), width: r.width });
   }
