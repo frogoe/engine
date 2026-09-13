@@ -82,6 +82,12 @@ registry/
 skills/                 → AI agent skill definitions (5, mirrored to .claude/skills + .agents/skills; plugins .claude-plugin/.cursor-plugin/.codex-plugin)
 examples/
   flappy/               → Reference game: Flappy Chick (tap) at full quality
+  typefall/             → Reference game: Typefall — lock-on typing arcade
+                          (verb: type, session: blitz) proving the 0.2.0
+                          input surface: input.on("key") + hud-keyboard block
+  typefall/             → Reference game: Typefall — lock-on typing arcade
+                          (verb: type, session: blitz) proving the 0.2.0
+                          input surface: input.on("key") + hud-keyboard block
   sawstorm/             → Reference game: Sawstorm — arena survival (touch pad,
                           sudden death, safe persistence) by deni + GLM 5.3
 docs/

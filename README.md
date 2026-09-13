@@ -168,6 +168,7 @@ Each block is themeable via `--block-*` custom properties from your BRIEF palett
 | `registry/blocks/`                                     | 12 themeable HUD blocks with demos — the catalog grows                                                                                             |
 | `examples/flappy/`                                     | Reference game: Flappy Chick (tap runner) at Flappy Bird quality                                                                                   |
 | `examples/sawstorm/`                                   | Reference game: Sawstorm — arena survival with touch pad, sudden death, safe persistence                                                           |
+| `examples/typefall/`                                   | Reference game: Typefall — lock-on typing arcade (verb: type, session: blitz): `input.on("key")` + the `hud-keyboard` block, end to end            |
 
 ## Development
 

@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Typefall</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; touch-action: none;
+      background: var(--game-bg, #101418);
+      /* phones are the primary device: no long-press selection, no callout */
+      -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    #c { display: block; width: 100vw; height: 100vh; }
+
+    /* HUD layer + safe-area-aware placement (frogoe-core → hud-bindings) */
+    .hud { position: absolute; inset: 0; pointer-events: none; }
+    .hud > * { position: absolute; }
+    .hud [data-pos="top-left"]      { top: calc(env(safe-area-inset-top) + 12px); left: calc(env(safe-area-inset-left) + 12px); }
+    .hud [data-pos="top-center"]    { top: calc(env(safe-area-inset-top) + 12px); left: 50%; translate: -50% 0; }
+    .hud [data-pos="top-right"]     { top: calc(env(safe-area-inset-top) + 12px); right: calc(env(safe-area-inset-right) + 12px); }
+    .hud [data-pos="bottom-left"]   { bottom: calc(env(safe-area-inset-bottom) + 12px); left: calc(env(safe-area-inset-left) + 12px); }
+    .hud [data-pos="bottom-center"] { bottom: calc(env(safe-area-inset-bottom) + 12px); left: 50%; translate: -50% 0; }
+
+    /* theme every block from the BRIEF palette — one parent rule */
+    .hud {
+      --block-accent: #28e0e8;
+      --block-fg: #f5f2ff;
+      --block-outline: #03040e;
+      --block-font: "Baloo 2", system-ui, sans-serif;
+      --block-heart: #ff4d6d;
+      --block-heart-empty: #3a2434;
+    }
+  
+    /* ===== score-card (frogoe add) ===== */
+    body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(120% 120% at 50% 0%, #182031 0%, #0d1220 60%, #080b13 100%);
+      }
+  
+    /* outline floor: every HUD text element reads on any background.
+       :where() = zero specificity — block-specific shadows still win. */
+    .hud :where(span, b, button, div) {
+      text-shadow: 0 2px 0 var(--block-outline, #03040e);
+    }
+  </style>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700&family=IBM+Plex+Mono:wght@400;700&display=swap">
+  <script type="importmap">
+  {
+    "imports": {
+      "frogoe": "./.frogoe/contract.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  
+  <style>
+.block-score-card {
+            /* theme — override these */
+            --block-accent: #ffd166;
+            --block-fg: #fffdf7;
+            --block-font: "Fredoka", "Baloo 2", system-ui, sans-serif;
+            --block-outline: #26180a;
+            --block-size: clamp(2.4rem, 9vmin, 3.6rem);
+    
+            color: var(--block-fg);
+            font-family: var(--block-font);
+            font-size: var(--block-size);
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            -webkit-user-select: none;
+            user-select: none;
+            pointer-events: none;
+          }
+          .block-score-card__label {
+            display: block;
+            font-size: 0.32em;
+            font-weight: 600;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            opacity: 0.85;
+          }
+          .block-score-card__value {
+            display: block;
+            font-variant-numeric: tabular-nums;
+            /* sticker depth: hard offset shadow, no blur */
+            text-shadow:
+              0 0.09em 0 var(--block-outline),
+              0 0.16em 0.24em rgba(0, 0, 0, 0.35);
+          }
+          .block-score-card__value[data-bump] {
+            /* score changed this frame — game toggles the attribute to fire the pop */
+            animation: block-score-bump 240ms cubic-bezier(0.34, 1.8, 0.5, 1);
+          }
+          @keyframes block-score-bump {
+            from {
+              transform: scale(1.28);
+            }
+            to {
+              transform: scale(1);
+            }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .block-score-card__value[data-bump] {
+              animation: none;
+            }
+          }
+        
+/* ===== hearts-row (frogoe add) ===== */
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(120% 120% at 50% 0%, #182031 0%, #0d1220 60%, #080b13 100%);
+  }
+.block-hearts-row {
+            --block-gap: 0.5em;
+            --block-heart: #ff4d6d;
+            --block-heart-empty: rgba(255, 255, 255, 0.18);
+            --block-outline: #33101d;
+            --block-size: clamp(1.4rem, 5vmin, 2rem);
+    
+            display: flex;
+            gap: var(--block-gap);
+            pointer-events: none;
+            -webkit-user-select: none;
+            user-select: none;
+          }
+          .block-hearts-row__heart {
+            width: var(--block-size);
+            height: var(--block-size);
+            background: var(--block-heart);
+            /* heart silhouette — no icon font, no image */
+            -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/></svg>")
+              center / contain no-repeat;
+            mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/></svg>")
+              center / contain no-repeat;
+            filter: drop-shadow(0 2px 0 var(--block-outline)) drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+            transition:
+              opacity 160ms ease,
+              transform 160ms ease;
+          }
+          .block-hearts-row__heart[aria-hidden="true"] {
+            background: var(--block-heart-empty);
+            filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.25));
+            transform: scale(0.86);
+            animation: block-heart-pop 320ms cubic-bezier(0.34, 1.8, 0.5, 1);
+          }
+          @keyframes block-heart-pop {
+            from {
+              transform: scale(1.35) rotate(-8deg);
+            }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .block-hearts-row__heart,
+            .block-hearts-row__heart[aria-hidden="true"] {
+              animation: none;
+              transition: none;
+            }
+          }
+        
+/* ===== combo-counter (frogoe add) ===== */
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(120% 120% at 50% 0%, #182031 0%, #0d1220 60%, #080b13 100%);
+  }
+.block-combo {
+            --block-accent: #ffd166;
+            --block-fg: #fffdf7;
+            --block-font: "Fredoka", "Baloo 2", system-ui, sans-serif;
+            --block-outline: #26180a;
+    
+            display: grid;
+            justify-items: center;
+            line-height: 1;
+            color: var(--block-fg);
+            font-family: var(--block-font);
+            pointer-events: none;
+            -webkit-user-select: none;
+            user-select: none;
+          }
+          .block-combo__label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            text-indent: 0.4em; /* optical center against tracking */
+            opacity: 0.75;
+          }
+          .block-combo__value {
+            font-size: clamp(2rem, 9vmin, 3.2rem);
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 3px 0 var(--block-outline);
+          }
+          .block-combo__value[data-pop] {
+            animation: block-combo-pop 240ms cubic-bezier(0.34, 1.8, 0.5, 1);
+          }
+          @keyframes block-combo-pop {
+            from {
+              transform: scale(1.32) rotate(-2deg);
+            }
+          }
+          /* escalation tiers — derived from the single accent, saturation climbs */
+          .block-combo[data-tier="1"] {
+            --block-fg: color-mix(in srgb, var(--block-accent) 45%, #fffdf7);
+          }
+          .block-combo[data-tier="2"] {
+            --block-fg: var(--block-accent);
+          }
+          .block-combo[data-tier="3"] {
+            --block-fg: color-mix(in srgb, var(--block-accent) 70%, #ff5d5d);
+            animation: block-combo-hot 600ms ease-in-out infinite alternate;
+          }
+          @keyframes block-combo-hot {
+            from {
+              scale: 1;
+            }
+            to {
+              scale: 1.06;
+            }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .block-combo__value[data-pop],
+            .block-combo[data-tier="3"] {
+              animation: none;
+            }
+          }
+        
+/* ===== ready-hint (frogoe add) ===== */
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(120% 120% at 50% 0%, #182031 0%, #0d1220 60%, #080b13 100%);
+  }
+.block-ready {
+            --block-accent: #ffd166;
+            --block-fg: #fffdf7;
+            --block-font: "Fredoka", "Baloo 2", system-ui, sans-serif;
+            --block-outline: #26180a;
+    
+            display: grid;
+            justify-items: center;
+            gap: 0.5em;
+            color: var(--block-fg);
+            font-family: var(--block-font);
+            text-align: center;
+            pointer-events: none;
+            -webkit-user-select: none;
+            user-select: none;
+            transition:
+              opacity 200ms ease,
+              scale 200ms ease;
+          }
+          .block-ready[data-hidden] {
+            opacity: 0;
+            scale: 0.9;
+          }
+          .block-ready__verb {
+            font-size: clamp(2.2rem, 11vmin, 4rem);
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            line-height: 1.1; /* descender-safe for italics */
+            text-transform: uppercase;
+            text-shadow:
+              0 4px 0 var(--block-outline),
+              0 8px 16px rgba(0, 0, 0, 0.35);
+          }
+          .block-ready__sub {
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            opacity: 0.75;
+          }
+          /* the breath: motivated ambient motion — it signals "alive, waiting" */
+          .block-ready:not([data-hidden]) .block-ready__verb {
+            animation: block-ready-breathe 1.8s ease-in-out infinite alternate;
+          }
+          @keyframes block-ready-breathe {
+            from {
+              transform: scale(1);
+            }
+            to {
+              transform: scale(1.05);
+            }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .block-ready:not([data-hidden]) .block-ready__verb {
+              animation: none;
+            }
+            .block-ready {
+              transition: none;
+            }
+          }
+        
+/* ===== game-over-card (frogoe add) ===== */
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(120% 120% at 50% 0%, #182031 0%, #0d1220 60%, #080b13 100%);
+  }
+.block-game-over {
+            --block-accent: #ffd166;
+            --block-card: #171d2e;
+            --block-cta: #ffcf3f;
+            --block-cta-label: #241a06;
+            --block-font: "Fredoka", "Baloo 2", system-ui, sans-serif;
+            --block-outline: #0a0e1a;
+    
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            background: rgba(4, 6, 12, 0.55);
+            font-family: var(--block-font);
+            color: #fffdf7;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 220ms ease;
+            -webkit-user-select: none;
+            user-select: none;
+          }
+          .block-game-over[data-open] {
+            opacity: 1;
+            pointer-events: auto;
+          }
+          .block-game-over__card {
+            display: grid;
+            justify-items: center;
+            gap: 0.35em;
+            min-width: min(78vw, 20rem);
+            padding: 2rem 2.4rem 2.2rem;
+            background: var(--block-card);
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            border-radius: 1.6rem;
+            box-shadow: 0 1.2rem 3rem rgba(0, 0, 0, 0.45);
+            text-align: center;
+          }
+          .block-game-over[data-open] .block-game-over__card {
+            animation: block-card-in 320ms cubic-bezier(0.34, 1.56, 0.5, 1);
+          }
+          @keyframes block-card-in {
+            from {
+              transform: translateY(1.2rem) scale(0.92);
+              opacity: 0;
+            }
+          }
+          .block-game-over__title {
+            font-size: clamp(1.6rem, 7vmin, 2.4rem);
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-shadow: 0 3px 0 var(--block-outline);
+          }
+          .block-game-over__subtitle {
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            opacity: 0.6;
+          }
+          .block-game-over[data-new-best] .block-game-over__subtitle {
+            color: var(--block-accent);
+            opacity: 1;
+            animation: block-best-pulse 800ms ease-in-out infinite alternate;
+          }
+          @keyframes block-best-pulse {
+            from {
+              opacity: 1;
+            }
+            to {
+              opacity: 0.55;
+            }
+          }
+          .block-game-over__score {
+            font-size: clamp(2.6rem, 12vmin, 4rem);
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.1;
+            text-shadow: 0 4px 0 var(--block-outline);
+          }
+          .block-game-over__best {
+            font-size: 0.95rem;
+            font-weight: 600;
+            opacity: 0.75;
+          }
+          .block-game-over__retry {
+            margin-top: 0.9em;
+            font-family: inherit;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--block-cta-label);
+            background: var(--block-cta);
+            border: none;
+            border-radius: 999px;
+            padding: 0.85em 2.6em;
+            cursor: pointer;
+            /* chunky button: hard extrusion under, push-in on press */
+            box-shadow: 0 5px 0 color-mix(in srgb, var(--block-cta) 62%, black);
+            transition:
+              transform 80ms ease,
+              box-shadow 80ms ease;
+          }
+          .block-game-over__retry:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 color-mix(in srgb, var(--block-cta) 62%, black);
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .block-game-over[data-open] .block-game-over__card {
+              animation: none;
+            }
+            .block-game-over[data-new-best] .block-game-over__subtitle {
+              animation: none;
+            }
+            .block-game-over {
+              transition: none;
+            }
+          }
+        
+/* ===== hud-keyboard (frogoe add) ===== */
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: end center;
+    background: radial-gradient(120% 120% at 50% 0%, #182031 0%, #0d1220 60%, #080b13 100%);
+  }
+.block-hud-keyboard {
+            /* theme — override these */
+            --block-key-bg: #fffdf7;
+            --block-key-ink: #1e4a73;
+            --block-key-press: #ffd166;
+            --block-key-edge: #26180a;
+            --block-font: "Baloo 2", "Fredoka", system-ui, sans-serif;
+    
+            bottom: calc(env(safe-area-inset-bottom) + 8px);
+            display: grid;
+            font-family: var(--block-font);
+            gap: 6px;
+            grid-template-columns: repeat(10, 1fr);
+            left: 50%;
+            pointer-events: auto; /* the hud layer is pointer-events: none */
+            position: absolute;
+            translate: -50% 0;
+            width: min(460px, calc(100vw - 16px));
+    
+            /* hidden until the game opens it */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 160ms ease, translate 160ms ease;
+          }
+          .block-hud-keyboard[data-open] {
+            opacity: 1;
+            pointer-events: auto;
+          }
+          .block-hud-keyboard__row {
+            display: grid;
+            gap: 6px;
+            grid-column: 1 / -1;
+            grid-template-columns: repeat(10, 1fr);
+          }
+          .block-hud-keyboard__row--offset-a {
+            padding-left: calc(5% + 3px);
+          }
+          .block-hud-keyboard__row--offset-z {
+            padding-left: calc(15% + 6px);
+          }
+          .block-hud-keyboard__key {
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--block-key-bg);
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 3px 0 var(--block-key-edge);
+            color: var(--block-key-ink);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: clamp(1rem, 4.4vmin, 1.35rem);
+            font-weight: 700;
+            height: clamp(44px, 8.5vmin, 56px);
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: manipulation;
+            text-shadow: 0 2px 0 var(--block-key-edge);
+          }
+          .block-hud-keyboard__key[data-pressed],
+          .block-hud-keyboard__key:active {
+            background: var(--block-key-press);
+            box-shadow: 0 1px 0 var(--block-key-edge);
+            transform: translateY(2px);
+          }
+          .block-hud-keyboard__key--wide {
+            font-size: clamp(0.85rem, 3.4vmin, 1.05rem);
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .block-hud-keyboard__key[data-pressed],
+            .block-hud-keyboard__key:active {
+              transform: none;
+            }
+          }
+  </style>
+<div class="hud">
+    <!-- registry blocks land here (frogoe add score-card) -->
+  
+      <!-- frogoe:block:score-card -->
+      <div data-pos="top-left">
+        <!--
+          frogoe block: score-card
+          Big chunky score number + label. Reads on any background.
+        
+          Bind from game.js (vanilla, no helper):
+            document.querySelector("[data-block-score]").textContent = 1240;
+        
+          Theme: every visual is a custom property — retheme by overriding
+          --block-* on .block-score-card (or on a parent, e.g. body or .block-layer).
+        -->
+        
+            <div class="block-score-card">
+              <span class="block-score-card__label">Score</span>
+              <span class="block-score-card__value" data-block-score>0</span>
+            </div>
+      </div>
+      <!-- frogoe:block:score-card -->
+      <!-- frogoe:block:hearts-row -->
+      <div data-pos="top-center">
+        <!--
+          frogoe block: hearts-row
+          Lives / health as a row of hearts. Filled hearts on the left, lost hearts
+          ghost on the right; a lost heart pops as it empties.
+        
+          Bind from game.js (vanilla, no helper):
+            const row = document.querySelector("[data-block-hearts]");
+            row.dataset.value = String(lives);          // hearts shown as full
+            // data-block-hearts element carries: data-value (full), data-max (slots)
+        
+          Theme: --block-heart (fill), --block-heart-empty (ghost), --block-outline.
+        -->
+        
+            <div class="block-hearts-row" data-block-hearts data-value="3" data-max="3">
+              <span class="block-hearts-row__heart"></span>
+              <span class="block-hearts-row__heart"></span>
+              <span class="block-hearts-row__heart"></span>
+              <!-- hearts are managed by the game script: set data-value, then update
+               each child's aria-hidden (full: remove; lost: set). Demo shows the
+               six-line binder. More slots? Add more <span> children. -->
+            </div>
+      </div>
+      <!-- frogoe:block:hearts-row -->
+      <!-- frogoe:block:combo-counter -->
+      <div data-pos="top-right">
+        <!--
+          frogoe block: combo-counter
+          Streak/combo readout with escalation tiers — the number grows legs as the
+          streak climbs. Tiers are semantic (streak heat), licensed escalation.
+        
+          Bind from game.js (vanilla, no helper):
+            const el = document.querySelector("[data-block-combo]");
+            el.textContent = String(streak);
+            el.parentElement.dataset.tier = streak >= 12 ? "3" : streak >= 6 ? "2" : streak >= 3 ? "1" : "0";
+            el.parentElement.toggleAttribute("data-hot", streak >= 3);
+        
+          Theme: --block-accent (tier colors derive from it), --block-fg, --block-outline.
+        -->
+        
+            <div class="block-combo" data-tier="0">
+              <span class="block-combo__label">Combo</span>
+              <span class="block-combo__value" data-block-combo>0</span>
+            </div>
+      </div>
+      <!-- frogoe:block:combo-counter -->
+      <!-- frogoe:block:ready-hint -->
+      <div data-pos="top-left">
+        <!--
+          frogoe block: ready-hint
+          The living-ready-state affordance: a giant verb instruction that breathes
+          while it waits, and vanishes the moment play starts. This is what replaces
+          a start menu — the world is alive, this tells the player their one move.
+        
+          Bind from game.js (vanilla, no helper):
+            const hint = document.querySelector("[data-block-ready]");
+            hint.toggleAttribute("data-hidden", phase !== "ready");
+            hint.querySelector("[data-block-verb]").textContent = "TAP"; // or HOLD / DRAG
+        
+          Theme: --block-accent, --block-fg, --block-outline, --block-font.
+        -->
+        
+            <div class="block-ready" data-block-ready>
+              <span class="block-ready__verb" data-block-verb>TAP</span>
+              <span class="block-ready__sub" data-block-sub>to start</span>
+            </div>
+      </div>
+      <!-- frogoe:block:ready-hint -->
+      <!-- frogoe:block:game-over-card -->
+      <div>
+        <!--
+          frogoe block: game-over-card
+          End-of-run card: title, score, best, one chunky retry button. Hidden by
+          default; the game shows it on death and wires the button to restart.
+          Entrance pops in; NEW BEST state is a data attribute that flips the
+          subtitle and tints the accent.
+        
+          Bind from game.js (vanilla, no helper):
+            const card = document.querySelector("[data-block-gameover]");
+            card.querySelector("[data-block-final]").textContent = score;
+            card.querySelector("[data-block-best]").textContent = best;
+            card.toggleAttribute("data-new-best", isNewBest);
+            card.showModal === undefined; // it is a plain overlay:
+            card.toggleAttribute("data-open", true);
+            card.querySelector("[data-block-retry]").addEventListener("click", () => {
+              location.reload(); // or your own reset
+            });
+        
+          Theme: --block-card, --block-accent, --block-cta, --block-cta-label, --block-font.
+        -->
+        
+            <div class="block-game-over" data-block-gameover>
+              <div class="block-game-over__card">
+                <span class="block-game-over__title">Run Over</span>
+                <span class="block-game-over__subtitle" data-block-subtitle>Score</span>
+                <span class="block-game-over__score" data-block-final>0</span>
+                <span class="block-game-over__best">Best <b data-block-best>0</b></span>
+                <button class="block-game-over__retry" type="button" data-block-retry>Retry</button>
+              </div>
+            </div>
+      </div>
+      <!-- frogoe:block:game-over-card -->
+      <!-- frogoe:block:hud-keyboard -->
+      <div data-pos="top-left">
+        <!--
+          frogoe block: hud-keyboard
+          On-screen keyboard for the `type` verb. Presses dispatch REAL
+          KeyboardEvents on window, so the frogoe contract hears them natively:
+          input.on("key") fires and input.keys tracks held codes — exactly like a
+          hardware keyboard. Zero game-side glue.
+        
+          Theme: every visual is a custom property — retheme by overriding
+          --block-* on .block-hud-keyboard (or a parent, e.g. body or .hud).
+        
+          Show/hide: toggle [data-open] (the game reveals it when typing starts,
+          hides it on the game-over card).
+        -->
+        
+            <div class="block-hud-keyboard" data-block-keyboard>
+              <div class="block-hud-keyboard__row">
+                <button class="block-hud-keyboard__key" data-block-key data-key="q" data-code="KeyQ" type="button">q</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="w" data-code="KeyW" type="button">w</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="e" data-code="KeyE" type="button">e</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="r" data-code="KeyR" type="button">r</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="t" data-code="KeyT" type="button">t</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="y" data-code="KeyY" type="button">y</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="u" data-code="KeyU" type="button">u</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="i" data-code="KeyI" type="button">i</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="o" data-code="KeyO" type="button">o</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="p" data-code="KeyP" type="button">p</button>
+              </div>
+              <div class="block-hud-keyboard__row block-hud-keyboard__row--offset-a">
+                <button class="block-hud-keyboard__key" data-block-key data-key="a" data-code="KeyA" type="button">a</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="s" data-code="KeyS" type="button">s</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="d" data-code="KeyD" type="button">d</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="f" data-code="KeyF" type="button">f</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="g" data-code="KeyG" type="button">g</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="h" data-code="KeyH" type="button">h</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="j" data-code="KeyJ" type="button">j</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="k" data-code="KeyK" type="button">k</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="l" data-code="KeyL" type="button">l</button>
+              </div>
+              <div class="block-hud-keyboard__row block-hud-keyboard__row--offset-z">
+                <button class="block-hud-keyboard__key" data-block-key data-key="z" data-code="KeyZ" type="button">z</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="x" data-code="KeyX" type="button">x</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="c" data-code="KeyC" type="button">c</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="v" data-code="KeyV" type="button">v</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="b" data-code="KeyB" type="button">b</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="n" data-code="KeyN" type="button">n</button>
+                <button class="block-hud-keyboard__key" data-block-key data-key="m" data-code="KeyM" type="button">m</button>
+              </div>
+              <div class="block-hud-keyboard__row">
+                <button class="block-hud-keyboard__key block-hud-keyboard__key--wide" data-block-key data-key="Backspace" data-code="Backspace" style="grid-column: span 2" type="button">⌫ del</button>
+                <button class="block-hud-keyboard__key block-hud-keyboard__key--wide" data-block-key data-key=" " data-code="Space" style="grid-column: span 4" type="button">space</button>
+                <button class="block-hud-keyboard__key block-hud-keyboard__key--wide" data-block-key data-key="Enter" data-code="Enter" style="grid-column: span 4" type="button">↵ enter</button>
+              </div>
+            </div>
+        
+      </div>
+      <!-- frogoe:block:hud-keyboard --></div>
+  <script>
+              // Self-contained dispatch: presses emit REAL KeyboardEvents on
+              // window, so the frogoe contract (input.on("key"), input.keys)
+              // receives them exactly like hardware keys. One edge per press —
+              // held state is the reader's business (poll input.keys).
+              (() => {
+                const board = document.querySelector(".block-hud-keyboard");
+                if (!board || board.dataset.frogoeBound) return;
+                board.dataset.frogoeBound = "1";
+                const held = new Map(); // pointerId → button
+                const emit = (button, dir) => {
+                  window.dispatchEvent(
+                    new KeyboardEvent(dir === "down" ? "keydown" : "keyup", {
+                      bubbles: true,
+                      cancelable: true,
+                      code: button.dataset.code ?? "",
+                      key: button.dataset.key ?? "",
+                    }),
+                  );
+                };
+                const press = (button, id) => {
+                  if (held.has(id)) return; // one key per pointer
+                  held.set(id, button);
+                  button.toggleAttribute("data-pressed", true);
+                  emit(button, "down");
+                };
+                const release = (id) => {
+                  const button = held.get(id);
+                  if (!button) return;
+                  held.delete(id);
+                  button.toggleAttribute("data-pressed", false);
+                  emit(button, "up");
+                };
+                board.addEventListener("pointerdown", (e) => {
+                  const button = e.target.closest?.("button[data-key]");
+                  if (!button) return;
+                  e.preventDefault();
+                  press(button, e.pointerId);
+                });
+                board.addEventListener("contextmenu", (e) => e.preventDefault());
+                window.addEventListener("pointerup", (e) => release(e.pointerId));
+                window.addEventListener("pointercancel", (e) => release(e.pointerId));
+                window.addEventListener("blur", () => {
+                  for (const id of [...held.keys()]) release(id);
+                });
+              })();
+            </script>
+  <script type="module" src="game.js"></script>
+</body>
+</html>
