@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.1](https://github.com/frogoe/engine/compare/v0.8.0...v0.8.1) (2026-09-13)
+
+
+### Bug Fixes
+
+* **engine:** block placement — the shipped-twice wrapper bug, killed at the class ([3dcf5ad](https://github.com/frogoe/engine/commit/3dcf5ad07c97636ef6754d6caea2c1fc5bfa1055))
+* **live:** hud gates judge what renders — invisible and solid-surface exemptions ([f14418b](https://github.com/frogoe/engine/commit/f14418ba77561c43a5bffd776b6820659aa8be44))
+
 ## [0.8.0](https://github.com/frogoe/engine/compare/v0.7.0...v0.8.0) (2026-09-13)
 
 
