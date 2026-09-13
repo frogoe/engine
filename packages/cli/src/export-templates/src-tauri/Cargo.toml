@@ -1,0 +1,17 @@
+[package]
+name = "{{FROGOE_CRATE}}"
+version = "{{FROGOE_APP_VERSION}}"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+# The shell exposes NO custom commands: the game artifact runs entirely
+# inside the webview and never crosses into Rust. Keeping the surface
+# empty is a security property, not an omission.
+[lib]
+name = "{{FROGOE_CRATE_LIB}}"
+crate-type = ["staticlib", "cdylib", "rlib"]

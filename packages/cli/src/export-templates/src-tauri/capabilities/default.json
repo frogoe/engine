@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The frogoe shell needs no capabilities beyond core window events — the game artifact never crosses into Rust.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

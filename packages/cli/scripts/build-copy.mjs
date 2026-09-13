@@ -23,6 +23,11 @@ cpSync(
   path.resolve(__dirname, "../src/injected-runtime.js"),
   path.join(out, "injected-runtime.js"),
 );
+// export shell templates (frogoe export) — fixed, token-based
+cpSync(path.resolve(here, "../src/export-templates"), path.join(out, "export-templates"), {
+  recursive: true,
+});
+
 // agent docs (CLAUDE.md + AGENTS.md) for frogoe init scaffolds
 cpSync(path.resolve(here, "../src/templates/_shared"), path.join(out, "templates/_shared"), {
   recursive: true,
