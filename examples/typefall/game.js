@@ -17,7 +17,7 @@ export const C = {
   accent: "#28e0e8", // cyan — alien variant 0
   iris: "#8b5cf6", // alien variant 1
   flare: "#ff6a3d", // ship body, locked letters, lasers
-  flareDeep: "#b83b14", // fins
+  flareDeep: "#b83b14", // flame outer ember
   gold: "#ffc93c", // thruster, score popups
   rose: "#ff4d6d", // damage
   chip: "rgba(14,12,24,0.88)",
@@ -28,8 +28,9 @@ export const C = {
   nebulaIris: "rgba(123,77,219,0.16)",
 };
 
-/* ---------- tuning (ported from the WordInvaders config — proven pacing) ---------- */
-const TUNE = {
+/* ---------- tuning (ported from the WordInvaders config — proven pacing) —
+ * exported so identity art renders at TRUE game scale (1:1 by import) ---------- */
+export const TUNE = {
   alienSpeedBase: 38, // px/s at wave 0
   alienSpeedGrowth: 0.7, // per kill
   alienSpeedMax: 92,
@@ -39,8 +40,8 @@ const TUNE = {
   maxAliens: 4,
   spawnMargin: 66,
   spawnMinDist: 142,
-  scoreBase: 50,
-  scorePerLetter: 15,
+  scoreBase: 10,
+  scorePerLetter: 2,
   maxLives: 3,
   burstLife: 340, // ms
   popupLife: 800,
@@ -48,8 +49,8 @@ const TUNE = {
   laserLife: 220,
   glyphW: 42,
   glyphH: 40,
-  shipW: 56,
-  shipH: 50,
+  shipW: 70,
+  shipH: 64,
 };
 
 /* ---------- words: common English, 4–8 letters. The starter pool carries
@@ -136,14 +137,24 @@ export function drawAlienGlyph(ctx, cx, cy, w, h, variant, t) {
   ctx.save();
   ctx.translate(cx - w / 2, cy + floatY);
 
-  // soft glow behind
+  // soft glow: radial sprite cached per color — no blur calls per frame,
+  // no hard ellipse edge (the visible-circle complaint, fixed properly)
+  const glowKey = "glow" + (variant === 1 ? "I" : "C");
+  drawAlienGlyph[glowKey] ??= (() => {
+    const c = document.createElement("canvas");
+    const g = w * 2.1;
+    c.width = g; c.height = g;
+    const gc = c.getContext("2d");
+    const rg = gc.createRadialGradient(g / 2, g / 2, 0, g / 2, g / 2, g / 2);
+    rg.addColorStop(0, color + "cc");
+    rg.addColorStop(1, color + "00");
+    gc.fillStyle = rg;
+    gc.fillRect(0, 0, g, g);
+    return c;
+  })();
   ctx.save();
-  ctx.globalAlpha = 0.55;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.ellipse(w / 2, h / 2, w * 0.4, h * 0.4, 0, 0, Math.PI * 2);
-  ctx.filter = "none"; // glow drawn as low-alpha halo (shadowBlur is a perf gate)
-  ctx.fill();
+  ctx.globalAlpha = 0.5;
+  ctx.drawImage(drawAlienGlyph[glowKey], w / 2 - w * 1.05, h / 2 - w * 1.05, w * 2.1, w * 2.1);
   ctx.restore();
 
   ctx.scale(w / 100, h / 96);
@@ -183,20 +194,29 @@ export function drawShipGlyph(ctx, cx, cy, w, h, t) {
   ctx.save();
   ctx.translate(cx - w / 2, cy);
   ctx.scale(w / 100, h / 92);
-  // fins
-  ctx.fillStyle = C.flareDeep;
-  ctx.beginPath(); ctx.moveTo(8, 74); ctx.lineTo(30, 52); ctx.lineTo(30, 78); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(92, 74); ctx.lineTo(70, 52); ctx.lineTo(70, 78); ctx.closePath(); ctx.fill();
-  // body
+  // body — a pure dart: triangle + spine flame + cockpit, nothing else.
+  // The side fins are gone by design decision: the arrow reads cleaner.
   ctx.fillStyle = C.flare;
   ctx.beginPath();
   ctx.moveTo(50, 6); ctx.lineTo(72, 62);
   ctx.quadraticCurveTo(50, 52, 28, 62);
-  ctx.closePath(); ctx.fill();
-  // thruster — idle flicker
-  ctx.globalAlpha = 0.55 + Math.sin(t / 60) * 0.1;
-  ctx.fillStyle = C.gold;
-  ctx.beginPath(); ctx.moveTo(40, 62); ctx.quadraticCurveTo(50, 84, 60, 62); ctx.closePath(); ctx.fill();
+  ctx.closePath(); ctx.fill();  // thruster — one spine engine, made alive: length pulses (two detuned
+  // sines so it never loops visibly) + a white-hot core inside the gold
+  // flame. One tail reads right on this dart silhouette; twin flames
+  // would float unsupported between the small fins.
+  const pulse = 0.5 + Math.sin(t / 60) * 0.28 + Math.sin(t / 137) * 0.22;
+  const flame = (scaleY, color, alpha) => {
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(41, 62);
+    ctx.quadraticCurveTo(50, 62 + 22 * scaleY, 59, 62);
+    ctx.closePath();
+    ctx.fill();
+  };
+  flame(0.6 + pulse * 0.65, C.flareDeep, 0.85); // outer ember
+  flame(0.45 + pulse * 0.5, C.gold, 0.9); // gold body
+  flame(0.22 + pulse * 0.3, "#ffffff", 0.85); // white-hot core
   ctx.globalAlpha = 1;
   // cockpit
   ctx.fillStyle = C.accent;
@@ -218,18 +238,14 @@ defineGame(({ stage, input, loop, finish }) => {
   /* HUD bindings */
   const scoreEl = document.querySelector("[data-block-score]");
   const heartsEl = document.querySelector("[data-block-hearts]");
-  const comboEl = document.querySelector("[data-block-combo]");
-  const comboBox = comboEl?.parentElement;
-  const readyEl = document.querySelector("[data-block-ready]");
-  const verbEl = document.querySelector("[data-block-verb]");
-  const subEl = document.querySelector("[data-block-sub]");
+  const gateEl = document.querySelector("[data-block-gate]");
+  const ctaEl = document.querySelector("[data-block-cta]");
   const overEl = document.querySelector("[data-block-gameover]");
   const finalEl = document.querySelector("[data-block-final]");
   const bestEl = document.querySelector("[data-block-best]");
   const retryEl = document.querySelector("[data-block-retry]");
   const keyboardEl = document.querySelector("[data-block-keyboard]");
-  if (verbEl) verbEl.textContent = "TYPE";
-  if (subEl) subEl.textContent = "tap or type a word";
+
 
   /* state */
   let phase = "ready"; // ready → playing → over
@@ -245,7 +261,6 @@ defineGame(({ stage, input, loop, finish }) => {
   let target = null;
   let shakeUntil = 0;
   let flashUntil = 0;
-  let shipHitUntil = 0;
   let spawnTimer = 0.8;
   const rng = { s: 1234 };
   const rand = () => {
@@ -256,12 +271,15 @@ defineGame(({ stage, input, loop, finish }) => {
   let shipX = 0;
   let t0 = now();
 
+  /* the field bottom (keyboard up = smaller field). Lerp in update()
+   * for the AnimatedSize feel of the source game. */
+  let fieldBottom = 0;
   const layout = () => {
     const kb = keyboardEl?.offsetHeight ?? 0;
-    const bottom = Math.max(kb + 46, 210);
+    const bottom = Math.max(kb, 64);
     return {
-      loseY: stage.height - bottom - 26,
-      shipY: stage.height - bottom + 30,
+      loseY: fieldBottom - 100,
+      shipY: fieldBottom - TUNE.shipH - 18,
       fieldW: stage.play.width,
       fieldL: stage.play.left,
     };
@@ -277,14 +295,6 @@ defineGame(({ stage, input, loop, finish }) => {
       if (i < lives) h.removeAttribute("aria-hidden");
       else h.setAttribute("aria-hidden", "true");
     });
-  };
-  const setCombo = () => {
-    if (comboEl) comboEl.textContent = String(combo);
-    if (comboBox) {
-      comboBox.dataset.tier = combo >= 12 ? "3" : combo >= 6 ? "2" : combo >= 3 ? "1" : "0";
-      if (combo >= 3) comboBox.toggleAttribute("data-hot", true);
-      else comboBox.removeAttribute("data-hot");
-    }
   };
 
   const spawnAlien = () => {
@@ -321,10 +331,9 @@ defineGame(({ stage, input, loop, finish }) => {
     const burstY = a.y + TUNE.glyphH + 20;
     bursts.push({ x: a.x, y: burstY, born: now(), color: a.variant === 1 ? C.iris : C.accent });
     popups.push({ x: a.x, y: burstY, born: now(), text: `+${gained}${combo > 1 ? ` ×${combo}` : ""}` });
-    lasers.push({ fromX: shipX, fromY: layout().shipY - 20, toX: a.x, toY: burstY, born: now() });
+    lasers.push({ fromX: shipX, fromY: layout().shipY - 20, toX: a.x, toY: a.y + TUNE.glyphH + 4, born: now() });
     if (target === a) target = null;
     setScore();
-    setCombo();
     spawnTimer = Math.max(TUNE.spawnIntervalMin, TUNE.spawnIntervalBase - kills * TUNE.spawnIntervalShrink);
   };
 
@@ -339,15 +348,16 @@ defineGame(({ stage, input, loop, finish }) => {
     const t = now();
     shakeUntil = t + 100;
     flashUntil = t + TUNE.flashDuration;
-    shipHitUntil = t + 220;
-    bursts.push({ x: a.x, y: layout().loseY, born: t, color: C.rose });
+    // the ship takes the hit — EXACTLY the alien's explosion effect
+    // (one expanding ring), in the ship's own flare: same language, no red glow
+    bursts.push({ x: shipX, y: L0().shipY + TUNE.shipH / 2, born: t, color: C.flare });
     setHearts();
-    setCombo();
     if (lives <= 0) {
       phase = "over";
       aliens.length = 0;
       target = null;
       Sfx.over();
+      if (score > best) overEl?.toggleAttribute("data-new-best", true);
       best = Math.max(best, score);
       SafeStore.set("typefall-best", String(best));
       if (overEl) overEl.toggleAttribute("data-open", true);
@@ -361,9 +371,10 @@ defineGame(({ stage, input, loop, finish }) => {
   const startRun = () => {
     if (phase !== "ready") return;
     phase = "playing";
-    readyEl?.setAttribute("aria-hidden", "true");
-    readyEl?.style.setProperty("opacity", "0");
-    keyboardEl?.toggleAttribute("data-open", true);
+    gateEl?.setAttribute("data-hidden", "");
+    setTimeout(() => gateEl?.style.setProperty("display", "none"), 300);
+    document.body.removeAttribute("data-ready"); // HUD corners fade in
+    keyboardEl?.toggleAttribute("data-open", true); // touch devices only (CSS)
   };
 
   /* the mechanic: keystrokes are the whole game. Lock-on = first letter
@@ -372,7 +383,10 @@ defineGame(({ stage, input, loop, finish }) => {
   input.on("key", (k) => {
     if (k.dir !== "down") return;
     Sfx.init();
-    if (k.code === "Backspace") return; // typing forward only — a clean arcade rule
+    if (k.code === "Backspace") {
+      if (target) target = null; // drop the lock, pick a new word freely
+      return;
+    }
     if (k.key.length !== 1) return;
     const ch = k.key.toLowerCase();
     if (ch < "a" || ch > "z") return;
@@ -390,18 +404,19 @@ defineGame(({ stage, input, loop, finish }) => {
     if (target.word[target.typed] === ch) {
       target.typed += 1;
       Sfx.tick();
-      lasers.push({
-        fromX: shipX,
-        fromY: layout().shipY - 20,
-        toX: target.x,
-        toY: target.y + TUNE.glyphH + 16,
-        born: now(),
-        thin: true,
-      });
       if (target.typed >= target.word.length) killAlien(target);
     } else {
       Sfx.wrong();
       if (target) target.shakeUntil = now() + 140;
+    }
+  });
+
+  ctaEl?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    Sfx.init();
+    if (phase === "ready") {
+      Sfx.combo(1);
+      startRun();
     }
   });
 
@@ -416,8 +431,12 @@ defineGame(({ stage, input, loop, finish }) => {
     location.reload();
   });
 
+  const L0 = () => layout();
   loop.update = (dt) => {
     const t = now();
+    if (fieldBottom === 0) fieldBottom = stage.height;
+    const wantBottom = stage.height - Math.max(keyboardEl?.offsetHeight ?? 0, 64);
+    fieldBottom += (wantBottom - fieldBottom) * Math.min(1, dt * 8);
     const L = layout();
     if (shipX === 0) shipX = stage.play.center;
 
@@ -434,9 +453,9 @@ defineGame(({ stage, input, loop, finish }) => {
       if (a.y + TUNE.glyphH >= L.loseY) loseLife(a);
     }
 
-    // ship tracks the target (or idles center)
-    const wantX = (phase === "playing" && target) ? target.x : stage.play.center;
-    shipX += (wantX - shipX) * Math.min(1, dt * 8);
+    // ship parks at the column center — the source never moves it;
+    // only the lasers travel (fieldW/2 in the original)
+    shipX += (stage.play.center - shipX) * Math.min(1, dt * 8);
 
     for (let i = bursts.length - 1; i >= 0; i--) if (t - bursts[i].born > TUNE.burstLife) bursts.splice(i, 1);
     for (let i = popups.length - 1; i >= 0; i--) if (t - popups[i].born > TUNE.popupLife) popups.splice(i, 1);
@@ -471,6 +490,20 @@ defineGame(({ stage, input, loop, finish }) => {
     ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = loop.__sky.nebI;
     ctx.fillRect(0, 0, W, H);
+
+    /* focus field: the play column is the world; everything outside
+     * dims and the hairline edges mark where gameplay lives */
+    ctx.fillStyle = "rgba(3, 4, 14, 0.55)";
+    ctx.fillRect(0, 0, stage.play.left, H);
+    ctx.fillRect(stage.play.right, 0, W - stage.play.right, H);
+    ctx.strokeStyle = "rgba(245, 242, 255, 0.08)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(stage.play.left + 0.5, 0);
+    ctx.lineTo(stage.play.left + 0.5, H);
+    ctx.moveTo(stage.play.right - 0.5, 0);
+    ctx.lineTo(stage.play.right - 0.5, H);
+    ctx.stroke();
 
     /* parallax stars — 3 layers, scrolling down, seamless wrap */
     for (const layer of STARS) {
@@ -515,7 +548,7 @@ defineGame(({ stage, input, loop, finish }) => {
       const chipY = a.y + TUNE.glyphH + 4;
       const isTarget = target === a;
       const shiver = now() < a.shakeUntil ? Math.sin(now() / 14) * 3 : 0;
-      ctx.font = `700 15px "Baloo 2", system-ui, sans-serif`;
+      ctx.font = `700 15px "Space Grotesk", system-ui, sans-serif`;
       const wordW = ctx.measureText(a.word.toUpperCase()).width + 24;
       const chipH = 30;
       // chip
@@ -541,7 +574,7 @@ defineGame(({ stage, input, loop, finish }) => {
       ctx.roundRect(a.x - wordW / 2 + shiver, chipY, wordW, chipH, 16);
       ctx.stroke();
       // letters — typed lock in flare, rest in ink
-      ctx.font = `400 13px "IBM Plex Mono", ui-monospace, monospace`;
+      ctx.font = `400 13px "Space Mono", ui-monospace, monospace`;
       const chars = a.word.toUpperCase().split("");
       const cw = ctx.measureText("M").width;
       const startX = a.x - ((chars.length - 1) * (cw + 2)) / 2 + shiver;
@@ -562,9 +595,9 @@ defineGame(({ stage, input, loop, finish }) => {
       ctx.save();
       ctx.translate(s.fromX, s.fromY);
       ctx.rotate(angle);
-      ctx.globalAlpha = opacity * (s.thin ? 0.5 : 0.45);
+      ctx.globalAlpha = opacity * 0.45;
       ctx.fillStyle = C.flare;
-      ctx.fillRect(0, s.thin ? -1.5 : -5, len, s.thin ? 3 : 10);
+      ctx.fillRect(0, -5, len, 10);
       ctx.globalAlpha = opacity * 0.8;
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, -0.5, len, 1);
@@ -572,30 +605,11 @@ defineGame(({ stage, input, loop, finish }) => {
       ctx.globalAlpha = 1;
     }
 
-    /* ship (hit glow when a life is lost) */
-    if (now() < shipHitUntil) {
-      ctx.save();
-      ctx.globalAlpha = 0.8;
-      ctx.fillStyle = C.rose;
-      ctx.beginPath();
-      ctx.arc(shipX, L.shipY + TUNE.shipH / 2, 38, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
+    /* ship */
     drawShipGlyph(ctx, shipX, L.shipY, TUNE.shipW, TUNE.shipH, now());
 
-    /* lose line — quiet, ignorable until it matters */
-    ctx.strokeStyle = "rgba(255,77,109,0.35)";
-    ctx.lineWidth = 2;
-    ctx.setLineDash([8, 10]);
-    ctx.beginPath();
-    ctx.moveTo(stage.play.left + 10, L.loseY);
-    ctx.lineTo(stage.play.right - 10, L.loseY);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
     /* score popups */
-    ctx.font = `700 16px "IBM Plex Mono", ui-monospace, monospace`;
+    ctx.font = `700 16px "Space Mono", ui-monospace, monospace`;
     for (const p of popups) {
       const age = now() - p.born;
       const opacity = Math.max(0, 1 - age / TUNE.popupLife);
@@ -616,12 +630,10 @@ defineGame(({ stage, input, loop, finish }) => {
     }
   };
 
-  /* initial HUD state — keyboard open from boot: on touch it IS the input
-   * surface, and the run starts from the first keystroke */
+  /* initial HUD state — keyboard stays closed: the source shows it only
+   * while playing (startRun opens it; over/pause collapses it) */
   setScore();
   setHearts();
-  setCombo();
-  keyboardEl?.toggleAttribute("data-open", true);
   stage.refresh();
   shipX = stage.play.center;
 });

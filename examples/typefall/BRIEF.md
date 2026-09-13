@@ -7,7 +7,7 @@ palette:
   fg: "#f5f2ff"
   accent: "#28e0e8"
   outline: "#03040e"
-fonts: Baloo 2, IBM Plex Mono
+fonts: Space Grotesk, Space Mono, Plus Jakarta Sans
 ---
 
 Words fall from a quiet galaxy. Type a word to lock on — each correct

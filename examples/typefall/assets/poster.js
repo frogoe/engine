@@ -1,142 +1,205 @@
-/* Typefall poster — authored scene, 1:1 with gameplay: the same space,
- * the same aliens, the same ship (drawn by game.js exports). */
-import { C, drawAlienGlyph, drawShipGlyph } from "../game.js";
+/* Typefall poster — a photograph of the board, not a drawing of it.
+ * Every size comes from TUNE at phone scale (S = w/390): same alien
+ * glyphs, same chip renderer (mono letters, same radii/borders), same
+ * laser (same widths, ending at the chip's top border), same dart at
+ * the same size, same sky geometry (nebulas at the game's own anchors),
+ * same starfield parameters. The title is the poster's one overlay. */
+import { C, TUNE, drawAlienGlyph, drawShipGlyph } from "../game.js";
 
 export function drawPoster(ctx, w, h) {
   const t = 300;
+  const S = w / 390; // phone scale — the board's own pixels
+  const cx = w / 2;
 
-  /* sky — exact BRIEF bg with inset nebulas (they fade to nothing before
-   * the frame edges: edge-tinted pixels poison the title zone poll) */
+  /* ── sky: the game's exact recipe (bg + nebulas at the board's anchors) ── */
   ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, w, h);
-  const nebC = ctx.createRadialGradient(w * 0.24, h * 0.22, 0, w * 0.24, h * 0.22, w * 0.3);
+  const nebC = ctx.createRadialGradient(w * 0.12, h * 0.2, 0, w * 0.12, h * 0.2, w * 0.5);
   nebC.addColorStop(0, C.nebulaCyan);
   nebC.addColorStop(1, "rgba(31,182,201,0)");
   ctx.fillStyle = nebC;
   ctx.fillRect(0, 0, w, h);
-  const nebI = ctx.createRadialGradient(w * 0.76, h * 0.72, 0, w * 0.76, h * 0.72, w * 0.32);
+  const nebI = ctx.createRadialGradient(w * 0.88, h * 0.82, 0, w * 0.88, h * 0.82, w * 0.55);
   nebI.addColorStop(0, C.nebulaIris);
   nebI.addColorStop(1, "rgba(123,77,219,0)");
   ctx.fillStyle = nebI;
   ctx.fillRect(0, 0, w, h);
 
-  /* stars — deterministic sprinkle, same three tones */
-  const star = (x, y, r, a, color) => {
-    ctx.globalAlpha = a;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
+  /* stars — the game's three layers, same counts/radii/alphas/colors */
+  const drand = (seed, i, n) => {
+    const x = Math.sin(seed + i * n) * 10000;
+    return x - Math.floor(x);
   };
-  for (let i = 0; i < 90; i++) {
-    const fx = (Math.sin(1 + i * 12.9) * 10000) % 1;
-    const fy = (Math.sin(1 + i * 4.1) * 10000) % 1;
-    const x = Math.abs(fx) * w;
-    const y = Math.abs(fy) * h;
-    const layer = i % 3;
-    const r = [1.6, 2.4, 3.4][layer] * (w / 1080);
-    star(x, y, r, [0.35, 0.6, 0.9][layer], [C.starFar, C.starMid, "#ffffff"][layer]);
+  const layers = [
+    { color: C.starFar, list: Array.from({ length: 42 }, (_, i) => ({ fx: drand(1, i, 12.9), fy: drand(1, i, 4.1), r: 0.5 + drand(1, i, 7.7) * 0.6, a: 0.2 + drand(1, i, 3.3) * 0.3 })) },
+    { color: C.starMid, list: Array.from({ length: 26 }, (_, i) => ({ fx: drand(2, i, 12.9), fy: drand(2, i, 4.1), r: 0.8 + drand(2, i, 7.7) * 0.8, a: 0.4 + drand(2, i, 3.3) * 0.4 })) },
+    { color: "#ffffff", list: Array.from({ length: 12 }, (_, i) => ({ fx: drand(3, i, 12.9), fy: drand(3, i, 4.1), r: 1.3 + drand(3, i, 7.7) * 1.0, a: 0.7 + drand(3, i, 3.3) * 0.3 })) },
+  ];
+  for (const layer of layers) {
+    ctx.fillStyle = layer.color;
+    for (const s of layer.list) {
+      ctx.globalAlpha = s.a;
+      ctx.beginPath();
+      ctx.arc(s.fx * w, s.fy * h, s.r * S, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.globalAlpha = 1;
 
-  /* word chips with aliens — the game's core image, larger than life */
-  const chip = (cx, cy, word, typed, hot, scale = 1) => {
+  /* ── the board's chip renderer, verbatim (sizes × S) ── */
+  const chip = (px, py, word, typed, hot) => {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `700 ${Math.round(w * 0.028 * scale)}px "IBM Plex Mono", ui-monospace, monospace`;
-    const chars = word.toUpperCase().split("");
-    const cw = ctx.measureText("M").width;
-    const gap = w * 0.006 * scale;
-    const boxW = ((chars.length - 1) * (cw + gap)) + w * 0.09 * scale;
-    const boxH = w * 0.075 * scale;
+    ctx.font = `700 ${Math.round(15 * S)}px "Space Grotesk", system-ui, sans-serif`;
+    const boxW = ctx.measureText(word.toUpperCase()).width + 24 * S;
+    const boxH = 30 * S;
     ctx.fillStyle = C.chip;
     ctx.beginPath();
-    ctx.roundRect(cx - boxW / 2, cy, boxW, boxH, boxH / 2);
+    ctx.roundRect(px - boxW / 2, py, boxW, boxH, 16 * S);
     ctx.fill();
-    ctx.lineWidth = hot ? w * 0.006 : 1.5;
-    ctx.strokeStyle = hot ? C.flare : "rgba(255,255,255,0.18)";
+    if (hot) {
+      ctx.save();
+      ctx.globalAlpha = 0.7;
+      ctx.strokeStyle = C.flare;
+      ctx.lineWidth = 3 * S;
+      ctx.beginPath();
+      ctx.roundRect(px - boxW / 2, py, boxW, boxH, 16 * S);
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.strokeStyle = hot ? C.flare : "rgba(255,255,255,0.15)";
+    ctx.lineWidth = 1 * S;
     ctx.beginPath();
-    ctx.roundRect(cx - boxW / 2, cy, boxW, boxH, boxH / 2);
+    ctx.roundRect(px - boxW / 2, py, boxW, boxH, 16 * S);
     ctx.stroke();
-    const startX = cx - ((chars.length - 1) * (cw + gap)) / 2;
+    ctx.font = `400 ${Math.round(13 * S)}px "Space Mono", ui-monospace, monospace`;
+    const chars = word.toUpperCase().split("");
+    const cw = ctx.measureText("M").width;
+    const startX = px - ((chars.length - 1) * (cw + 2 * S)) / 2;
     chars.forEach((chr, i) => {
       ctx.fillStyle = i < typed ? C.flare : C.fg;
-      ctx.fillText(chr, startX + i * (cw + gap), cy + boxH / 2 + 1);
+      ctx.fillText(chr, startX + i * (cw + 2 * S), py + boxH / 2 + 1 * S);
     });
+    return py; // chip top = where the game's lasers stop
   };
 
-  /* word rain — the game's image: faint chips drifting down the field */
-  ctx.globalAlpha = 0.5;
-  const rain = [
-    { x: 0.16, y: 0.24, word: "void", s: 0.7 },
-    { x: 0.78, y: 0.2, word: "pulse", s: 0.62 },
-    { x: 0.3, y: 0.56, word: "comet", s: 0.55 },
-    { x: 0.72, y: 0.6, word: "quasar", s: 0.6 },
-    { x: 0.2, y: 0.76, word: "aurora", s: 0.66 },
-    { x: 0.82, y: 0.78, word: "zenith", s: 0.58 },
-  ];
-  for (const r of rain) chip(w * r.x, h * r.y, r.word, 0, false, r.s);
-  ctx.globalAlpha = 1;
+  /* ── the board's burst ring, verbatim (3px stroke, r = 18·S) ── */
+  const burst = (px, py, color) => {
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = 0.9;
+    ctx.lineWidth = 3 * S;
+    ctx.beginPath();
+    ctx.arc(px, py, 18 * S * 1.6, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 0.9 * 0.2;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(px, py, 18 * S * 1.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  };
 
-  const aw = w * 0.17;
-  const ah = aw * 0.96;
-  // hero alien — locked target, mid-burst
-  drawAlienGlyph(ctx, w * 0.5, h * 0.44, aw, ah, 0, t);
-  chip(w * 0.5, h * 0.44 + ah * 0.62, "galaxy", 3, true, 1);
-  // supporting aliens
-  drawAlienGlyph(ctx, w * 0.19, h * 0.33, aw * 0.78, ah * 0.78, 1, t + 900);
-  chip(w * 0.19, h * 0.33 + ah * 0.56, "comet", 0, false, 0.78);
-  drawAlienGlyph(ctx, w * 0.83, h * 0.36, aw * 0.78, ah * 0.78, 0, t + 300);
-  chip(w * 0.83, h * 0.36 + ah * 0.56, "meteor", 0, false, 0.78);
+  /* ── the moment: formation descending, hero locked, dart firing ──
+   * positions in board pixels (390-wide phone), scaled by S */
+  const gW = TUNE.glyphW * S;
+  const gH = TUNE.glyphH * S;
 
-  /* burst ring on the hero kill */
-  ctx.strokeStyle = C.accent;
-  ctx.lineWidth = w * 0.012;
-  ctx.globalAlpha = 0.8;
-  ctx.beginPath();
-  ctx.arc(w * 0.5, h * 0.5 + ah * 0.6, w * 0.14, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.globalAlpha = 1;
+  // wings — incoming, untouched: FULL glyph size, like every alien on the board
+  drawAlienGlyph(ctx, 98 * S, 248 * S, gW, gH, 1, t + 900);
+  chip(98 * S, (248 + TUNE.glyphH + 4) * S, "comet", 0, false);
+  drawAlienGlyph(ctx, 292 * S, 286 * S, gW, gH, 0, t + 300);
+  chip(292 * S, (286 + TUNE.glyphH + 4) * S, "meteor", 0, false);
 
-  /* ship firing at the hero */
-  const shipY = h * 0.82;
-  drawShipGlyph(ctx, w * 0.5, shipY, w * 0.19, w * 0.175, t);
-  const laser = ctx.createLinearGradient(w * 0.5, shipY, w * 0.5, h * 0.56);
+  // hero — the locked target: burst + chip three letters in
+  const heroY = 372 * S;
+  const heroChipTop = (372 + TUNE.glyphH + 4) * S;
+  burst(cx, heroY + gH * 0.55, C.accent);
+  drawAlienGlyph(ctx, cx, heroY, gW, gH, 0, t);
+  chip(cx, heroChipTop, "galaxy", 3, true);
+
+  // the dart's shot — the game's laser: from ship nose to chip TOP border
+  const shipY = 626 * S;
+  const laser = ctx.createLinearGradient(0, (shipY - 20 * S), 0, heroChipTop);
   laser.addColorStop(0, C.flare);
-  laser.addColorStop(1, "rgba(255,106,61,0)");
+  laser.addColorStop(1, "rgba(255,106,61,0.08)");
   ctx.strokeStyle = laser;
-  ctx.lineWidth = w * 0.02;
+  ctx.lineWidth = 10 * S;
   ctx.beginPath();
-  ctx.moveTo(w * 0.5, shipY - w * 0.02);
-  ctx.lineTo(w * 0.5, h * 0.56);
+  ctx.moveTo(cx, shipY - 20 * S);
+  ctx.lineTo(cx, heroChipTop);
   ctx.stroke();
-  ctx.strokeStyle = "rgba(255,255,255,0.7)";
-  ctx.lineWidth = w * 0.006;
+  ctx.strokeStyle = "rgba(255,255,255,0.75)";
+  ctx.lineWidth = Math.max(1, 1 * S);
   ctx.beginPath();
-  ctx.moveTo(w * 0.5, shipY - w * 0.02);
-  ctx.lineTo(w * 0.5, h * 0.56);
+  ctx.moveTo(cx, shipY - 20 * S);
+  ctx.lineTo(cx, heroChipTop);
   ctx.stroke();
 
-  /* title — chunky lettering with sticker depth, measured to fit the band */
-  const titleY = h * 0.135;
-  ctx.textAlign = "center";
+  // the dart — TUNE's size, 18 board-px above the field floor
+  drawShipGlyph(ctx, cx, shipY, TUNE.shipW * S, TUNE.shipH * S, t);
+
+  /* ── title — a word mid-type. Two light temperatures, the game's own:
+   * cyan = the world's glow (cool, ambient), flare = the typed/action
+   * (warm, tight). White core with sticker depth keeps it print-solid.
+   * Poster renders once, so blur passes are free here (never per-frame). */
+  ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
+  const titleY = h * 0.125;
+  const titleFont = (px) => `700 ${Math.round(px)}px "Space Grotesk", system-ui, sans-serif`;
+  // fit: word + caret together stay inside the margins
   let fs = w * 0.14;
-  ctx.font = `700 ${Math.round(fs)}px "Baloo 2", system-ui, sans-serif`;
-  while (ctx.measureText("TYPEFALL").width > w * 0.86 && fs > w * 0.06) {
+  ctx.font = titleFont(fs);
+  const caretW = () => fs * 0.055; // thin | bar — a block reads as the letter I
+  while (ctx.measureText("TYPEFALL").width + caretW() + w * 0.03 > w * 0.86 && fs > w * 0.06) {
     fs -= w * 0.004;
-    ctx.font = `700 ${Math.round(fs)}px "Baloo 2", system-ui, sans-serif`;
+    ctx.font = titleFont(fs);
   }
-  ctx.fillStyle = C.bgDeep;
-  ctx.fillText("TYPEFALL", w * 0.501, titleY + w * 0.009);
-  ctx.fillStyle = C.fg;
-  ctx.fillText("TYPEFALL", w * 0.5, titleY);
+  const startX = cx - (ctx.measureText("TYPEFALL").width + w * 0.03 + caretW()) / 2;
+  const baseX = startX + ctx.measureText("TYPEFALL").width;
 
-  /* tagline */
-  ctx.font = `600 ${Math.round(w * 0.036)}px "Baloo 2", system-ui, sans-serif`;
+  // 1. sticker — hard offset, the house print depth
+  ctx.fillStyle = C.bgDeep;
+  ctx.fillText("TYPEFALL", startX + w * 0.012, titleY + w * 0.012);
+  // 2. ambient — one wide, faint cyan halo (the world's light)
+  ctx.save();
+  ctx.shadowColor = "rgba(40, 224, 232, 0.55)";
+  ctx.shadowBlur = w * 0.045;
+  ctx.fillStyle = "rgba(40, 224, 232, 0.22)";
+  ctx.fillText("TYPEFALL", startX, titleY);
+  ctx.fillText("TYPEFALL", startX, titleY); // double pass deepens the halo
+  ctx.restore();
+  // 3. core — crisp white with a tight cyan rim
+  ctx.save();
+  ctx.shadowColor = "rgba(40, 224, 232, 0.8)";
+  ctx.shadowBlur = w * 0.012;
+  ctx.fillStyle = C.fg;
+  ctx.fillText("TYPEFALL", startX, titleY);
+  ctx.restore();
+  // 4. the typed lock — the verb "TYPE" already struck, in full flare
+  //    with its warm glow (FALL still waiting in white)
+  ctx.save();
+  ctx.shadowColor = "rgba(255, 106, 61, 0.85)";
+  ctx.shadowBlur = w * 0.02;
+  ctx.fillStyle = C.flare;
+  ctx.fillText("TYPE", startX, titleY);
+  ctx.restore();
+  // 5. the caret — terminal block, frozen mid-blink at the word's end
+  ctx.save();
+  ctx.shadowColor = "rgba(255, 106, 61, 0.8)";
+  ctx.shadowBlur = w * 0.014;
+  ctx.fillStyle = C.flare;
+  ctx.fillRect(baseX + w * 0.028, titleY - fs * 0.78, caretW(), fs * 0.78);
+  ctx.restore();
+
+  /* tagline — the product's eyebrow voice: mono, tracked wide, uppercase */
+  const tagFs = Math.round(w * 0.026);
+  ctx.font = `700 ${tagFs}px "Space Mono", ui-monospace, monospace`;
+  ctx.letterSpacing = `${Math.round(tagFs * 0.24)}px`;
   ctx.fillStyle = C.accent;
-  ctx.fillText("type the word · save the line", w * 0.5, titleY + w * 0.075);
+  ctx.textAlign = "center";
+  ctx.fillText("TYPE THE WORD · SAVE THE LINE", cx + tagFs * 0.12, titleY + w * 0.075);
+  ctx.letterSpacing = "0px";
 
   /* declare the lettering band for the bundler's collision check */
-  ctx.__frogoeTitleBand = [w * 0.05, titleY - fs, w * 0.95, titleY + w * 0.09];
+  ctx.__frogoeTitleBand = [w * 0.05, titleY - fs, w * 0.95, titleY + w * 0.085];
 }
