@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.0](https://github.com/frogoe/engine/compare/v0.7.0...v0.8.0) (2026-09-13)
+
+
+### Features
+
+* **cli:** contract 0.2.0 upgrade path + raw-keyboard/stale-pin findings ([46fc11e](https://github.com/frogoe/engine/commit/46fc11e94fa3854ef7bba187d0722b11c71aa36c))
+* **cli:** sandbox dual-touch step + contract version probe; examples on 0.2.0 ([38c4eba](https://github.com/frogoe/engine/commit/38c4eba17ccabc49b41cdf495c19bae34d768be3))
+* **registry:** hud-keyboard block — on-screen keys for the type verb ([33ec4a7](https://github.com/frogoe/engine/commit/33ec4a720482ec69c808093f206fd9b241eaef0d))
+
 ## [0.7.0](https://github.com/frogoe/engine/compare/v0.6.0...v0.7.0) (2026-09-12)
 
 
