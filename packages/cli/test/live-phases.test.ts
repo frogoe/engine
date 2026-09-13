@@ -76,6 +76,7 @@ export class FakeDriver implements LiveDriver {
   taps = 0;
   holds = 0;
   drags = 0;
+  duals = 0;
   types: string[] = [];
   shots: string[] = [];
 
@@ -178,8 +179,16 @@ export class FakeDriver implements LiveDriver {
     this.drags += 1;
   }
 
+  async dualTouch(): Promise<void> {
+    this.duals += 1;
+  }
+
   async type(text: string): Promise<void> {
     this.types.push(text);
+  }
+
+  async contractVersion(): Promise<string> {
+    return "0.2.0";
   }
 
   async clickRetryAwaitReload(): Promise<boolean> {
@@ -402,7 +411,7 @@ describe("input ladders per declared verb", () => {
   });
 
   test("the classic verbs keep the original seven-step ladder byte-for-byte", () => {
-    for (const verb of ["tap", "hold", "steer", "aim", "idle"]) {
+    for (const verb of ["tap", "steer", "aim", "idle"]) {
       expect(ladderFor(verb, viewport)).toEqual(ladderFor("tap", viewport));
       expect(counts(ladderFor(verb, viewport))).toEqual({
         drags: 1,
@@ -411,6 +420,13 @@ describe("input ladders per declared verb", () => {
         types: 0,
       });
     }
+  });
+
+  test("hold speaks pads: the seven-step ladder plus one dual-touch step", () => {
+    const steps = ladderFor("hold", viewport);
+    expect(steps.filter((s) => s.kind === "dual")).toHaveLength(1);
+    // the classic prefix survives unchanged before the dual step lands
+    expect(steps.slice(0, 7)).toEqual(ladderFor("tap", viewport));
   });
 
   test("swap speaks match-3: adjacent tap pairs plus both sweep directions", () => {
@@ -443,6 +459,12 @@ describe("input ladders per declared verb", () => {
     // draw ladder once + throttle replay once (start bursts are taps)
     expect(driver.drags).toBe(6);
     expect(driver.types).toEqual([]);
+  });
+
+  test("the hold ladder's dual-touch step reaches the driver", async () => {
+    const { driver } = await run(healthyWorld(), { verb: "hold" });
+    // ladder once + throttle replay once = two dual presses
+    expect(driver.duals).toBe(2);
   });
 
   test("the type ladder reaches the page as keyboard text", async () => {

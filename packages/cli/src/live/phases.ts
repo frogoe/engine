@@ -43,6 +43,8 @@ export const HOLD_STEP_INDEX = 3;
 export const DRAG_STEP_INDEX = 5;
 export const DRAG_SPAN = 90;
 export const HOLD_MS = 400;
+/** Both thumbs down, briefly — the dual-touch step's dwell. */
+export const DUAL_MS = 300;
 /** END-phase state polling cadence. */
 export const POLL_MS = 400;
 /** Grace before declaring the finish event missing (dispatch is
@@ -94,6 +96,7 @@ export type LadderStep =
   | { kind: "tap"; x: number; y: number }
   | { kind: "hold"; ms: number; x: number; y: number }
   | { kind: "drag"; x1: number; x2: number; y1: number; y2: number }
+  | { kind: "dual"; x1: number; x2: number; y1: number; y2: number }
   | { kind: "type"; text: string };
 
 export const ladderFor = (
@@ -115,7 +118,7 @@ export const ladderFor = (
     return { kind: "drag", x1: x - DRAG_SPAN, x2: x + DRAG_SPAN, y1: y, y2: y };
   };
 
-  // tap/hold/steer/aim/idle: the original seven-step ladder, unchanged —
+  // tap/steer/aim/idle: the original seven-step ladder, unchanged —
   // jittered taps, one hold (step 3), one horizontal sweep (step 5)
   const base = (): LadderStep[] =>
     Array.from({ length: PLAY_STEPS }, (_, step): LadderStep => {
@@ -127,6 +130,21 @@ export const ladderFor = (
     });
 
   switch (verb) {
+    case "hold": {
+      // pads and charge buttons are the hold habitat — and pads are
+      // where two thumbs land at once. The dual step presses both
+      // sides simultaneously: per-touch routing must survive it
+      return [
+        ...base(),
+        {
+          kind: "dual",
+          x1: Math.round(viewport.width * 0.25),
+          x2: Math.round(viewport.width * 0.75),
+          y1: Math.round(viewport.height * 0.7),
+          y2: Math.round(viewport.height * 0.7),
+        },
+      ];
+    }
     case "swap": {
       // match-3 dialect: adjacent tap PAIRS (tap a, tap the neighbor —
       // the tap-tap swap) plus both sweep directions (drag-swap)
@@ -197,6 +215,9 @@ const execStep = async (driver: LiveDriver, step: LadderStep): Promise<void> => 
       break;
     case "drag":
       await driver.drag(step.x1, step.y1, step.x2, step.y2);
+      break;
+    case "dual":
+      await driver.dualTouch(step.x1, step.y1, step.x2, step.y2, DUAL_MS);
       break;
     case "type":
       await driver.type(step.text);

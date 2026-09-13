@@ -63,9 +63,17 @@ export interface LiveDriver {
   /** Press at (x1,y1), sweep to (x2,y2), release — the drag/steer
    *  verb: games that only respond to movement-while-pressed. */
   drag(x1: number, y1: number, x2: number, y2: number): Promise<void>;
+  /** Two simultaneous touches with independent ids — the multi-touch
+   *  contract surface (pads, pinch affordances). Synthesized in-page as
+   *  PointerEvents: deterministic, exercises the contract's per-touch
+   *  routing directly, and sidesteps CDP touch-emulation flakiness. */
+  dualTouch(x1: number, y1: number, x2: number, y2: number, ms: number): Promise<void>;
   /** Type real keyboard text — the `type` verb ladder (word games and
    *  any keydown-driven surface). Touch-first games ignore it safely. */
   type(text: string): Promise<void>;
+  /** The materialized contract's version marker — proves the runtime
+   *  the sandbox judged is the one the pin promised. */
+  contractVersion(): Promise<string>;
   /** Clicks [data-block-retry] and resolves true only if a navigation
    *  (reload) follows within timeoutMs. Returns false when the button
    *  is absent or the click produces no reload. */
@@ -156,8 +164,39 @@ export const createPuppeteerDriver = ({ page, size }: PuppeteerDriverOptions): L
       });
       await page.mouse.up();
     },
+    async dualTouch(x1: number, y1: number, x2: number, y2: number, ms: number) {
+      // coordinates are our own rounded ints — baked, never interpolated
+      // from page content
+      const script = `(() => {
+        const fire = (type, id, x, y) =>
+          window.dispatchEvent(
+            new PointerEvent(type, {
+              bubbles: true,
+              cancelable: true,
+              clientX: x,
+              clientY: y,
+              isPrimary: false,
+              pointerId: id,
+            }),
+          );
+        fire("pointerdown", 11, ${JSON.stringify(Math.round(x1))}, ${JSON.stringify(Math.round(y1))});
+        fire("pointerdown", 12, ${JSON.stringify(Math.round(x2))}, ${JSON.stringify(Math.round(y2))});
+        fire("pointermove", 11, ${JSON.stringify(Math.round(x1 + 18))}, ${JSON.stringify(Math.round(y1))});
+        fire("pointermove", 12, ${JSON.stringify(Math.round(x2 - 18))}, ${JSON.stringify(Math.round(y2))});
+        fire("pointerup", 11, ${JSON.stringify(Math.round(x1 + 18))}, ${JSON.stringify(Math.round(y1))});
+        fire("pointerup", 12, ${JSON.stringify(Math.round(x2 - 18))}, ${JSON.stringify(Math.round(y2))});
+        return true;
+      })()`;
+      await page.evaluate(script);
+      await new Promise((resolve) => {
+        setTimeout(resolve, ms);
+      });
+    },
     async type(text: string) {
       await page.keyboard.type(text, { delay: 30 });
+    },
+    async contractVersion() {
+      return await read<string>(`window.__frogoe?.version ?? "(none)"`);
     },
     async clickRetryAwaitReload(timeoutMs: number) {
       // the card animates in AFTER state flips "over" — clicking a
