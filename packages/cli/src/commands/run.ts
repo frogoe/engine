@@ -7,7 +7,15 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { injectDevUrl } from "../export.ts";
+import { GEN_DIR, injectDevUrl } from "../export.ts";
+import {
+  adbDeviceList,
+  androidDevUrl,
+  androidSdkDir,
+  iosPreflight,
+  pickSimulator,
+  simulatorList,
+} from "../mobile.ts";
 
 import { probeFirewall } from "../net/firewall.ts";
 import { resolveLan } from "../net/ip.ts";
@@ -52,6 +60,10 @@ export const command = defineCommand({
     const port = args.port ? Number(args.port) : 0;
     if (dir === "desktop") {
       await runDesktop(port);
+      return;
+    }
+    if (dir === "ios" || dir === "android") {
+      await runMobile(dir, port);
       return;
     }
     if (!Number.isInteger(port) || port < 0) {
@@ -148,6 +160,96 @@ export const command = defineCommand({
   },
   meta: { description: "serve with live reload + phone QR" },
 });
+
+/** The mobile dev loops: same shape as desktop — frogoe dev server, the
+ *  shell's conf pointed at a URL the device webview can reach, then
+ *  `tauri <target> dev` with the device resolved up front (the CLI's
+ *  interactive picker cannot be driven programmatically). */
+const runMobile = async (target: "ios" | "android", port: number): Promise<void> => {
+  const dir = process.cwd();
+  const exportDir = path.join(dir, "export");
+  const genDir = path.join(exportDir, "src-tauri", "gen", GEN_DIR[target]);
+  if (!existsSync(path.join(exportDir, "package.json")) || !existsSync(genDir)) {
+    throw new Error(
+      `frogoe run ${target}: no ${target} target in export/ — run \`frogoe export ${target}\` once first`,
+    );
+  }
+
+  const confPath = path.join(exportDir, "src-tauri", "tauri.conf.json");
+  const healed = injectDevUrl(readFileSync(confPath, "utf-8"), "");
+  const server = await startServer(dir, port);
+
+  let devUrl: string;
+  let tauriArgs: string[];
+  if (target === "ios") {
+    const xcodeError = iosPreflight();
+    if (xcodeError !== null) throw new Error(xcodeError);
+    const sims = simulatorList();
+    const sim = pickSimulator(sims);
+    if (sim === undefined) {
+      server.stop();
+      throw new Error(
+        "frogoe run ios: no iOS simulator available — open Simulator.app and boot one (or install a runtime via Xcode → Settings → Platforms)",
+      );
+    }
+    if (!sim.booted) {
+      // tauri does not boot the device itself (the spike lesson) — we do
+      spawnSync("xcrun", ["simctl", "boot", sim.name], { encoding: "utf-8" });
+      spawnSync("xcrun", ["simctl", "bootstatus", sim.name, "-b"], { encoding: "utf-8" });
+    }
+    // the simulator shares the host's network: localhost reaches the server
+    devUrl = server.urls.local;
+    tauriArgs = ["tauri", "ios", "dev", sim.name, "--no-dev-server-wait"];
+    console.log(`\n  frogoe run ios — dev server + ${sim.name}${sim.booted ? " (booted)" : ""}`);
+  } else {
+    const sdk = androidSdkDir();
+    if (sdk === undefined) {
+      server.stop();
+      throw new Error(
+        "frogoe run android: Android SDK not found — set ANDROID_HOME (or install Android Studio; details: export/README-android.md)",
+      );
+    }
+    const devices = adbDeviceList(sdk);
+    const lan = resolveLan().ip;
+    const url = androidDevUrl(devices, lan, server.port);
+    if (url === undefined) {
+      server.stop();
+      throw new Error(
+        "frogoe run android: no device — boot an emulator or plug one in (`adb devices` must list it)",
+      );
+    }
+    devUrl = url;
+    tauriArgs = ["tauri", "android", "dev", "--no-dev-server-wait"];
+    console.log(`\n  frogoe run android — dev server + ${devices.length} device(s)`);
+  }
+
+  console.log(
+    `  local  ${server.urls.local}   (shell hot-reloads${target === "android" ? ` via ${devUrl}` : ""})`,
+  );
+  writeFileSync(confPath, injectDevUrl(healed, devUrl), "utf-8");
+
+  const child = spawn("bun", tauriArgs, { cwd: exportDir, stdio: "inherit" });
+  const shutdown = (): void => {
+    try {
+      writeFileSync(confPath, healed, "utf-8");
+    } catch {
+      // best effort — the next export self-heals anyway
+    }
+    server.stop();
+  };
+  child.on("exit", () => {
+    shutdown();
+    process.exit(0);
+  });
+  for (const signal of ["SIGINT", "SIGTERM"] as const) {
+    process.on(signal, () => {
+      shutdown();
+      child.kill(signal);
+      process.exit(0);
+    });
+  }
+  await new Promise(() => {});
+};
 
 /** The native dev loop: frogoe dev server + `bun tauri dev` pointing at
  *  it. Edits to game.js hot-reload inside the desktop shell — the same

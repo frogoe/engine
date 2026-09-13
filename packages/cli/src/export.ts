@@ -6,6 +6,12 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 
+/** Tauri's gen dir names don't match the target names: ios → apple. */
+export const GEN_DIR: Record<"ios" | "android", string> = {
+  android: "android",
+  ios: "apple",
+};
+
 /** Every token a template may carry. fill() throws if a template uses a
  *  token outside this set (typo guard) and if any token survives a fill
  *  (completeness guard) — a half-filled shell must never exist. */

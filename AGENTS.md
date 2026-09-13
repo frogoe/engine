@@ -60,7 +60,7 @@ Always lint and format changed files before committing. Lefthook pre-commit hook
 frogoe lint               # fast static contract lint (stable finding codes; --json)
 frogoe check              # full gate: + headless Chrome — FPS, playability, HUD outline
 frogoe bundle             # one self-contained HTML (externals dissolved) — only after check
-frogoe export desktop      # native app project in export/ (Tauri shell, appId required)
+frogoe export desktop|ios|android  # native app project in export/ (Tauri shell, appId required)
 ```
 
 Common findings: `brief/todo` (fill verb/mood/palette) · `input/incremental-drag` (use

@@ -13,6 +13,7 @@ import { parseBrief } from "@frogoe/lint";
 import { bundle } from "../bundle.ts";
 import {
   ExportConfigError,
+  GEN_DIR,
   type ExportConfig,
   deriveExportConfig,
   exportTemplatesFor,
@@ -137,9 +138,48 @@ const ensureGitignored = (gameDir: string): void => {
   }
 };
 
+export const MOBILE_TARGETS = ["ios", "android"] as const;
+export type Target = "desktop" | (typeof MOBILE_TARGETS)[number];
+
+/** Attach a mobile target to the export project: `tauri ios/android init`
+ *  generates gen/<target> (XcodeGen project / Gradle project). Runs ONLY
+ *  when the gen dir is missing — a re-init regenerates and would clobber
+ *  creator customizations (entitlements, plist tweaks); --force is the
+ *  explicit path back. */
+export const ensureMobileInit = (
+  exportDir: string,
+  target: "ios" | "android",
+  options?: { force?: boolean; initRunner?: InitRunner },
+): "initialized" | "skipped" => {
+  const gen = path.join(exportDir, "src-tauri", "gen", GEN_DIR[target]);
+  if (existsSync(gen) && options?.force !== true) return "skipped";
+  const runner = options?.initRunner ?? defaultInitRunner;
+  runner(exportDir, target);
+  return "initialized";
+};
+
+export type InitRunner = (exportDir: string, target: "ios" | "android") => void;
+
+const defaultInitRunner: InitRunner = (exportDir, target) => {
+  const init = spawnSync("bun", ["tauri", target, "init"], {
+    cwd: exportDir,
+    encoding: "utf-8",
+    stdio: ["ignore", "inherit", "inherit"],
+  });
+  if (init.status !== 0) {
+    throw new ExportConfigError(
+      `frogoe export ${target}: bun tauri ${target} init failed — ${target === "ios" ? "Xcode and its command line tools are required" : "Android SDK and Java are required (see export/README-android.md)"}`,
+    );
+  }
+};
+
 export const command = defineCommand({
   args: {
-    target: { type: "positional", required: false, description: "desktop (ios/android ship next)" },
+    target: {
+      type: "positional",
+      required: false,
+      description: "desktop | ios | android (they share one export/ project)",
+    },
     dir: { type: "string", description: "game folder (default: cwd)" },
     force: { type: "boolean", description: "overwrite creator-edited tool files" },
     json: { type: "boolean", description: "machine-readable report" },
@@ -147,9 +187,10 @@ export const command = defineCommand({
   },
   async run({ args }) {
     const dir = args.dir ? path.resolve(String(args.dir)) : process.cwd();
-    if (args.target && String(args.target) !== "desktop") {
+    const target = (args.target ?? "desktop") as Target;
+    if (!["desktop", "ios", "android"].includes(target)) {
       throw new Error(
-        `frogoe export: unknown target "${String(args.target)}" — desktop ships now; ios/android attach to this same project next`,
+        `frogoe export: unknown target "${String(args.target)}" — valid: desktop, ios, android (they share one export/ project)`,
       );
     }
     const brief = parseBrief(readFileSync(path.join(dir, "BRIEF.md"), "utf-8"));
@@ -170,6 +211,19 @@ export const command = defineCommand({
     });
     const result = generateShell(dir, config, { force: args.force === true });
     ensureGitignored(dir);
+    if (target === "ios" || target === "android") {
+      // attach/refresh the native target, then regenerate the icon set —
+      // `tauri icon` populates gen/apple's AppIcon and gen/android's res
+      // the moment those dirs exist
+      const init = ensureMobileInit(result.dir, target, { force: args.force === true });
+      spawnSync("bun", ["tauri", "icon", path.join(dir, "dist", "assets", "icon.png")], {
+        cwd: result.dir,
+        encoding: "utf-8",
+      });
+      if (init === "initialized") {
+        console.log(`  attached ${target} → export/src-tauri/gen/${GEN_DIR[target]}/`);
+      }
+    }
 
     if (args.json) {
       console.log(JSON.stringify(result, null, 2));

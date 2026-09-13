@@ -42,13 +42,14 @@ Commands:
   add <block>              copy a registry HUD block into blocks/
   run [dir]                serve with live reload + phone QR (--tunnel: any network)
   run desktop              the same loop inside the exported native shell
+  run ios / run android    the loop on a simulator / connected device
   lint [dir]               static contract lint — fast iteration (stable codes; --json)
   check [dir]              full gate: lint + live Chrome sandbox (FPS, HUD outline)
                            --fast: static only, no Chrome (quick iteration)
   report [dir]             last playtest session: fps dips, errors, when
   bundle [dir]             dissolve externals → one self-contained HTML
   embed [dir]              wrap the bundle in a card (poster + manifest)
-  export [desktop]         native app project in export/ (buildable, signable)
+  export [desktop|ios|android]  native app project in export/ (buildable, signable)
   vision [dir]             see the game: objects, frames, art as ASCII maps
                            --poster/--icon/--gameplay/--objects: one window only
                            --full: all windows (default is poster + gameplay)

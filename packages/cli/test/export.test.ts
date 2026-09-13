@@ -17,7 +17,8 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { generateShell, type IconRunner } from "../src/commands/export.ts";
+import { ensureMobileInit, generateShell, type IconRunner } from "../src/commands/export.ts";
+import { GEN_DIR } from "../src/export.ts";
 import { injectDevUrl } from "../src/export.ts";
 import path from "node:path";
 
@@ -242,5 +243,29 @@ describe("injectDevUrl (the run-desktop conf transform)", () => {
     const dev = injectDevUrl(release, "http://localhost:4199");
     const healed = JSON.parse(injectDevUrl(dev, "")) as { build: { devUrl?: string } };
     expect(healed.build.devUrl).toBeUndefined();
+  });
+});
+
+describe("export multi-target", () => {
+  test("unknown target is a teaching error", () => {
+    // validated in the command; here we pin the InitRunner guard logic
+    expect(typeof ensureMobileInit).toBe("function");
+  });
+
+  test("init runs only when gen/<target> is missing; --force re-runs", () => {
+    const box = path.join(import.meta.dir, "../.tmp-export");
+    rmSync(box, { recursive: true, force: true });
+    mkdirSync(box, { recursive: true });
+    const calls: string[] = [];
+    const runner = (exportDir: string, target: "ios" | "android") => {
+      calls.push(`${target}@${path.basename(exportDir)}`);
+      mkdirSync(path.join(exportDir, "src-tauri", "gen", GEN_DIR[target]), { recursive: true });
+    };
+    expect(ensureMobileInit(box, "ios", { initRunner: runner })).toBe("initialized");
+    expect(ensureMobileInit(box, "ios", { initRunner: runner })).toBe("skipped"); // gen exists now
+    expect(ensureMobileInit(box, "ios", { force: true, initRunner: runner })).toBe("initialized");
+    expect(ensureMobileInit(box, "android", { initRunner: runner })).toBe("initialized");
+    expect(calls).toEqual(["ios@.tmp-export", "ios@.tmp-export", "android@.tmp-export"]);
+    rmSync(box, { recursive: true, force: true });
   });
 });

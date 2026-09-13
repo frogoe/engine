@@ -1,12 +1,12 @@
 # Export — native app projects from the verified artifact
 
-**Status: LIVE (`frogoe export desktop`; `frogoe run desktop`).**
+**Status: LIVE (`frogoe export desktop|ios|android`; `frogoe run desktop|ios|android`).**
 
-`frogoe export [desktop]` turns the game into a buildable native app project in
-`export/` — a Tauri 2 shell with the artifact embedded (`web/index.html`).
-Desktop (macOS/Windows/Linux) ships now; iOS/Android attach to the SAME project
-(`tauri ios/android init`) without template changes — the mobile entry point is
-declared from day one.
+`frogoe export [desktop|ios|android]` turns the game into a buildable native app
+project in `export/` — one Tauri 2 shell with the artifact embedded
+(`web/index.html`); `ios`/`android` ATTACH native targets to it
+(`src-tauri/gen/apple|android`) without template changes. The mobile entry
+point was declared from day one.
 
 ## The division of labor (load-bearing)
 
@@ -21,6 +21,10 @@ The CLI never touches credentials.
 ## Commands
 
 ```bash
+frogoe export ios       # attach gen/apple (Xcode project; simulator needs no signing)
+frogoe export android  # attach gen/android (Gradle; needs Android SDK + Java)
+frogoe run ios          # dev server + simulator — hot reload in the iOS shell
+frogoe run android     # dev server + emulator/device (devUrl per target: 10.0.2.2 vs LAN)
 frogoe export desktop   # bundle → fill → payload → icons → export/ (+ README next steps)
 frogoe export --force   # overwrite creator-edited tool files (they are otherwise KEPT, listed)
 frogoe export --no-bundle  # payload refresh from dist/ as-is
@@ -42,6 +46,20 @@ Tool-owned (`frogoe-export.json` records sha256 of every file): `package.json`,
 listed; `--force` overwrites. Creator-added files are never touched. The
 dev loop (`frogoe run desktop`) restores whatever conf bytes were on disk
 when it exits — creator edits survive it.
+
+## Mobile specifics
+
+- `tauri ios/android init` runs only when `gen/apple|android` is MISSING —
+  your plist/entitlement/gradle edits survive re-exports; `--force` regenerates
+- icons: after attach, one `tauri icon` pass fills the iOS AppIcon (19 sizes)
+  and the Android launcher set from `assets/icon.js`'s 1024 render
+- `frogoe run ios` boots the picked simulator itself (tauri won't); the
+  simulator reaches the dev server via localhost
+- `frogoe run android` picks the devUrl per target (emulator → `10.0.2.2`,
+  device → LAN) and requires `adb devices` to list one
+- signing/store: per-target generated READMEs (`export/README-ios.md`,
+  `export/README-android.md`) — agent-completes, credentials via env/config
+  files that never live in the repo
 
 ## appId (required)
 
