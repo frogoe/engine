@@ -298,42 +298,47 @@ defineGame(({ stage, input, loop, finish }) => {
   input.on("up", () => Sfx.init());
 
   /* on-screen pad: hold to run, JUMP to jump.
-   * Each button tracks its own pointerId AND clears on global up/cancel/blur —
-   * a finger sliding off or a system interruption can never leave a stuck key. */
+   * Routed through the contract's per-touch records: each finger keeps its
+   * own id, and the contract's blur/cancel discipline guarantees releases —
+   * a finger sliding off or a system interruption can never leave a stuck key.
+   * Taps outside the pad still do NOTHING: hit-test decides, position alone. */
   const held = { l: false, r: false };
-  function bindPress(btn, onDown, onUp) {
-    let pid = null;
-    const down = (e) => {
-      e.preventDefault(); e.stopPropagation(); // never leak into the canvas verb
-      Sfx.init();
-      pid = e.pointerId;
-      try { btn.setPointerCapture(pid); } catch {}
-      btn.toggleAttribute("data-held", true);
-      onDown?.();
-    };
-    const up = (e) => {
-      if (pid !== null && e && e.pointerId !== undefined && e.pointerId !== pid) return;
-      pid = null;
-      btn.toggleAttribute("data-held", false);
-      onUp?.();
-    };
-    btn.addEventListener("pointerdown", down);
-    btn.addEventListener("pointerup", up);
-    btn.addEventListener("pointercancel", up);
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
-    window.addEventListener("blur", () => up());
-    document.addEventListener("visibilitychange", () => { if (document.hidden) up(); });
-    // iOS: kill the long-press loupe / selection callout at the source
-    btn.addEventListener("touchstart", (e) => e.preventDefault(), { passive: false });
-    btn.addEventListener("contextmenu", (e) => e.preventDefault());
-  }
   const btnL = document.getElementById("btnL");
   const btnR = document.getElementById("btnR");
   const btnJ = document.getElementById("btnJ");
-  bindPress(btnL, () => { Sfx.click(); held.l = true; startIfReady(); }, () => { held.l = false; });
-  bindPress(btnR, () => { Sfx.click(); held.r = true; startIfReady(); }, () => { held.r = false; });
-  bindPress(btnJ, () => { Sfx.click(); if (startIfReady()) jump(); });
+  const padButtons = [btnL, btnR, btnJ].filter(Boolean);
+  const fingerButton = new Map(); // pointerId → pad button
+  const hitPad = (x, y) => {
+    for (const btn of padButtons) {
+      const r = btn.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return btn;
+    }
+    return null;
+  };
+  const pressButton = (btn) => {
+    btn.toggleAttribute("data-held", true);
+    Sfx.click();
+    if (btn === btnL) { held.l = true; startIfReady(); }
+    else if (btn === btnR) { held.r = true; startIfReady(); }
+    else if (btn === btnJ && startIfReady()) jump();
+  };
+  const releaseButton = (btn) => {
+    if (![...fingerButton.values()].includes(btn)) btn.toggleAttribute("data-held", false);
+    if (btn === btnL) held.l = false;
+    else if (btn === btnR) held.r = false;
+  };
+  input.on("down", (p) => {
+    const btn = hitPad(p.x, p.y);
+    if (!btn) return; // outside the pad: by design, nothing
+    fingerButton.set(p.id, btn);
+    pressButton(btn);
+  });
+  input.on("up", (p) => {
+    const btn = fingerButton.get(p.id);
+    if (!btn) return;
+    fingerButton.delete(p.id);
+    releaseButton(btn);
+  });
 
   /* ready screen: the chunky PLAY button starts the run */
   document.querySelector("[data-block-play]")?.addEventListener("click", (e) => {
@@ -342,22 +347,17 @@ defineGame(({ stage, input, loop, finish }) => {
     if (startIfReady()) Sfx.jump();
   });
 
-  /* keyboard: arrows/AD run, space/W/up jump */
-  const keys = { l: false, r: false };
-  window.addEventListener("keydown", (e) => {
-    if (e.repeat) return;
-    Sfx.init();
-    if (e.code === "ArrowLeft" || e.code === "KeyA") keys.l = true;
-    if (e.code === "ArrowRight" || e.code === "KeyD") keys.r = true;
-    if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") {
-      e.preventDefault();
+  /* keyboard through the contract: edges for jumps, input.keys polling for
+   * running — repeat suppression and blur-release are the platform's job now */
+  input.on("key", (k) => {
+    if (k.dir !== "down") return;
+    if (k.code === "Space" || k.code === "ArrowUp" || k.code === "KeyW") {
       if (startIfReady()) jump();
     }
-    if (phase === "ready" && (keys.l || keys.r)) startIfReady();
-  });
-  window.addEventListener("keyup", (e) => {
-    if (e.code === "ArrowLeft" || e.code === "KeyA") keys.l = false;
-    if (e.code === "ArrowRight" || e.code === "KeyD") keys.r = false;
+    if (phase === "ready" && (k.code === "ArrowLeft" || k.code === "KeyA" ||
+                              k.code === "ArrowRight" || k.code === "KeyD")) {
+      startIfReady();
+    }
   });
 
   retryEl?.addEventListener("click", (e) => {
@@ -463,7 +463,9 @@ defineGame(({ stage, input, loop, finish }) => {
       if (rainT <= 0) { spawnRainSaw(); rainT = rainEvery(); }
 
       /* run: pad buttons + keyboard */
-      const dir = (held.l || keys.l ? -1 : 0) + (held.r || keys.r ? 1 : 0);
+      const runL = held.l || input.keys.has("ArrowLeft") || input.keys.has("KeyA");
+      const runR = held.r || input.keys.has("ArrowRight") || input.keys.has("KeyD");
+      const dir = (runL ? -1 : 0) + (runR ? 1 : 0);
       const target = dir * TUNE.runSpeed;
       player.vx += (target - player.vx) * Math.min(1, dt * 14);
       if (Math.abs(player.vx) < 4) player.vx = 0;

@@ -321,7 +321,7 @@ const checkFolder = (dir: string, findings: Finding[], brief: Brief | null): voi
       line: rawKeyLine,
       message: "raw keydown/keyup listener bypasses the contract",
       recipe: "frogoe-core → contract (keyboard)",
-      severity: "warning",
+      severity: "error",
     });
   }
   const dragLine = gameLine(/\+=\s*(?:p|pt|pointer)\.(?:dx|dy)\b/u);

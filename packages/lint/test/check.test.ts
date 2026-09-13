@@ -191,7 +191,7 @@ defineGame(({ input, loop }) => {
 `,
     });
     const finding = checkProject(dir).findings.find((f) => f.code === "input/raw-keyboard");
-    expect(finding?.severity).toBe("warning");
+    expect(finding?.severity).toBe("error");
     expect(finding?.line).toBe(3);
 
     writeGame(dir, {
