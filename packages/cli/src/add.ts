@@ -23,6 +23,35 @@ interface RegistryItem {
   pos?: string;
 }
 
+/** Split a region into its <style> blocks and the remaining markup —
+ *  LINEAR string ops only (indexOf/slice, one forward scan). The lazy
+ *  regex this replaces (`/<style>([\s\S]*?)<\/style>/gu`) is the
+ *  polynomial-backtracking shape CodeQL flags (js/polynomial-redos):
+ *  many `<style>` repetitions with no closers make it O(n²). */
+const splitStyles = (text: string): { cssParts: string[]; markup: string } => {
+  const cssParts: string[] = [];
+  let markup = "";
+  let rest = text;
+  for (;;) {
+    const open = rest.indexOf("<style>");
+    if (open === -1) {
+      markup += rest;
+      break;
+    }
+    const close = rest.indexOf("</style>", open);
+    if (close === -1) {
+      // unterminated tag — the remainder stays markup (registry blocks
+      // are well-formed; this branch just guarantees termination)
+      markup += rest;
+      break;
+    }
+    markup += rest.slice(0, open);
+    cssParts.push(rest.slice(open + "<style>".length, close));
+    rest = rest.slice(close + "</style>".length);
+  }
+  return { cssParts, markup };
+};
+
 /** Extract CSS and markup from a block file. Linear string ops — the old
  *  `</style>\s*([\s\S]*)$` regex overlapped two unbounded quantifiers and
  *  backtracked quadratically (CodeQL: js/polynomial-redos); the `\s*` was
@@ -55,10 +84,9 @@ export const parseBlock = (source: string): { css: string | null; markup: string
       if (idx === 0) region = region.slice(opener.length).trim();
     }
   }
-  const styles = [...region.matchAll(/<style>([\s\S]*?)<\/style>/gu)].map((m) => m[1] ?? "");
-  const css = styles.length > 0 ? styles.join("\n").trim() : null;
-  const markup = region.replace(/<style>[\s\S]*?<\/style>/gu, "").trim();
-  return { css, markup };
+  const { cssParts, markup } = splitStyles(region);
+  const css = cssParts.length > 0 ? cssParts.map((part) => part.trim()).join("\n") : null;
+  return { css, markup: markup.trim() };
 };
 
 /** Generate a stable marker comment for idempotent injection. */
