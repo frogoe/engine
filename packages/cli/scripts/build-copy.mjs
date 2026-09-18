@@ -27,6 +27,10 @@ cpSync(
 cpSync(path.resolve(here, "../src/export-templates"), path.join(out, "export-templates"), {
   recursive: true,
 });
+// CI workflow templates (frogoe export's no-Rust path) — game-root files
+cpSync(path.resolve(here, "../src/ci-templates"), path.join(out, "ci-templates"), {
+  recursive: true,
+});
 
 // agent docs (CLAUDE.md + AGENTS.md) for frogoe init scaffolds
 cpSync(path.resolve(here, "../src/templates/_shared"), path.join(out, "templates/_shared"), {

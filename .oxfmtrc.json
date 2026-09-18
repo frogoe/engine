@@ -7,6 +7,8 @@
     ".claude/**",
     ".agents/**",
     "docs/**",
+    "packages/cli/src/export-templates/**",
+    "packages/cli/src/ci-templates/**",
     "**/CHANGELOG.md",
     "**/.release-please-manifest.json"
   ]

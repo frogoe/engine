@@ -142,6 +142,22 @@ export const exportTemplatesFor = (base: string): string => {
   );
 };
 
+/** Where the CI workflow templates live (same repo-vs-package resolution
+ *  as exportTemplatesFor). Kept OUTSIDE export-templates on purpose:
+ *  the walk in generateShell copies that whole tree into export/ — which
+ *  is gitignored, so GitHub would never see a workflow placed there.
+ *  CI workflows belong at the GAME ROOT, tracked. */
+export const ciTemplatesFor = (base: string): string => {
+  const repo = path.join(base, "ci-templates");
+  const marker = path.join(repo, "build-desktop.yml");
+  if (existsSync(marker)) return repo;
+  const dist = path.join(base, "..", "ci-templates");
+  if (existsSync(path.join(dist, "build-desktop.yml"))) return dist;
+  throw new ExportConfigError(
+    "frogoe export: ci templates not found (neither src/ci-templates nor dist) — the CLI install is broken; report it",
+  );
+};
+
 /** Dev-loop config transform for the shell: point `tauri dev` at the
  *  frogoe dev server (live reload flows through the native webview) and
  *  drop beforeDevCommand — the CLI owns the server, not Tauri. Injecting

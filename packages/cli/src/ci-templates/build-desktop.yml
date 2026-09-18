@@ -1,0 +1,38 @@
+name: frogoe build (desktop)
+
+# Written by `frogoe export desktop` — the no-Rust-local path. CI
+# regenerates export/ from source (bundle → shell → icons), then
+# compiles the Tauri shell around the artifact. The .dmg is unsigned:
+# testing and sharing. Stores require your own signing identity
+# (see export/README.md).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: export/src-tauri
+      - name: Gate - the same rule as local dev
+        run: bunx frogoe@latest check
+      - name: Export - bundle + fill the shell + icons
+        run: bunx frogoe@latest export desktop
+      - name: Compile the desktop shell
+        working-directory: export
+        run: |
+          bun install
+          bun tauri build
+      - name: Upload the .dmg
+        uses: actions/upload-artifact@v4
+        with:
+          name: {{FROGOE_APP_NAME}}-macos
+          path: export/src-tauri/target/release/bundle/dmg/*.dmg
+          if-no-files-found: error

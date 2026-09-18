@@ -15,6 +15,7 @@ import {
   ExportConfigError,
   GEN_DIR,
   type ExportConfig,
+  ciTemplatesFor,
   deriveExportConfig,
   exportTemplatesFor,
   fill,
@@ -34,6 +35,21 @@ const walkFiles = (dir: string, base = dir): string[] => {
   for (const entry of readdirSync(dir)) {
     const full = path.join(dir, entry);
     if (statSync(full).isDirectory()) out.push(...walkFiles(full, base));
+    else out.push(path.relative(base, full).split(path.sep).join("/"));
+  }
+  return out;
+};
+
+/** The integrity record walks the export dir EXCEPT generated bulk:
+ *  node_modules (installed), target/ (cargo build), gen/ (tauri ios/
+ *  android init) — machine-produced, never creator-edited templates,
+ *  and collectively thousands of files that would bloat the record. */
+const walkRecordedFiles = (dir: string, base = dir): string[] => {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    if (entry === "node_modules" || entry === "target" || entry === "gen") continue;
+    const full = path.join(dir, entry);
+    if (statSync(full).isDirectory()) out.push(...walkRecordedFiles(full, base));
     else out.push(path.relative(base, full).split(path.sep).join("/"));
   }
   return out;
@@ -87,6 +103,19 @@ export const generateShell = (
   mkdirSync(webDir, { recursive: true });
   writeFileSync(path.join(webDir, "index.html"), artifact);
 
+  // 2b) the shell's own deps: `bun tauri …` (icon, later dev/build) runs
+  //     against export/package.json — a fresh checkout has no node_modules
+  //     yet, so export installs them itself. Once. The CLI owns the shell's
+  //     lifecycle; "clone and export" must work without a manual install.
+  if (!existsSync(path.join(exportDir, "node_modules"))) {
+    const install = spawnSync("bun", ["install"], { cwd: exportDir, encoding: "utf-8" });
+    if (install.status !== 0) {
+      throw new ExportConfigError(
+        `frogoe export: bun install failed in export/ (${(install.stderr || "").slice(0, 120)}) — fix your network or run it manually, then re-export`,
+      );
+    }
+  }
+
   // 3) icons: one command feeds every platform's set (mac/win/linux now,
   //    ios/android mipmaps the moment E2 attaches them)
   const iconSource = path.join(gameDir, "dist", "assets", "icon.png");
@@ -95,7 +124,7 @@ export const generateShell = (
 
   // 4) record: file hashes + artifact integrity
   const files: Record<string, string> = {};
-  for (const rel of walkFiles(exportDir)) {
+  for (const rel of walkRecordedFiles(exportDir)) {
     if (rel === "frogoe-export.json") continue;
     files[rel] = sha(readFileSync(path.join(exportDir, rel)));
   }
@@ -140,6 +169,26 @@ const ensureGitignored = (gameDir: string): void => {
 
 export const MOBILE_TARGETS = ["ios", "android"] as const;
 export type Target = "desktop" | (typeof MOBILE_TARGETS)[number];
+
+/** Drop the CI workflow at the GAME ROOT — the no-Rust build path. Only
+ *  when the game folder IS a git root: a workflow must be tracked to run,
+ *  and in nested layouts (an engine repo's examples/) the paths would
+ *  lie. Write-if-changed, so re-export never dirties the tree silently. */
+export const ensureCiWorkflow = (gameDir: string, config: ExportConfig): string | null => {
+  if (!existsSync(path.join(gameDir, ".git"))) return null;
+  const templates = ciTemplatesFor(path.dirname(new URL(import.meta.url).pathname));
+  const workflowDir = path.join(gameDir, ".github", "workflows");
+  const dest = path.join(workflowDir, "frogoe-build-desktop.yml");
+  const filled = fill(
+    readFileSync(path.join(templates, "build-desktop.yml"), "utf-8"),
+    config,
+    "frogoe-build-desktop.yml",
+  );
+  if (existsSync(dest) && readFileSync(dest, "utf-8") === filled) return null;
+  mkdirSync(workflowDir, { recursive: true });
+  writeFileSync(dest, filled, "utf-8");
+  return dest;
+};
 
 /** Attach a mobile target to the export project: `tauri ios/android init`
  *  generates gen/<target> (XcodeGen project / Gradle project). Runs ONLY
@@ -211,6 +260,7 @@ export const command = defineCommand({
     });
     const result = generateShell(dir, config, { force: args.force === true });
     ensureGitignored(dir);
+    const workflow = target === "desktop" ? ensureCiWorkflow(dir, config) : null;
     if (target === "ios" || target === "android") {
       // attach/refresh the native target, then regenerate the icon set —
       // `tauri icon` populates gen/apple's AppIcon and gen/android's res
@@ -237,6 +287,11 @@ export const command = defineCommand({
       console.log(
         `  artifact sha256 ${result.artifactSha.slice(0, 12)} · ${result.written.length} file(s) written`,
       );
+      if (workflow !== null) {
+        console.log(
+          `  ci → ${path.relative(dir, workflow)} (tracked — push, and GitHub builds your .dmg without local Rust)`,
+        );
+      }
       if (result.skipped.length > 0) {
         console.log(`  ⚠ kept your edits (${result.skipped.length}):`);
         for (const rel of result.skipped) console.log(`    · ${rel}`);
