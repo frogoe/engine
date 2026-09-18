@@ -16,6 +16,8 @@ Pure static checks via `packages/lint`. Zero browser deps. Every finding carries
 | folder/contract-stale | warning | pinned contract predates the current one — bump frogoe.json and run `frogoe init --force` (the upgrade path preserves game code and BRIEF) |
 | input/incremental-drag | error | the shipped wall-rocket bug (incremental dx) |
 | input/absolute-steering, layout/innerwidth-spawn | warning | thumb-ghosting / parity risks |
+| stage/cached-metrics | error | stage geometry destructured into a const — frozen at boot, stale after any resize (read stage.play fresh per tick; normalized coords remap on change) |
+| hud/magic-anchor | warning | data-pos wrapper with an inline tuned offset — center structurally (inset:0 + grid), tuned % drifts per geometry |
 | audio/suspended-only | warning | resume gated on suspended only — iOS interrupted contexts stay silent (frogoe-core → audio.md) |
 | game/loop-update, game/loop-render | warning | runtime will teach, fix first |
 | blocks/binding-orphan | warning | selector targets nothing (block not pasted?) |

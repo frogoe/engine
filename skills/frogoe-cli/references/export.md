@@ -38,6 +38,27 @@ frogoe run desktop      # dev server + bun tauri dev — game.js edits hot-reloa
 - Windows: WebView2 (preinstalled on Win 11)
 - Linux: webkit2gtk-4.1 dev packages (Tauri prerequisites doc)
 
+## No Rust? Two paths run today
+
+- **The browser artifact** — `dist/index.html` runs on any desktop, zero
+  toolchain. The native shell is opt-in polish, not a requirement.
+- **CI builds it for you** — `frogoe export desktop` writes
+  `.github/workflows/frogoe-build-desktop.yml` at the GAME ROOT (tracked,
+  when the game folder is a git repo). Push; GitHub regenerates export/
+  (check → export → compile) and hands back an unsigned .dmg artifact.
+  Signing for stores is yours (the generated README documents it).
+
+## The window doctrine (free-size desktop)
+
+The desktop window opens **960×640 landscape** (min 360×480) and resizes
+or maximizes freely — the window belongs to the desktop. The GAMEPLAY
+stays a portrait play column, centered, identical on every screen
+(`stage.play`); the world (bg, particles) extends to fill the window.
+Center overlays structurally (`inset: 0` + grid) — tuned `%` positions
+drift per geometry. The sandbox enforces this live (`live/resize`
+resizes mid-run; `stage/cached-metrics` + `hud/magic-anchor` catch the
+static shapes).
+
 ## Ownership inside export/
 
 Tool-owned (`frogoe-export.json` records sha256 of every file): `package.json`,

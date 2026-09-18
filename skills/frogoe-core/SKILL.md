@@ -62,6 +62,20 @@ defineGame(({ stage, input, loop, finish }) => {
   popups at world positions).
 - **Gameplay coordinates use `stage.play`** (capped centered column), never raw
   `window.innerWidth` — parity between phone and desktop.
+- **Stage geometry is LIVE — read it fresh, never cache it**. Desktop windows are
+  free-size (the native shell opens 960×640 and resizes/maximizes freely); the iOS
+  keyboard shifts the viewport mid-run. `const { width } = stage.play` freezes the
+  boot-time geometry and everything derived from it goes stale after a resize
+  (`stage/cached-metrics` error). The pattern: a `layout()` helper called per tick,
+  entities store NORMALIZED coords (`nx` in 0..1) remapped to `stage.play` on change,
+  and per-frame lerps toward `stage.play.center` self-heal. The sandbox resizes the
+  viewport mid-run and fails the check on stale geometry (`live/resize`).
+- **Overlay centering is structural, never tuned** — `inset: 0; display: grid;
+  place-items: center` (the registry overlay pattern). A `top: 44%` that looks
+  centered on the phone it was tuned on drifts on every other geometry
+  (`hud/magic-anchor` warning). The letterbox model makes it honest: window owns
+  the desktop, the play column owns the gameplay, the world (bg, particles)
+  extends to fill — at any size.
 - **Fixed furniture respects `stage.safe`** — notches cover fixed y=34 text.
 - **One page, zero runtime requests** after bundling: everything the game needs is
   inline. Author-time externals are fine; the bundler dissolves them.

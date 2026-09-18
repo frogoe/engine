@@ -191,7 +191,7 @@ describe("export shell generation (command-level, toolchain mocked)", () => {
     generate();
     // the creator (or their agent) tunes the window via Cargo/Cargo edits:
     const confPath = path.join(tmp, "export", "src-tauri", "tauri.conf.json");
-    const edited = readFileSync(confPath, "utf-8").replace('"height": 880', '"height": 900');
+    const edited = readFileSync(confPath, "utf-8").replace('"height": 640', '"height": 900');
     writeFileSync(confPath, edited);
     // a creator-added file of their own:
     writeFileSync(path.join(tmp, "export", "NOTES.md"), "mine");
@@ -205,7 +205,7 @@ describe("export shell generation (command-level, toolchain mocked)", () => {
     const result = generate(true);
     expect(result.skipped).toEqual([]);
     const confPath = path.join(tmp, "export", "src-tauri", "tauri.conf.json");
-    expect(readFileSync(confPath, "utf-8")).toContain('"height": 880');
+    expect(readFileSync(confPath, "utf-8")).toContain('"height": 640');
   });
 
   test("payload refresh follows dist/ (artifact swap recorded)", () => {

@@ -102,6 +102,7 @@ docs/
 - **Externals dissolve at build**: allowlisted CDN dependencies are fetched, pinned, hashed, and inlined by `frogoe bundle` — the artifact has zero runtime requests
 - **Keyboard and multi-touch flow through the contract** — `input.on("key")` for edges (repeat suppressed), `input.keys` for held codes, per-touch `id` snapshots for pads; raw `addEventListener("keydown")` is an `input/raw-keyboard` error. A stale contract pin upgrades via `frogoe init --force` (game code and BRIEF preserved).
 - **pointer.dx is anchor-relative** (since touch-down): steer with `x = grabX + p.dx` or track lastX. NEVER `x += p.dx`
+- **Stage geometry is live** (free-size desktop windows, iOS keyboard): read `stage.play` fresh per tick, never cache it in a const; center overlays structurally (`inset: 0` + grid), never tuned `%` — `stage/cached-metrics` / `hud/magic-anchor` / `live/resize` gate it
 - **Gameplay uses `stage.play`** (capped centered column), never raw innerWidth
 - **One artifact, one fetch**: `frogoe bundle` output is a single self-contained HTML file — verified == played
 - **Identity art is authored and 1:1 by construction** (`assets/poster.js` + `assets/icon.js` canvas scenes importing sprites from `game.js`; `art/*` findings gate it): bundle renders them on the game page (poster 1080×1920, icon 1024), `frogoe embed` composes the card (poster loading state → fade on running) + `dist/manifest.json`

@@ -92,28 +92,31 @@ frogoe check             # full gate: + browser — runtime errors, canvas paint
 
 Fix all errors before presenting the result. Common findings:
 
-| Code                     | Meaning                                                  | Fix                                                                                           |
-| ------------------------ | -------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `brief/todo`             | BRIEF.md still has TODO markers                          | Fill in verb, mood, palette                                                                   |
-| `art/missing`            | `assets/poster.js` / `assets/icon.js` absent             | Author both scenes — they import sprites from game.js (frogoe-creative → `references/art.md`) |
-| `art/title-band`         | poster declares no lettering-block band                  | Set `ctx.__frogoeTitleBand = [x0,y0,x1,y1]` from the layout variables (never hand-typed)      |
-| `input/incremental-drag` | `x += p.dx` (wall-rocket bug)                            | Use `x = grabX + p.dx` or track lastX                                                         |
-| `folder/touch-select`    | Phone long-press summons text selection (iOS + Android)  | Add `-webkit-user-select: none; user-select: none; -webkit-touch-callout: none` on html/body  |
-| `audio/suspended-only`   | Resume gated on `=== "suspended"` (iOS silent bug)       | Resume when `state !== "running"` — see frogoe-core `references/audio.md`                     |
-| `brief/verb`             | Verb not in the 9-value enum                             | Pick from: tap\|hold\|steer\|aim\|swap\|place\|type\|draw\|idle — frogoe-core → brief-format  |
-| `input/raw-keyboard`     | Raw `addEventListener("keydown")` bypasses the contract  | `input.on("key", ...)` + poll `input.keys` — blur-safe, repeat-suppressed                     |
-| `folder/contract-stale`  | Pinned contract predates the current one                 | Bump frogoe.json + `frogoe init --force` (game code and BRIEF are preserved)                  |
-| `brief/session`          | Session not blitz/round/toy                              | blitz = short arcade (default), round = turn-based, toy = never ends — frogoe-core → genres   |
-| `input/verb-mismatch`    | Declared verb requires input wiring the game never wrote | Wire the required handlers — frogoe-core → brief-format (verb → handler table)                |
-| `live/hud-outline`       | HUD text missing text-shadow/stroke                      | Add `text-shadow: 0 2px 0 <dark>`                                                             |
-| `live/fps`               | Below 30fps                                              | Cache gradients, reduce shadowBlur, cut particles                                             |
-| `live/not-playable`      | Scripted taps changed nothing                            | Wire `input.on("down")` to actual game logic                                                  |
+| Code                     | Meaning                                                       | Fix                                                                                           |
+| ------------------------ | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `brief/todo`             | BRIEF.md still has TODO markers                               | Fill in verb, mood, palette                                                                   |
+| `art/missing`            | `assets/poster.js` / `assets/icon.js` absent                  | Author both scenes — they import sprites from game.js (frogoe-creative → `references/art.md`) |
+| `art/title-band`         | poster declares no lettering-block band                       | Set `ctx.__frogoeTitleBand = [x0,y0,x1,y1]` from the layout variables (never hand-typed)      |
+| `input/incremental-drag` | `x += p.dx` (wall-rocket bug)                                 | Use `x = grabX + p.dx` or track lastX                                                         |
+| `folder/touch-select`    | Phone long-press summons text selection (iOS + Android)       | Add `-webkit-user-select: none; user-select: none; -webkit-touch-callout: none` on html/body  |
+| `audio/suspended-only`   | Resume gated on `=== "suspended"` (iOS silent bug)            | Resume when `state !== "running"` — see frogoe-core `references/audio.md`                     |
+| `brief/verb`             | Verb not in the 9-value enum                                  | Pick from: tap\|hold\|steer\|aim\|swap\|place\|type\|draw\|idle — frogoe-core → brief-format  |
+| `input/raw-keyboard`     | Raw `addEventListener("keydown")` bypasses the contract       | `input.on("key", ...)` + poll `input.keys` — blur-safe, repeat-suppressed                     |
+| `folder/contract-stale`  | Pinned contract predates the current one                      | Bump frogoe.json + `frogoe init --force` (game code and BRIEF are preserved)                  |
+| `brief/session`          | Session not blitz/round/toy                                   | blitz = short arcade (default), round = turn-based, toy = never ends — frogoe-core → genres   |
+| `input/verb-mismatch`    | Declared verb requires input wiring the game never wrote      | Wire the required handlers — frogoe-core → brief-format (verb → handler table)                |
+| `live/hud-outline`       | HUD text missing text-shadow/stroke                           | Add `text-shadow: 0 2px 0 <dark>`                                                             |
+| `stage/cached-metrics`   | Stage geometry destructured into a const (stale after resize) | Read `stage.play` fresh per tick; store normalized coords, remap on change                    |
+| `hud/magic-anchor`       | data-pos wrapper with inline tuned offset                     | Center structurally: `inset: 0` + `place-items: center` (registry overlay pattern)            |
+| `live/resize`            | Game broke when viewport resized mid-run                      | Stage geometry is live — re-read per frame; overlays center with `inset:0`, never tuned %     |
+| `live/fps`               | Below 30fps                                                   | Cache gradients, reduce shadowBlur, cut particles                                             |
+| `live/not-playable`      | Scripted taps changed nothing                                 | Wire `input.on("down")` to actual game logic                                                  |
 
 ## Key rules
 
 1. **pointer.dx is anchor-relative** (measured since touch-down, not per-event). Steer with `x = grabX + p.dx` or track your own `lastX`. NEVER `x += p.dx` inside a drag handler — every pointermove re-applies the cumulative offset and the actor rockets into a wall.
 2. **All HUD text lives in the DOM layer** (`.hud` div) with a `text-shadow` or `-webkit-text-stroke`. The outline IS the readability mechanism — game backgrounds change every frame, so pixel-contrast against them is meaningless.
-3. **Gameplay uses `stage.play`** (capped centered column: `left/right/center/width`), never raw `window.innerWidth` — identical challenge on every screen width.
+3. **Gameplay uses `stage.play`** (capped centered column: `left/right/center/width`), never raw `window.innerWidth` — identical challenge on every screen width. **Stage geometry is live** (free-size desktop windows, the iOS keyboard): re-read it per tick, never destructure it into a const; center overlays with `inset: 0` + grid, never tuned `%`.
 4. **Fixed furniture respects `stage.safe`** — notches cover screen edges. Score at fixed y=34 sits under the Dynamic Island on modern phones.
 5. **One page, zero runtime requests** after bundling. Author-time CDN dependencies are fine — `frogoe bundle` dissolves them (allowlist + pin + hash + inline).
 6. **`finish(score)`** ends the run. The results card is a HUD block (`game-over-card`), never something the platform draws.

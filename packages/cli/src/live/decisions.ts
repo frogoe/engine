@@ -457,3 +457,30 @@ export const rebootFinding = (state: string): LiveFinding | null => {
     severity: "error",
   });
 };
+
+// ── resize (the free-size window doctrine) ──────────────────────────────────
+
+/** The canonical desktop geometry the sandbox resizes into — matches the
+ *  export shell's default window (960×640). One pass proves two things:
+ *  the run survives its viewport CHANGING (cached metrics go stale) and
+ *  nothing was designed phone-only (letterbox must hold at 960 wide). */
+export const RESIZE_GEOMETRY = { height: 640, width: 960 } as const;
+
+/** live/resize — asserted right after a mid-session viewport change:
+ *  the canvas must still paint, the state must stay sane, HUD boxes
+ *  must stay inside the viewport, and a playing game must keep making
+ *  frames (a frozen hash means the render loop died on the resize). */
+export const resizeFinding = (reasons: string[]): LiveFinding | null => {
+  if (reasons.length === 0) {
+    return null;
+  }
+  return finding({
+    code: "live/resize",
+    file: "game.js",
+    fix: "stage geometry is live — re-read stage.play/stage.height per frame (or remap entity x from normalized coords on change) and center overlays with inset:0, never tuned %",
+    message: `the game broke when the viewport resized: ${reasons.slice(0, 3).join("; ")}`,
+    phase: "stability",
+    recipe: "frogoe-core → viewport doctrine",
+    severity: "error",
+  });
+};

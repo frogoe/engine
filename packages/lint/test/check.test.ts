@@ -206,6 +206,53 @@ defineGame(({ input, loop }) => {
     expect(checkProject(dir).findings.some((f) => f.code === "input/raw-keyboard")).toBeFalse();
   });
 
+  test("stage/cached-metrics: const geometry snapshot flagged, per-tick helper clean", () => {
+    const dir = freshDir("cached-metrics");
+    writeGame(dir, {
+      game: `defineGame(({ input, loop, stage }) => {
+  input.on("down", () => {});
+  const { width, left } = stage.play;
+  loop.update = (dt) => {};
+  loop.render = (ctx) => {};
+});
+`,
+    });
+    const finding = checkProject(dir).findings.find((f) => f.code === "stage/cached-metrics");
+    expect(finding?.severity).toBe("error");
+    expect(finding?.line).toBe(3);
+
+    writeGame(dir, {
+      game: `defineGame(({ input, loop, stage }) => {
+  input.on("down", () => {});
+  const layout = () => ({ w: stage.play.width, l: stage.play.left });
+  loop.update = (dt) => { const L = layout(); };
+  loop.render = (ctx) => {};
+});
+`,
+    });
+    expect(checkProject(dir).findings.some((f) => f.code === "stage/cached-metrics")).toBeFalse();
+  });
+
+  test("hud/magic-anchor: inline tuned offset on a data-pos wrapper warns, registry overlay clean", () => {
+    const dir = freshDir("magic-anchor");
+    writeGame(dir, {
+      html: `<!doctype html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>html, body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }</style>
+<script type="importmap">{"imports":{"frogoe":"./.frogoe/contract.js"}}</script>
+</head><body>
+<canvas id="c"></canvas>
+<div class="hud"><div data-pos="top-center" style="top: 44%; translate: -50% -50%;"><div class="gate">PLAY</div></div></div>
+<script type="module" src="game.js"></script>
+</body></html>`,
+    });
+    const finding = checkProject(dir).findings.find((f) => f.code === "hud/magic-anchor");
+    expect(finding?.severity).toBe("warning");
+    expect(finding?.line).toBe(9);
+  });
+
   test("folder/contract-stale: old pin warns, current pin silent", () => {
     const dir = freshDir("stale-pin");
     writeGame(dir, { pin: JSON.stringify({ contract: "0.1.0" }) });

@@ -47,6 +47,7 @@ Values must be positive integers of milliseconds — anything else is a teaching
 | live/state-corrupt | error | state outside the contract's set — game code mutating window.__frogoe directly |
 | live/no-input / live/not-playable | error | game never wired input / scripted taps changed nothing |
 | live/audio-locked | error | audio stayed suspended after an INJECTED interruption plus real input — the game lacks gesture-scoped resume wiring (frogoe-core → references/audio.md) |
+| live/resize | error | the game broke when the viewport resized mid-run (desktop windows are free-size) — canvas stopped painting, state corrupted, HUD escaped the viewport, or frames froze; stage geometry is live, re-read it per frame (frogoe-core → viewport doctrine) |
 | live/never-ends | warning | no death within 45s of passive play (blitz only — declare `session: round`/`toy` in BRIEF.md and the gate stops waiting); feed games are short loops |
 | live/finish-event-missing | error | "over" without frogoe:finish, or the event without "over" — forged state machine |
 | live/no-gameover-card | warning | ended without a [data-block-gameover] overlay — install game-over-card |

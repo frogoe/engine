@@ -208,6 +208,27 @@ export const HUD_OVERLAP_SCRIPT = `(() => {
   return hits;
 })()`;
 
+/** HUD escapees — rendered .hud elements whose box leaves the viewport.
+ *  Read right after a live viewport resize: furniture anchored to a
+ *  stale geometry (cached metrics, tuned %) surfaces exactly here.
+ *  Tolerance 2px for subpixel rounding; invisible boxes don't count. */
+export const HUD_BOUNDS_SCRIPT = `(() => {
+  const out = [];
+  const w = window.innerWidth, h = window.innerHeight;
+  for (const el of document.querySelectorAll(".hud, .hud *")) {
+    if (el.tagName === "SCRIPT" || el.tagName === "STYLE" || el.tagName === "LINK") continue;
+    const cs = getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden" || Number(cs.opacity) < 0.1) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 4 && r.height < 4) continue;
+    if (r.x < -2 || r.y < -2 || r.x + r.width > w + 2 || r.y + r.height > h + 2) {
+      const name = (el.className && String(el.className).trim()) || el.tagName.toLowerCase();
+      out.push(name.slice(0, 40) + " @" + Math.round(r.x) + "," + Math.round(r.y) + " " + Math.round(r.width) + "x" + Math.round(r.height));
+    }
+  }
+  return out.slice(0, 8);
+})()`;
+
 /** Inject the iOS "interrupted" shape: suspend every context the game
  * created. The phases follow with real input — a healthy game's wiring
  * recovers (gesture-scoped resume); a game with no recovery stays

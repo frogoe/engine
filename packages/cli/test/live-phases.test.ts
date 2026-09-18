@@ -171,12 +171,32 @@ export class FakeDriver implements LiveDriver {
 
   overlaps: string[] = [];
 
+  /** resize doctrine — scripted by tests: what the page looks like
+   *  after the mid-session geometry change */
+  resizeTo: { height: number; width: number } | null = null;
+  resizeBreaks = false;
+  resizeState = "playing";
+  escapees: string[] = [];
+
   async blockAnchors(): Promise<string[]> {
     return this.misanchored;
   }
 
   async hudOverlaps(): Promise<string[]> {
     return this.overlaps;
+  }
+
+  async resize(width: number, height: number): Promise<void> {
+    this.resizeTo = { height, width };
+    if (this.resizeBreaks) {
+      this.world.state = "error";
+    } else {
+      this.world.state = this.resizeState;
+    }
+  }
+
+  async hudOutOfBounds(): Promise<string[]> {
+    return this.escapees;
   }
 
   async tap(): Promise<void> {
@@ -256,13 +276,15 @@ describe("live lifecycle: healthy game", () => {
     expect(driver.drags).toBe(2);
     // throttle engaged and restored around the phone-class replay
     expect(driver.throttleRates).toEqual([4, 1]);
-    // evidence: boot, over, retry, over-2, retry-2
+    // evidence: boot, over, retry, over-2, retry-2 — then the resize
+    // pass snapshots the desktop geometry
     expect(driver.shots).toEqual([
       "live-mobile.png",
       "live-mobile-over.png",
       "live-mobile-retry.png",
       "live-mobile-over-2.png",
       "live-mobile-retry-2.png",
+      "live-resize.png",
     ]);
   });
 
@@ -559,5 +581,64 @@ describe("block placement gates (the shipped-twice bug class)", () => {
     );
     expect(codes(outcome.findings)).not.toContain("live/block-anchor");
     expect(codes(outcome.findings)).not.toContain("live/hud-overlap");
+  });
+});
+
+describe("live lifecycle: resize doctrine", () => {
+  test("mid-run resize to the desktop geometry stays clean", async () => {
+    const { driver, outcome } = await run(healthyWorld());
+    expect(outcome.findings).toEqual([]);
+    expect(driver.resizeTo).toEqual({ height: 640, width: 960 });
+    expect(driver.shots).toContain("live-resize.png");
+  });
+
+  test("state corrupted by the resize is live/resize", async () => {
+    const driver = new FakeDriver(healthyWorld());
+    driver.resizeBreaks = true;
+    const outcome = await runLifecycle(driver, {
+      settleMs: 0,
+      sleep: immediate,
+      viewport: { height: 844, name: "mobile", width: 390 },
+    });
+    const finding = outcome.findings.find((f) => f.code === "live/resize");
+    expect(finding?.severity).toBe("error");
+    expect(finding?.message).toContain('state read "error"');
+  });
+
+  test("HUD furniture escaping the viewport after resize is live/resize", async () => {
+    const driver = new FakeDriver(healthyWorld());
+    driver.escapees = ["block-ready @420,40 96x24"];
+    const outcome = await runLifecycle(driver, {
+      settleMs: 0,
+      sleep: immediate,
+      viewport: { height: 844, name: "mobile", width: 390 },
+    });
+    const finding = outcome.findings.find((f) => f.code === "live/resize");
+    expect(finding?.message).toContain("HUD escaped the viewport");
+  });
+
+  test("frozen frames while playing after resize is live/resize", async () => {
+    const driver = new FakeDriver(healthyWorld({ hash: () => 777 }));
+    const outcome = await runLifecycle(driver, {
+      settleMs: 0,
+      sleep: immediate,
+      viewport: { height: 844, name: "mobile", width: 390 },
+    });
+    // the static-hash world also trips not-playable earlier; the resize
+    // finding must fire independently for the frozen-frame reason
+    const finding = outcome.findings.find((f) => f.code === "live/resize");
+    expect(finding?.message).toContain("frames froze");
+  });
+
+  test("a run that ended before the resize is not judged for frozen frames", async () => {
+    const driver = new FakeDriver(healthyWorld({ hash: () => 777 }));
+    driver.resizeState = "over";
+    const outcome = await runLifecycle(driver, {
+      settleMs: 0,
+      sleep: immediate,
+      viewport: { height: 844, name: "mobile", width: 390 },
+    });
+    const finding = outcome.findings.find((f) => f.code === "live/resize");
+    expect(finding).toBeUndefined();
   });
 });

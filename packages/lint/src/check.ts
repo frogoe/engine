@@ -361,6 +361,45 @@ const checkFolder = (dir: string, findings: Finding[], brief: Brief | null): voi
     });
   }
 
+  // stage geometry is LIVE: destructuring it into a const freezes the
+  // boot-time viewport — free-size desktop windows and the iOS keyboard
+  // both change it mid-run, and everything derived from the const goes
+  // stale (entities outside the play column, off-center furniture).
+  // Helper calls (const { w } = layout()) re-read per tick and are fine.
+  const cachedGeometryLine = gameLine(
+    /const\s*\{[^}]*\b(?:width|height|left|right|center)\b[^}]*\}\s*=\s*stage(?:\.play)?\s*;?/u,
+  );
+  if (cachedGeometryLine !== undefined) {
+    findings.push({
+      code: "stage/cached-metrics",
+      file: "game.js",
+      fix: "stage geometry is live — re-read stage.play/stage.height every frame (a layout() helper per tick) or store normalized coords and remap on change; a const snapshot goes stale the moment the viewport changes",
+      line: cachedGeometryLine,
+      message: "stage geometry destructured into a const — frozen at boot, stale after any resize",
+      recipe: "frogoe-core → viewport doctrine",
+      severity: "error",
+    });
+  }
+
+  // tuned-% anchors: a top: 44% that LOOKS centered on the phone it was
+  // tuned on drifts on every other geometry. Centering is structural.
+  const magicAnchorLine = findLine(
+    index,
+    /data-pos=[^>]*style="[^"]*\b(?:top|left|right|bottom)\s*:/u,
+  );
+  if (magicAnchorLine !== undefined) {
+    findings.push({
+      code: "hud/magic-anchor",
+      file: "index.html",
+      fix: "center overlays structurally — inset: 0 + display: grid + place-items: center (the registry overlay pattern); a tuned % only looks right on the geometry it was tuned for",
+      line: magicAnchorLine,
+      message:
+        "data-pos wrapper carries an inline offset — tuned positioning drifts with viewport size",
+      recipe: "frogoe-registry → overlay blocks",
+      severity: "warning",
+    });
+  }
+
   // the exact signature of the shipped iOS silence bug: gating resume on
   // suspended alone leaves non-standard "interrupted" contexts silent
   const suspendedLine = gameLine(/\.state\s*(?:===|==)\s*["']suspended["']/u);

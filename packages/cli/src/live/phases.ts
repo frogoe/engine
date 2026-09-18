@@ -28,6 +28,8 @@ import {
   pausedFinding,
   playabilityFinding,
   rebootFinding,
+  resizeFinding,
+  RESIZE_GEOMETRY,
   retryDeadFinding,
   stateCorruptFinding,
   stateStuckFinding,
@@ -570,6 +572,46 @@ export const runLifecycle = async (
   if (throttled) {
     findings.push(throttled);
   }
+
+  // RESIZE — desktop windows are free-size: the same live run must
+  // survive its geometry changing underneath it. Cached metrics and
+  // tuned-% overlays surface exactly here (nothing reloads — this is
+  // the in-page resize event, contract stage.refresh included)
+  const errorsBefore = driver.errors().length;
+  const consolesBefore = driver.consoleErrors().length;
+  const hashBefore = await driver.canvasHash();
+  await driver.resize(RESIZE_GEOMETRY.width, RESIZE_GEOMETRY.height);
+  await doSleep(Math.max(800, settle));
+  const resizeState = await driver.gameState();
+  const resizeReasons: string[] = [];
+  if (!(await driver.canvasPainted())) {
+    resizeReasons.push("canvas stopped painting");
+  }
+  if (resizeState !== "playing" && resizeState !== "over" && resizeState !== "paused") {
+    resizeReasons.push(`state read "${resizeState}"`);
+  }
+  resizeReasons.push(
+    ...(await driver.hudOutOfBounds()).map((e) => `HUD escaped the viewport (${e})`),
+  );
+  const newErrors = driver.errors().slice(errorsBefore);
+  if (newErrors.length > 0) {
+    resizeReasons.push(`${newErrors.length} uncaught error(s): ${newErrors[0]?.slice(0, 80)}`);
+  }
+  const newConsoles = driver.consoleErrors().slice(consolesBefore);
+  if (newConsoles.length > 0) {
+    resizeReasons.push(`${newConsoles.length} console.error(s)`);
+  }
+  if (resizeState === "playing") {
+    const hashAfter = await driver.canvasHash();
+    if (hashAfter !== null && hashAfter === hashBefore) {
+      resizeReasons.push("frames froze after the resize");
+    }
+  }
+  const resized = resizeFinding(resizeReasons);
+  if (resized) {
+    findings.push(resized);
+  }
+  await ctx.shot?.("live-resize.png");
 
   return {
     findings,
