@@ -270,6 +270,9 @@ defineGame(({ stage, input, loop, finish }) => {
   const now = () => performance.now();
   let shipX = 0;
   let t0 = now();
+  /* last-seen play geometry — resize remaps the field (below) */
+  let fieldLPrev = -1;
+  let fieldWPrev = -1;
 
   /* the field bottom (keyboard up = smaller field). Lerp in update()
    * for the AnimatedSize feel of the source game. */
@@ -439,6 +442,24 @@ defineGame(({ stage, input, loop, finish }) => {
     fieldBottom += (wantBottom - fieldBottom) * Math.min(1, dt * 8);
     const L = layout();
     if (shipX === 0) shipX = stage.play.center;
+
+    /* viewport-resize remap: alien x is stored absolute, but stage
+     * geometry is live (free-size desktop windows, rotation, the iOS
+     * keyboard shifting the column) — when the play column moves,
+     * re-derive every x from its normalized position so the field keeps
+     * its spread instead of spilling outside the column */
+    if (L.fieldL !== fieldLPrev || L.fieldW !== fieldWPrev) {
+      if (fieldWPrev > 0) {
+        const spanPrev = Math.max(20, fieldWPrev - TUNE.spawnMargin * 2);
+        const spanNow = Math.max(20, L.fieldW - TUNE.spawnMargin * 2);
+        for (const a of aliens) {
+          const nx = Math.min(1, Math.max(0, (a.x - fieldLPrev - TUNE.spawnMargin) / spanPrev));
+          a.x = L.fieldL + TUNE.spawnMargin + nx * spanNow;
+        }
+      }
+      fieldLPrev = L.fieldL;
+      fieldWPrev = L.fieldW;
+    }
 
     if (phase === "playing") {
       spawnTimer -= dt;

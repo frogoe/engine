@@ -173,7 +173,17 @@
     body[data-ready] .hud .block-score-card,
     body[data-ready] .hud .pad { opacity: 0; pointer-events: none; }
 
-    /* ===== ready screen: title + chunky PLAY button, centered in the arena ===== */
+    /* ===== ready screen: title + chunky PLAY button — geometric center
+     * at ANY viewport (the overlay pattern: inset stretch + grid center.
+     * A tuned top-% only looks right on the geometry it was tuned for —
+     * desktop windows are free-size, so centering must be structural). */
+    .ready-gate {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
     .block-ready {
       display: grid;
       justify-items: center;
@@ -338,8 +348,8 @@
       </div>
     </div>
 
-    <!-- frogoe:block:ready — title + PLAY, dead center of the arena -->
-    <div data-pos="top-center" style="top: 44%; translate: -50% -50%;">
+    <!-- frogoe:block:ready — title + PLAY, dead center at any geometry -->
+    <div class="ready-gate">
       <div class="block-ready" data-block-ready>
         <span class="block-ready__title">SAWSTORM</span>
         <button class="ready-cta" data-block-play type="button">PLAY</button>
