@@ -26,6 +26,7 @@ const fakeElement = (selector) => {
   const listeners = {};
   const attributes = new Set();
   const el = {
+    __sel: selector,
     // configurable geometry — tests set .rect; offsetHeight/Width follow
     rect: { height: 0, left: 0, top: 0, width: 0 },
     dataset: {},
@@ -76,8 +77,10 @@ const fakeElement = (selector) => {
     appendChild() {
       return el;
     },
-    querySelector() {
-      return null;
+    // nested lookups answer nested fakes (games walk card.querySelector
+    // at boot) — keyed composite so repeat lookups are stable
+    querySelector(sel) {
+      return fakeElement(`${el.__sel} > ${sel}`);
     },
     querySelectorAll() {
       return [];
