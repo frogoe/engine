@@ -112,9 +112,13 @@ const anyNode = new Proxy(function anyNode() {}, {
   },
 });
 
-const installEnvironment = () => {
+const installEnvironment = (claim = false) => {
   const g = globalThis;
-  if (!g.window) {
+  // claim=true (every boot): REINSTALL the globals bound to THIS stub
+  // module's maps — a root-level `bun test` runs several games' test
+  // files in ONE process, and whichever stub installed document first
+  // would otherwise own every game's elements (the cross-stub collision)
+  if (claim || !g.window) {
     g.window = {
       AudioContext: function AudioContextStub() {
         return anyNode;
@@ -129,17 +133,17 @@ const installEnvironment = () => {
       },
     };
   }
-  if (!g.localStorage) {
+  if (claim || !g.localStorage) {
     g.localStorage = {
       getItem: (k) => (storageData.has(String(k)) ? storageData.get(String(k)) : null),
       setItem: (k, v) => storageData.set(String(k), String(v)),
       removeItem: (k) => storageData.delete(String(k)),
     };
   }
-  if (!g.location) {
+  if (claim || !g.location) {
     g.location = { reload() {} };
   }
-  if (!g.document) {
+  if (claim || !g.document) {
     g.document = {
       body: fakeElement("<body>"),
       documentElement: fakeElement("<html>"),
@@ -258,6 +262,7 @@ export const defineGame = (game) => {
 installEnvironment();
 
 export const bootForTest = async (moduleUrl) => {
+  installEnvironment(true); // claim the globals for THIS stub instance
   fakeElements.clear();
   resetCaptured();
   // fresh module per boot: bun IGNORES query strings on dynamic file
