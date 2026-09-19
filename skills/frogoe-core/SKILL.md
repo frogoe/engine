@@ -66,10 +66,18 @@ defineGame(({ stage, input, loop, finish }) => {
   free-size (the native shell opens 960×640 and resizes/maximizes freely); the iOS
   keyboard shifts the viewport mid-run. `const { width } = stage.play` freezes the
   boot-time geometry and everything derived from it goes stale after a resize
-  (`stage/cached-metrics` error). The pattern: a `layout()` helper called per tick,
-  entities store NORMALIZED coords (`nx` in 0..1) remapped to `stage.play` on change,
-  and per-frame lerps toward `stage.play.center` self-heal. The sandbox resizes the
-  viewport mid-run and fails the check on stale geometry (`live/resize`).
+  (`stage/cached-metrics` error). Reading fresh is only half — ENTITY STATE
+  anchored to absolute boot pixels goes stale the same way. Three reference
+  patterns (all in the examples): a `layout()` helper called per tick;
+  entities store NORMALIZED coords (`nx` in 0..1) remapped to `stage.play`
+  on change (typefall's field); and when an anchor MOVES — floor, arena
+  center — CARRY entities by the delta, so height-above-floor and
+  position-in-arena survive (sawstorm's ground-carry; without it a grounded
+  actor hovers when the window grows and buries off-canvas when it shrinks —
+  gravity branches don't run while grounded). Per-frame clamps against
+  fresh bounds absorb width changes. The sandbox resizes the viewport
+  mid-run in BOTH directions and fails the check on stale geometry
+  (`live/resize`).
 - **Overlay centering is structural, never tuned** — `inset: 0; display: grid;
   place-items: center` (the registry overlay pattern). A `top: 44%` that looks
   centered on the phone it was tuned on drifts on every other geometry

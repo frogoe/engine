@@ -242,6 +242,14 @@ defineGame(({ stage, input, loop, finish }) => {
 
 
   const groundY = () => stage.height - Math.max(stage.safe.bottom, 16) - 96;
+  /* the world is live (free-size windows): when the floor or the arena
+   * center moves, the actor rides the delta — height-above-floor and
+   * position-in-arena are what the game actually owns. Without this, a
+   * taller window leaves a grounded actor hovering (no gravity branch
+   * runs), a shorter one buries it off-canvas, and a wider one strands
+   * it off-center on the ready screen. */
+  let groundYPrev = groundY();
+  let centerXPrev = stage.play.center;
 
   // boot pose: the actor must stand in the arena on the ready screen
   player.x = stage.play.center;
@@ -438,6 +446,18 @@ defineGame(({ stage, input, loop, finish }) => {
   /* ---------- update ---------- */
   loop.update = (dt) => {
     if (freezeT > 0) { freezeT -= dt; return; }
+
+    /* resize carry: the world moved → move the actor by the same delta
+     * (mid-jump included — altitude relative to the floor is preserved;
+     * the arena wall clamp adjusts any width change right after) */
+    const gNow = groundY();
+    const cNow = stage.play.center;
+    if (gNow !== groundYPrev || cNow !== centerXPrev) {
+      player.y += gNow - groundYPrev;
+      player.x += cNow - centerXPrev;
+      groundYPrev = gNow;
+      centerXPrev = cNow;
+    }
 
     for (const c of clouds) { c.x += c.v * dt * (suddenDeath ? 3 : 1); if (c.x > 1.2) c.x = -0.2; }
     for (const s of bgSaws) {

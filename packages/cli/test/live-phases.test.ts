@@ -172,8 +172,9 @@ export class FakeDriver implements LiveDriver {
   overlaps: string[] = [];
 
   /** resize doctrine — scripted by tests: what the page looks like
-   *  after the mid-session geometry change */
-  resizeTo: { height: number; width: number } | null = null;
+   *  after the mid-session geometry change. Two hops: desktop grow,
+   *  then phone shrink-back (both carry directions) */
+  resizes: Array<{ height: number; width: number }> = [];
   resizeBreaks = false;
   resizeState = "playing";
   escapees: string[] = [];
@@ -187,7 +188,7 @@ export class FakeDriver implements LiveDriver {
   }
 
   async resize(width: number, height: number): Promise<void> {
-    this.resizeTo = { height, width };
+    this.resizes.push({ height, width });
     if (this.resizeBreaks) {
       this.world.state = "error";
     } else {
@@ -588,7 +589,10 @@ describe("live lifecycle: resize doctrine", () => {
   test("mid-run resize to the desktop geometry stays clean", async () => {
     const { driver, outcome } = await run(healthyWorld());
     expect(outcome.findings).toEqual([]);
-    expect(driver.resizeTo).toEqual({ height: 640, width: 960 });
+    expect(driver.resizes).toEqual([
+      { height: 640, width: 960 },
+      { height: 896, width: 390 },
+    ]);
     expect(driver.shots).toContain("live-resize.png");
   });
 

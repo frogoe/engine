@@ -30,6 +30,7 @@ import {
   rebootFinding,
   resizeFinding,
   RESIZE_GEOMETRY,
+  RESIZE_RETURN_GEOMETRY,
   retryDeadFinding,
   stateCorruptFinding,
   stateStuckFinding,
@@ -576,35 +577,46 @@ export const runLifecycle = async (
   // RESIZE — desktop windows are free-size: the same live run must
   // survive its geometry changing underneath it. Cached metrics and
   // tuned-% overlays surface exactly here (nothing reloads — this is
-  // the in-page resize event, contract stage.refresh included)
+  // the in-page resize event, contract stage.refresh included). Two
+  // hops: grow to the desktop geometry, then shrink back to a phone
+  // column — the floor DROPS then RISES, exercising both entity-carry
+  // directions (hover-on-grow, bury-on-shrink)
   const errorsBefore = driver.errors().length;
   const consolesBefore = driver.consoleErrors().length;
   const hashBefore = await driver.canvasHash();
-  await driver.resize(RESIZE_GEOMETRY.width, RESIZE_GEOMETRY.height);
-  await doSleep(Math.max(800, settle));
-  const resizeState = await driver.gameState();
   const resizeReasons: string[] = [];
-  if (!(await driver.canvasPainted())) {
-    resizeReasons.push("canvas stopped painting");
-  }
-  if (resizeState !== "playing" && resizeState !== "over" && resizeState !== "paused") {
-    resizeReasons.push(`state read "${resizeState}"`);
-  }
-  resizeReasons.push(
-    ...(await driver.hudOutOfBounds()).map((e) => `HUD escaped the viewport (${e})`),
-  );
-  const newErrors = driver.errors().slice(errorsBefore);
-  if (newErrors.length > 0) {
-    resizeReasons.push(`${newErrors.length} uncaught error(s): ${newErrors[0]?.slice(0, 80)}`);
-  }
-  const newConsoles = driver.consoleErrors().slice(consolesBefore);
-  if (newConsoles.length > 0) {
-    resizeReasons.push(`${newConsoles.length} console.error(s)`);
-  }
-  if (resizeState === "playing") {
-    const hashAfter = await driver.canvasHash();
-    if (hashAfter !== null && hashAfter === hashBefore) {
-      resizeReasons.push("frames froze after the resize");
+  for (const geometry of [RESIZE_GEOMETRY, RESIZE_RETURN_GEOMETRY]) {
+    await driver.resize(geometry.width, geometry.height);
+    // later ladder math (restart bursts) aims at the NEW geometry
+    ctx.viewport.height = geometry.height;
+    ctx.viewport.width = geometry.width;
+    await doSleep(Math.max(800, settle));
+    const state = await driver.gameState();
+    if (!(await driver.canvasPainted())) {
+      resizeReasons.push("canvas stopped painting");
+    }
+    if (state !== "playing" && state !== "over" && state !== "paused") {
+      resizeReasons.push(`state read "${state}"`);
+    }
+    resizeReasons.push(
+      ...(await driver.hudOutOfBounds()).map((e) => `HUD escaped the viewport (${e})`),
+    );
+    const newErrors = driver.errors().slice(errorsBefore);
+    if (newErrors.length > 0) {
+      resizeReasons.push(`${newErrors.length} uncaught error(s): ${newErrors[0]?.slice(0, 80)}`);
+      break;
+    }
+    const newConsoles = driver.consoleErrors().slice(consolesBefore);
+    if (newConsoles.length > 0) {
+      resizeReasons.push(`${newConsoles.length} console.error(s)`);
+      break;
+    }
+    if (state === "playing") {
+      const hashAfter = await driver.canvasHash();
+      if (hashAfter !== null && hashAfter === hashBefore) {
+        resizeReasons.push("frames froze after the resize");
+        break;
+      }
     }
   }
   const resized = resizeFinding(resizeReasons);
