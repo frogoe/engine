@@ -20,7 +20,9 @@ const proc = spawn(
     "play",
     gameDir,
     "--cols",
-    "96",
+    "60",
+    "--mode",
+    "realtime", // the world runs continuously — watchable, not frozen
     ...(headed ? ["--headed"] : []),
     "--record",
     "agent-session",
@@ -46,7 +48,7 @@ const decide = (msg) => {
   if (!started) {
     if (msg.state === "paused" || msg.state === "playing") {
       started = true;
-      send({ tap: [195, 400] }); // start the run
+      send({ tap: [195, 435] }); // start: ON the PLAY button (the gate ignores taps above it)
     }
     return;
   }
@@ -93,7 +95,13 @@ const decide = (msg) => {
     }
   }
 
-  if (nearest === null) return;
+  if (nearest === null) {
+    if (t - lastDecision > 0.5) {
+      lastDecision = t;
+      send({ step: 12 }); // heartbeat: a frame stream even when idle
+    }
+    return;
+  }
   if (dist < 8 && t - lastDecision > 0.6) {
     lastDecision = t;
     send({ tap: [195, 400] }); // jump clears saws
