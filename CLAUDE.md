@@ -100,6 +100,7 @@ docs/
 - **HUD lives in the DOM layer** (`.hud` div): canvas HUD is only for world-anchored popups
 - **Readability via outline**: game HUD text uses `text-shadow` or `-webkit-text-stroke`, not pixel-contrast against changing backgrounds
 - **Externals dissolve at build**: allowlisted CDN dependencies are fetched, pinned, hashed, and inlined by `frogoe bundle` — the artifact has zero runtime requests
+- **game.test.js is the semantic gate** — logic verbs (type/swap/place) and round sessions ship headless tests via `bootForTest` from `"frogoe"` (two tiers: pure exports + closure behavior); `frogoe check` runs them (`test/failed`, `test/logic-untested`)
 - **Keyboard and multi-touch flow through the contract** — `input.on("key")` for edges (repeat suppressed), `input.keys` for held codes, per-touch `id` snapshots for pads; raw `addEventListener("keydown")` is an `input/raw-keyboard` error. A stale contract pin upgrades via `frogoe init --force` (game code and BRIEF preserved).
 - **pointer.dx is anchor-relative** (since touch-down): steer with `x = grabX + p.dx` or track lastX. NEVER `x += p.dx`
 - **Stage geometry is live** (free-size desktop windows, iOS keyboard): read `stage.play` fresh per tick, never cache it in a const; center overlays structurally (`inset: 0` + grid), never tuned `%` — `stage/cached-metrics` / `hud/magic-anchor` / `live/resize` gate it

@@ -308,6 +308,26 @@ const checkFolder = (dir: string, findings: Finding[], brief: Brief | null): voi
     }
   }
 
+  // logic verbs carry real semantics (matching, resolution, turns) — the
+  // blind sandbox proves they RUN, only game.test.js proves they are RIGHT.
+  // Author-owned tests, checked into the folder beside game.js.
+  if (
+    (brief?.verb === "type" ||
+      brief?.verb === "swap" ||
+      brief?.verb === "place" ||
+      brief?.session === "round") &&
+    !existsSync(path.join(dir, "game.test.js"))
+  ) {
+    findings.push({
+      code: "test/logic-untested",
+      file: "game.test.js",
+      fix: `${brief?.session !== undefined ? `session "${String(brief.session)}"` : `verb "${String(brief.verb)}"`} carries real logic — ship game.test.js: bootForTest from "frogoe", drive input, assert finishes()/draws (frogoe-core → testable seam)`,
+      message: "logic verb with no game.test.js — semantics are unverified",
+      recipe: "frogoe-core → testable seam",
+      severity: "error",
+    });
+  }
+
   const gameLine = (pattern: RegExp): number | undefined => findLine(game, pattern);
   // raw keyboard listeners bypass the contract entirely: no blur safety
   // (alt-tab leaves held keys stuck), no repeat suppression, and the

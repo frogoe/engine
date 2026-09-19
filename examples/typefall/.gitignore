@@ -3,3 +3,4 @@ dist/
 snapshots/
 node_modules/
 export/
+package.json

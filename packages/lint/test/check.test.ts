@@ -206,6 +206,37 @@ defineGame(({ input, loop }) => {
     expect(checkProject(dir).findings.some((f) => f.code === "input/raw-keyboard")).toBeFalse();
   });
 
+  test("test/logic-untested: logic verbs require game.test.js", () => {
+    const dir = freshDir("logic-untested");
+    writeGame(dir, {
+      brief: `---
+title: Test Game
+verb: type
+mood: cheerful
+palette:
+  bg: "#101418"
+  fg: "#fffdf7"
+  accent: "#ffd166"
+  outline: "#26180a"
+---
+Type words.
+`,
+    });
+    const fired = checkProject(dir).findings.find((f) => f.code === "test/logic-untested");
+    expect(fired?.severity).toBe("error");
+
+    writeFileSync(
+      path.join(dir, "game.test.js"),
+      'import { test } from "bun:test";\ntest("t", () => {});\n',
+    );
+    expect(checkProject(dir).findings.some((f) => f.code === "test/logic-untested")).toBeFalse();
+
+    // tap games stay optional
+    const tapDir = freshDir("logic-untested-tap");
+    writeGame(tapDir);
+    expect(checkProject(tapDir).findings.some((f) => f.code === "test/logic-untested")).toBeFalse();
+  });
+
   test("stage/cached-metrics: const geometry snapshot flagged, per-tick helper clean", () => {
     const dir = freshDir("cached-metrics");
     writeGame(dir, {

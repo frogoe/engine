@@ -25,6 +25,16 @@ export const command = defineCommand({
     }
     const dir = args.dir ? String(args.dir) : process.cwd();
     const result = checkProject(dir);
+    // unit pass — author-owned semantic tests (game.test.js), before the
+    // independent live sandbox: cheap, deterministic, verb-meaningful
+    const { runGameTests } = await import("../game-test/runner.ts");
+    const unit = runGameTests(dir);
+    if (unit.ran) {
+      console.log("  unit pass: game.test.js (bun)…");
+      result.findings = [...result.findings, ...unit.findings];
+      result.errors = result.findings.filter((f) => f.severity === "error").length;
+      result.warnings = result.findings.filter((f) => f.severity === "warning").length;
+    }
     if (args.fast === true) {
       // --fast: static only, no Chrome — quick iteration mode
       if (!args.json) {

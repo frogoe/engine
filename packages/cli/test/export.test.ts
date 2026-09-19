@@ -201,6 +201,33 @@ describe("export shell generation (command-level, toolchain mocked)", () => {
     expect(existsSync(path.join(tmp, "export", "frogoe-export.json"))).toBeTrue();
   });
 
+  test("the test stub never leaks into the artifact (bundler safety)", async () => {
+    // games with game.test.js carry node_modules/frogoe + a private
+    // package.json — the bundle must resolve "frogoe" through the import
+    // map (the pinned contract) and stay byte-identical to a stubless
+    // bundle of the same source
+    const game = path.join(tmp, "game-stubcheck");
+    cpSync(path.join(import.meta.dir, "../../../examples/flappy"), game, {
+      recursive: true,
+      filter: (src) => {
+        const rel = path.relative(path.join(import.meta.dir, "../../../examples/flappy"), src);
+        return !/^(dist|snapshots|node_modules|export)/u.test(rel);
+      },
+    });
+    const { materializeBundle } = await import("../src/bundle.ts");
+    const before = await materializeBundle({ dir: game });
+    const { ensureTestStub, STUB_MARKER } = await import("../src/game-test/materialize.ts");
+    writeFileSync(
+      path.join(game, "game.test.js"),
+      'import { test } from "bun:test";\ntest("t", () => {});\n',
+    );
+    const stubbed = ensureTestStub(game);
+    expect("ok" in stubbed).toBeTrue();
+    const after = await materializeBundle({ dir: game });
+    expect(after.report.sha256).toBe(before.report.sha256);
+    expect(after.report.artifact.includes(STUB_MARKER)).toBeFalse();
+  }, 60_000);
+
   test("materializeBundle never leaves a stale dist (the shipped-twice-stale bug)", async () => {
     // export once called the pure bundle(), DISCARDED the artifact, and
     // copied whatever old dist/ sat on disk into the native shell. The

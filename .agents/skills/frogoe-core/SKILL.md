@@ -96,6 +96,47 @@ defineGame(({ stage, input, loop, finish }) => {
   "suspended" — that ships the "sound randomly goes quiet" bug. Full
   recipe: `references/audio.md`.
 
+## The testable seam — game.test.js (two tiers)
+
+The blind sandbox proves a game RUNS; only author-owned tests prove it is
+RIGHT. Verb `type`/`swap`/place` and `session: round` carry real logic and
+MUST ship `game.test.js` beside game.js (`test/logic-untested` gates it);
+tap/hold physics toys may skip it. `frogoe check` runs the file under bun
+whenever it exists — a red test is a failed check (`test/failed`).
+
+**Tier 1 — pure functions (Arcane-style precision).** Export non-trivial
+mechanics (collision, resolution, scoring math, ramps) from game.js and
+test them directly — games already export sprites for identity art; the
+seam exists.
+
+**Tier 2 — whole-closure behavior.** `bootForTest` from `"frogoe"` boots
+the REAL game.js headless (fake DOM, recording canvas, deterministic dt)
+and returns a drive API. Closure state stays private — assert on BEHAVIOR:
+`finishes()`, recorded `draws()` (positions live in the args), DOM element
+bindings. The reference: `examples/typefall/game.test.js` pins this
+month's two real bugs (keyboard-bounded floor, resize remap).
+
+```js
+import { test, expect } from "bun:test";
+import { bootForTest } from "frogoe";
+
+test("the field follows the keyboard's true top", async () => {
+  const game = await bootForTest(new URL("./game.js", import.meta.url));
+  game.element("[data-block-keyboard]").rect = { top: 400, height: 200, left: 0, width: 390 };
+  game.tap();
+  for (let i = 0; i < 650; i++) game.step(1 / 60);
+  expect(Number(game.element("[data-block-hearts]").dataset.value ?? "3")).toBeLessThan(3);
+});
+```
+
+Mechanics under the hood: `frogoe check` materializes `node_modules/frogoe`
+(the test stub) plus a private `package.json` (the game becomes its own
+package root — inside workspaces, bun would otherwise hoist the CLI
+package over the stub) and gitignores both. The browser and bundler never
+see them: the import map still resolves the pinned contract, byte-identical
+artifact (enforced by test). Games with externals (three.js …) can still
+test their pure Tier-1 exports — Tier 2 is for contract-pure games.
+
 ## Editing existing games
 
 Read `BRIEF.md` first; its palette and verb are the game's identity. Keep block

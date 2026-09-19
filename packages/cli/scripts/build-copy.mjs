@@ -27,6 +27,9 @@ cpSync(
 cpSync(path.resolve(here, "../src/export-templates"), path.join(out, "export-templates"), {
   recursive: true,
 });
+// game test stub (materialized into node_modules/frogoe beside games
+// with game.test.js) — shipped VERBATIM, never bundled
+cpSync(path.resolve(here, "../src/game-test/frogoe-stub.js"), path.join(out, "frogoe-stub.js"));
 // CI workflow templates (frogoe export's no-Rust path) — game-root files
 cpSync(path.resolve(here, "../src/ci-templates"), path.join(out, "ci-templates"), {
   recursive: true,

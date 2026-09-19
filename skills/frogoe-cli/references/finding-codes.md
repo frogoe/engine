@@ -21,6 +21,8 @@ Pure static checks via `packages/lint`. Zero browser deps. Every finding carries
 | audio/suspended-only | warning | resume gated on suspended only — iOS interrupted contexts stay silent (frogoe-core → audio.md) |
 | game/loop-update, game/loop-render | warning | runtime will teach, fix first |
 | blocks/binding-orphan | warning | selector targets nothing (block not pasted?) |
+| test/logic-untested | error | logic verb (type/swap/place) or round session with no game.test.js — semantics unverified (frogoe-core → testable seam) |
+| test/failed · test/timeout · test/crash · test/stub-conflict | error | game.test.js is red / hung >30s / crashed before reporting / a foreign node_modules/frogoe blocks the stub |
 
 ## Bundle-time art gates (rendered — tier 2, thrown by `frogoe bundle`)
 
