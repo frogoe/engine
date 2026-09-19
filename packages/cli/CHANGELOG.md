@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.9.0](https://github.com/frogoe/engine/compare/v0.8.2...v0.9.0) (2026-09-19)
+
+
+### Features
+
+* **cli:** desktop-native window doctrine + the no-Rust CI build path ([795d4d9](https://github.com/frogoe/engine/commit/795d4d974153da16bc0cbff14b04555e2bbaa3af))
+* **cli:** expo-style default appId + the router knows export exists ([329adf6](https://github.com/frogoe/engine/commit/329adf62cfb59b5d8e7efe2d30e05de7d51d4d25))
+* **cli:** export shell templates + the filler layer ([3d692b4](https://github.com/frogoe/engine/commit/3d692b4efc6a2117299a125ce5566cb60ed548b8))
+* **cli:** frogoe export desktop — the shell generator ([6068750](https://github.com/frogoe/engine/commit/60687506a3b6892b976233a4caa1f4ac9d4b2a16))
+* **cli:** frogoe export/run ios + android — the mobile targets, one project ([90bd045](https://github.com/frogoe/engine/commit/90bd045c2a7adf141e10ee3283c93b88e5d4759e))
+* **cli:** frogoe run desktop — the native dev loop ([d81b831](https://github.com/frogoe/engine/commit/d81b831c774837ce8e2907971c422367852ed2f5))
+* **cli:** the resize prevention stack — live/resize gate + two static findings ([f458747](https://github.com/frogoe/engine/commit/f45874751111520f946ad8fc1dcdf677ee5b1742))
+
+
+### Bug Fixes
+
+* **cli:** bundle banner lied about the contract version — it reads the game's pin now ([5d208bb](https://github.com/frogoe/engine/commit/5d208bb492700c927f0ccd0f1bc751c53cad7940))
+* **cli:** export payload lands at web/ where frontendDist points; --no-bundle reads citty camelCase ([b057c6f](https://github.com/frogoe/engine/commit/b057c6feb7037e9e2febc6ab30fbd677354303fd))
+* **cli:** export shipped a stale dist — the write path is shared and fresh now ([f73b472](https://github.com/frogoe/engine/commit/f73b472e891e3a113cb7f9340e0bf1f728e4e103))
+* **cli:** no tokens in CI templates — static artifact name ([2a39835](https://github.com/frogoe/engine/commit/2a39835def1bd114c6530be10231f74b50002ac4))
+* **cli:** quote the CI artifact token — raw template was invalid YAML ([e007127](https://github.com/frogoe/engine/commit/e0071279b45d1113986978269e746720cd801ce4))
+* **examples:** sawstorm actor rides the ground on resize — hover and bury both dead ([7143038](https://github.com/frogoe/engine/commit/7143038bbe8d879563f1d29c8ef2c9ea18f82632))
+
 ## [0.8.2](https://github.com/frogoe/engine/compare/v0.8.1...v0.8.2) (2026-09-13)
 
 
