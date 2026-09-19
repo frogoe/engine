@@ -48,11 +48,20 @@ const runSession = async (options: PlayOptions): Promise<void> => {
     ...(brief?.outline ? { outline: brief.outline } : {}),
   };
 
-  const browser = await launchBrowser({ legacyDirs: [legacyCacheDir(options.dir)] });
+  const browser = await launchBrowser({
+    headless: !options.headed,
+    legacyDirs: [legacyCacheDir(options.dir)],
+  });
   let record: ReturnType<typeof createRecord> | null = null;
   try {
     const page = await browser.newPage();
     await page.setViewport({ height: 844, width: 390 });
+    if (options.headed) {
+      // bring the window forward — a demo hidden behind other windows
+      // is a demo nobody watched (twice)
+      const { spawn } = await import("node:child_process");
+      spawn("open", ["-a", "Google Chrome"], { stdio: "ignore" }).on("error", () => {});
+    }
     const driver: LiveDriver = createPuppeteerDriver({
       page,
       size: { height: 844, width: 390 },
