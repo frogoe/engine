@@ -120,6 +120,7 @@ const KNOWN_FLAGS = new Set([
   "--check",
   "--update",
   "--verbose",
+  "--headed",
   "--cols",
   "--mode",
   "--record",

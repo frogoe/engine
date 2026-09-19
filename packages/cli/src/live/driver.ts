@@ -88,6 +88,10 @@ export interface LiveDriver {
   /** Press one key by code (Space, ArrowLeft…) — down+up edge. The play
    *  loop's hands: agent decisions arrive as single semantic keys. */
   press(code: string): Promise<void>;
+  /** Hold a KEY down while `frames` pass (~16.7ms each), then release —
+   *  steering: platformers read input.keys continuously, an edge alone
+   *  never moves the actor. (hold(x,y,ms) is the pointer twin.) */
+  holdKey(code: string, frames: number): Promise<void>;
   /** The materialized contract's version marker — proves the runtime
    *  the sandbox judged is the one the pin promised. */
   contractVersion(): Promise<string>;
@@ -236,6 +240,14 @@ export const createPuppeteerDriver = ({ page, size }: PuppeteerDriverOptions): L
     async press(code: string) {
       // boundary cast — the evaluate seam casts the same way (read<T>)
       await page.keyboard.press(code as Parameters<typeof page.keyboard.press>[0]);
+    },
+    async holdKey(code: string, frames: number) {
+      const key = code as Parameters<typeof page.keyboard.press>[0];
+      await page.keyboard.down(key);
+      await new Promise((resolve) => {
+        setTimeout(resolve, (frames * 1000) / 60);
+      });
+      await page.keyboard.up(key);
     },
     async contractVersion() {
       return await read<string>(`window.__frogoe?.version ?? "(none)"`);

@@ -12,6 +12,7 @@ const config: KnipConfig = {
     "scripts/gen-skills-manifest.mjs",
     "packages/cli/test/embed.e2e.ts",
     "scripts/lib/hashSkill.mjs",
+    "scripts/agent-player.mjs",
   ],
   ignoreDependencies: ["@commitlint/config-conventional"],
   // system probes, not npm binaries: the tunnel daemon we manage ourselves;

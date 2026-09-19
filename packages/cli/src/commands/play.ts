@@ -27,6 +27,7 @@ import { createPuppeteerDriver, type LiveDriver } from "../live/driver.ts";
 interface PlayOptions {
   cols: number;
   dir: string;
+  headed: boolean;
   mode: "realtime" | "step";
   record: string | null;
   settle: number;
@@ -125,6 +126,9 @@ const runSession = async (options: PlayOptions): Promise<void> => {
     };
 
     const commands = createInterface({ input: process.stdin });
+    const done = new Promise<void>((resolve) => {
+      commands.once("close", resolve);
+    });
     for await (const raw of commands) {
       const text = raw.trim();
       if (text.length === 0) continue;
@@ -151,6 +155,17 @@ const runSession = async (options: PlayOptions): Promise<void> => {
         } else if (typeof cmd.press === "string") {
           await settle();
           await driver.press(cmd.press);
+        } else if (Array.isArray(cmd.hold)) {
+          // {"hold":["ArrowLeft",30]} — steer: key down, N frames, key up
+          const [code, frames] = [String(cmd.hold[0] ?? ""), Number(cmd.hold[1] ?? 20)];
+          if (paused) {
+            await page.evaluate("window.__frogoe?.resume?.()");
+          }
+          await driver.holdKey(code, frames);
+          elapsed += frames / 60;
+          if (paused) {
+            await page.evaluate("window.__frogoe?.pause?.()");
+          }
         } else if (typeof cmd.type === "string") {
           await settle();
           await driver.type(cmd.type);
@@ -188,6 +203,8 @@ const runSession = async (options: PlayOptions): Promise<void> => {
         line({ error: String(error).slice(0, 160) });
       }
     }
+    commands.close(); // quit must EXIT: a held-open stdin keeps node alive
+    await done;
   } finally {
     await browser.close();
     server.stop();
@@ -212,6 +229,10 @@ const createRecord = (dir: string, name: string) => {
 export const command = defineCommand({
   args: {
     dir: { type: "positional", required: false, description: "game folder (default: cwd)" },
+    headed: {
+      type: "boolean",
+      description: "open a REAL visible Chrome window — watch the agent play",
+    },
     cols: { type: "string", description: "frame width in characters (default 96)" },
     mode: { type: "string", description: "step (default: paused between commands) | realtime" },
     record: { type: "string", description: "session log name (snapshots/<name>.jsonl)" },
@@ -227,6 +248,7 @@ export const command = defineCommand({
     await runSession({
       cols: numeric(args.cols, 96),
       dir,
+      headed: args.headed === true,
       mode,
       record: typeof args.record === "string" ? args.record : null,
       settle: numeric(args.settle, 10),

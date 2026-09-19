@@ -222,8 +222,14 @@ export class FakeDriver implements LiveDriver {
 
   presses: string[] = [];
 
+  keyHolds: Array<{ code: string; frames: number }> = [];
+
   async press(code: string): Promise<void> {
     this.presses.push(code);
+  }
+
+  async holdKey(code: string, frames: number): Promise<void> {
+    this.keyHolds.push({ code, frames });
   }
 
   async contractVersion(): Promise<string> {

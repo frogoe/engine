@@ -9,6 +9,8 @@
  *  instead of dumping a stack trace. */
 import type { Browser, LaunchOptions } from "puppeteer-core";
 
+import { existsSync } from "node:fs";
+
 import { ensureBrowser, positiveIntEnv, wrapLaunchFailure } from "./manager.ts";
 
 const LAUNCH_TIMEOUT_ENV = "FROGOE_LAUNCH_TIMEOUT_MS";
@@ -35,18 +37,39 @@ export interface LaunchBrowserOptions {
   defaultViewport?: LaunchOptions["defaultViewport"];
   /** legacy per-project caches to migrate from / prune */
   legacyDirs?: readonly string[];
+  /** false opens a REAL, visible Chrome window (frogoe play --headed —
+   *  watch the agent play). The managed cache is headless-shell only, so
+   *  headed resolves the system Chrome install. */
+  headless?: boolean;
 }
+
+const SYSTEM_CHROME = [
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "/usr/bin/google-chrome",
+  "/usr/bin/chromium",
+  "/usr/bin/chromium-browser",
+];
 
 export const launchBrowser = async (options?: LaunchBrowserOptions): Promise<Browser> => {
   const { default: puppeteer } = await import("puppeteer-core");
   const budgets = launchBudgets();
-  const executablePath = await ensureBrowser({ legacyDirs: options?.legacyDirs });
+  const headed = options?.headless === false;
+  let executablePath = await ensureBrowser({ legacyDirs: options?.legacyDirs });
+  if (headed) {
+    const system = SYSTEM_CHROME.find((candidate) => existsSync(candidate));
+    if (system === undefined) {
+      throw new Error(
+        "frogoe: --headed needs a system Chrome (the managed cache is headless-only) — install Google Chrome, then re-run",
+      );
+    }
+    executablePath = system;
+  }
   try {
     return await puppeteer.launch({
       args: ["--no-sandbox", "--disable-gpu"],
       defaultViewport: options?.defaultViewport === undefined ? null : options.defaultViewport,
       executablePath,
-      headless: true,
+      headless: !headed,
       protocolTimeout: budgets.protocolMs,
       timeout: budgets.launchMs,
     });
