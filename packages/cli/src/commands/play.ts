@@ -27,6 +27,7 @@ import { createPuppeteerDriver, type LiveDriver } from "../live/driver.ts";
 interface PlayOptions {
   cols: number;
   dir: string;
+  fps: number;
   headed: boolean;
   mode: "realtime" | "step";
   record: string | null;
@@ -81,6 +82,11 @@ const runSession = async (options: PlayOptions): Promise<void> => {
     await new Promise((resolve) => {
       setTimeout(resolve, 1200);
     });
+    // evaluateOnNewDocument: retry buttons RELOAD the page (the scaffold
+    // convention) — an in-page installer dies with the old document and
+    // the agent goes blind right when it most needs eyes. This reinstalls
+    // on every navigation, the same pattern the probe uses.
+    await page.evaluateOnNewDocument(mapShotInstaller(palette, options.cols));
     await page.evaluate(mapShotInstaller(palette, options.cols));
 
     if (options.record !== null) {
@@ -94,21 +100,30 @@ const runSession = async (options: PlayOptions): Promise<void> => {
       await page.evaluate("window.__frogoe?.pause?.()");
     }
 
+    let capturing = false;
     const emit = async (why: string): Promise<void> => {
-      const frame = await captureFrame(page);
-      const state = (await driver.gameState()) as string;
-      const finishes = await driver.finishEvents();
-      const fresh = finishes.slice(finishesSeen);
-      finishesSeen = finishes.length;
-      const payload = {
-        finishes: fresh.map((f) => f.score),
-        frame: frame.plain,
-        reason: why,
-        state,
-        t: Math.round(elapsed * 100) / 100,
-      };
-      line(payload);
-      record?.write({ ...payload, frame: undefined, plain: frame.plain });
+      if (capturing) return; // one capture at a time — never queue them
+      capturing = true;
+      try {
+        const frame = await captureFrame(page);
+        const state = (await driver.gameState()) as string;
+        const finishes = await driver.finishEvents();
+        const fresh = finishes.slice(finishesSeen);
+        finishesSeen = finishes.length;
+        const payload = {
+          finishes: fresh.map((f) => f.score),
+          frame: frame.plain,
+          gate: frame.gate,
+          reason: why,
+          score: frame.score,
+          state,
+          t: Math.round(elapsed * 100) / 100,
+        };
+        line(payload);
+        record?.write({ ...payload, frame: undefined, plain: frame.plain });
+      } finally {
+        capturing = false;
+      }
     };
 
     line({
@@ -121,18 +136,37 @@ const runSession = async (options: PlayOptions): Promise<void> => {
     await emit("boot");
 
     const settle = async (): Promise<void> => {
-      // unpause for exactly `settle` frames (~16.7ms each), then freeze
-      if (paused) {
-        await page.evaluate("window.__frogoe?.resume?.()");
-      }
+      // step mode: unpause for exactly `settle` frames, then freeze.
+      // realtime: a NO-OP — the world runs continuously, and padding
+      // commands with artificial sleeps adds lethal latency to actions
+      // that were timed against a live world
+      if (!paused) return;
+      await page.evaluate("window.__frogoe?.resume?.()");
       await new Promise((resolve) => {
         setTimeout(resolve, (options.settle * 1000) / 60);
       });
-      if (paused) {
-        await page.evaluate("window.__frogoe?.pause?.()");
-      }
+      await page.evaluate("window.__frogoe?.pause?.()");
       elapsed += options.settle / 60;
     };
+
+    // SCREEN SHARE: frames flow at a steady cadence regardless of
+    // commands — observation and action decoupled (the per-command
+    // coupling deadlocked every time a command or its frame went
+    // missing: agents waited for frames that only commands produce)
+    const dbg = (m: string) => {
+      if (process.env.FROGOE_DEBUG === "1") process.stderr.write(`[play] ${m}\n`);
+    };
+    const frameTimer = setInterval(
+      () => {
+        dbg(`tick@${elapsed.toFixed(1)}`);
+        void emit("tick").then(
+          () => dbg("tick-done"),
+          (e) => dbg(`tick-err ${String(e).slice(0, 80)}`),
+        );
+        elapsed += 1 / options.fps;
+      },
+      Math.max(100, Math.round(1000 / options.fps)),
+    );
 
     const commands = createInterface({ input: process.stdin });
     const done = new Promise<void>((resolve) => {
@@ -149,6 +183,7 @@ const runSession = async (options: PlayOptions): Promise<void> => {
         continue;
       }
       if (cmd.quit === true) break;
+      dbg(`cmd ${text.slice(0, 40)}`);
       try {
         if (typeof cmd.step === "number" || Array.isArray(cmd.step)) {
           const n = Math.max(
@@ -161,6 +196,34 @@ const runSession = async (options: PlayOptions): Promise<void> => {
         } else if (Array.isArray(cmd.tap)) {
           await settle();
           await driver.tap(Number(cmd.tap[0]), Number(cmd.tap[1]));
+        } else if (typeof cmd.click === "string") {
+          // selector click — buttons by NAME, never by guessed pixels
+          // (the retry-miss class: a card's stacked layout moves targets)
+          dbg("click: pre-settle");
+          await settle();
+          dbg("click: post-settle, calling page.click");
+          await page.click(cmd.click).then(
+            async () => {
+              const ready1 = (await page.evaluate(
+                'document.body.hasAttribute("data-ready")',
+              )) as boolean;
+              dbg(`click: RESOLVED, still-ready=${ready1}`);
+              if (ready1) {
+                // DOM click() as diagnostic: does the handler run at all?
+                await page.evaluate(
+                  `document.querySelector(${JSON.stringify(cmd.click)})?.click()`,
+                );
+                const ready2 = (await page.evaluate(
+                  'document.body.hasAttribute("data-ready")',
+                )) as boolean;
+                dbg(`dom-click(): still-ready=${ready2}`);
+              }
+            },
+            (e) => {
+              dbg(`click: REJECTED ${String(e).slice(0, 80)}`);
+              line({ error: `click: no match for ${cmd.click}` });
+            },
+          );
         } else if (typeof cmd.press === "string") {
           await settle();
           await driver.press(cmd.press);
@@ -207,11 +270,13 @@ const runSession = async (options: PlayOptions): Promise<void> => {
             await page.evaluate("window.__frogoe?.pause?.()");
           }
         }
-        await emit(String(Object.keys(cmd)[0] ?? "?"));
+        // no emit here — the frame timer owns the stream (computer-use:
+        // act, and the next scheduled frame shows the result)
       } catch (error) {
         line({ error: String(error).slice(0, 160) });
       }
     }
+    clearInterval(frameTimer);
     commands.close(); // quit must EXIT: a held-open stdin keeps node alive
     await done;
   } finally {
@@ -246,6 +311,10 @@ export const command = defineCommand({
     mode: { type: "string", description: "step (default: paused between commands) | realtime" },
     record: { type: "string", description: "session log name (snapshots/<name>.jsonl)" },
     settle: { type: "string", description: "frames advanced per input (default 10)" },
+    fps: {
+      type: "string",
+      description: "screen-share cadence, frames/second (default 2 in realtime mode)",
+    },
   },
   async run({ args }) {
     const dir = args.dir ? path.resolve(String(args.dir)) : process.cwd();
@@ -257,6 +326,7 @@ export const command = defineCommand({
     await runSession({
       cols: numeric(args.cols, 96),
       dir,
+      fps: mode === "realtime" ? numeric(args.fps, 2) : 0,
       headed: args.headed === true,
       mode,
       record: typeof args.record === "string" ? args.record : null,

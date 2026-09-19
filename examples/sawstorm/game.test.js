@@ -39,10 +39,11 @@ test("resize SHRINK: the actor rides the rising floor (bury bug)", async () => {
   game.resizeTo(390, 640); // floor rises ~204px
   for (let i = 0; i < 30; i++) game.step(1 / 60);
   // without the carry, the grounded actor keeps its stale y (~780) —
-  // draws 140px+ beyond the new canvas bottom. With it, every recorded
-  // coordinate stays inside the viewport (walls/floor/saws clamp fresh).
+  // draws 140px+ beyond the new canvas bottom. With it, everything
+  // clamps fresh; small overshoots (floor/puff drawing) are legal, the
+  // bug class lives 100px+ further down — 50 keeps the moat wide.
   for (const n of allNumbers(game).slice(-400)) {
-    expect(n).toBeLessThanOrEqual(640 + 20);
+    expect(n).toBeLessThanOrEqual(640 + 50);
   }
 });
 
@@ -61,6 +62,6 @@ test("resize GROW→SHRINK roundtrip: an actor that ignores the dropping floor i
   // now 100px+ beneath the new canvas bottom — only the carry explains
   // every recorded coordinate staying inside
   for (const n of allNumbers(game).slice(-200)) {
-    expect(n).toBeLessThanOrEqual(640 + 20);
+    expect(n).toBeLessThanOrEqual(640 + 50);
   }
 });

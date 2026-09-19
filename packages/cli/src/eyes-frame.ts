@@ -1,8 +1,14 @@
 /** Shared ASCII eyes for live pages — the extraction of frogoe vision's
  *  frame capture, reused by `frogoe play`. One source of truth: the
- *  palette-aware cartography (art-eyes) is serialized into the page,
- *  __frogoeMapShot decodes a full-page screenshot (canvas + DOM HUD —
- *  the HUD is half the composition) and maps it to characters. */
+ *  palette-aware cartography (art-eyes) is serialized into the page.
+ *
+ *  CONTINUOUS STREAMS (play) read the canvas IN-PAGE — getImageData on
+ *  the contract canvas, plus the DOM HUD flattened into one text line.
+ *  No CDP screenshots at all: on a HEADED window every Page.captureScreenshot
+ *  momentarily suspends the compositor — at stream cadence that reads as
+ *  the screen blinking and "shrinking". The screenshot path stays as a
+ *  FALLBACK for exotic canvases (webgl) and for vision's occasional
+ *  full-page photos (a workbench, not a stream). */
 import type { Page } from "puppeteer-core";
 
 import {
@@ -23,16 +29,56 @@ export const eyesHelpersScript = (): string =>
 
 export interface EyesFrame {
   cols: number;
+  gate?: string;
+  hud?: string;
+  score?: string | null;
   metrics: { coverage: number; deadRows: number; rows: number };
   plain: string;
-  pretty: string;
+  pretty?: string;
   rows: number;
 }
 
-/** Installs window.__frogoeMapShot(b64png) → EyesFrame in the page. */
+/** Installs window.__frogoeFrame() (canvas grab + HUD text) AND
+ *  window.__frogoeMapShot(b64) (screenshot fallback) in the page. */
 export const mapShotInstaller = (palette: EyePalette, cols = 96): string => `(async () => {
   ${eyesHelpersScript()}
   const PAL = ${JSON.stringify(palette)};
+  const useCols = ${String(cols)};
+  const map = (d, w, h) => {
+    const rws = Math.max(1, Math.round((useCols * (h / w)) / 2));
+    return {
+      cols: useCols, rows: rws,
+      plain: mapToChars(d, w, h, useCols, rws, PAL),
+      metrics: compositionMetrics(d, w, h, Math.max(4, Math.round(rws / 4)), PAL),
+    };
+  };
+  window.__frogoeFrame = () => {
+    try {
+      const c = document.querySelector("#c");
+      if (!c) return null;
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      const { data, width, height } = ctx.getImageData(0, 0, c.width, c.height);
+      const hud = [];
+      for (const el of document.querySelectorAll(".hud span, .hud b, .hud button")) {
+        const cs = getComputedStyle(el);
+        if (cs.display === "none" || cs.visibility === "hidden" || Number(cs.opacity) < 0.1) continue;
+        const t = (el.textContent || "").trim();
+        if (t && !hud.includes(t)) hud.push(t);
+      }
+      // ground truth for agents: gate state + the score span, read from
+      // the DOM (ASCII heuristics about "is the title up" have lied)
+      const ready = document.body.hasAttribute("data-ready");
+      const score = document.querySelector("[data-block-score]");
+      return {
+        ...map(data, width, height),
+        gate: ready ? "ready" : "run",
+        hud: hud.slice(0, 6).join("  "),
+        score: score?.textContent ?? null,
+      };
+    } catch {
+      return null; // webgl or exotic canvas → screenshot fallback
+    }
+  };
   window.__frogoeMapShot = async (b64) => {
     const img = new Image();
     img.src = "data:image/png;base64," + b64;
@@ -42,20 +88,25 @@ export const mapShotInstaller = (palette: EyePalette, cols = 96): string => `(as
     const ctx = c.getContext("2d", { willReadFrequently: true });
     ctx.drawImage(img, 0, 0);
     const d = ctx.getImageData(0, 0, c.width, c.height).data;
-    const useCols = ${String(cols)};
-    const rws = Math.max(1, Math.round((useCols * (c.height / c.width)) / 2));
-    return {
-      cols: useCols, rows: rws,
-      plain: mapToChars(d, c.width, c.height, useCols, rws, PAL),
-      pretty: mapToPretty(d, c.width, c.height, useCols, rws),
-      metrics: compositionMetrics(d, c.width, c.height, Math.max(4, Math.round(rws / 4)), PAL),
-    };
+    return map(d, c.width, c.height);
   };
   void PAL;
 })()`;
 
-/** Capture one frame: full-page screenshot → in-page map. */
+/** Capture one stream frame: in-page canvas grab (zero compositor
+ *  interference) with the screenshot path as fallback. The HUD text
+ *  rides as the frame's first line — agents read crisp text, not
+ *  ASCII-of-text. */
 export const captureFrame = async (page: Page): Promise<EyesFrame> => {
-  const b64 = (await page.screenshot({ encoding: "base64", type: "png" })) as string;
+  const grabbed = (await page.evaluate("window.__frogoeFrame?.() ?? null")) as EyesFrame | null;
+  if (grabbed !== null && typeof grabbed.plain === "string") {
+    const hud = grabbed.hud && grabbed.hud.length > 0 ? `HUD ${grabbed.hud}` : "";
+    return { ...grabbed, plain: `${hud}\n${grabbed.plain}` };
+  }
+  const b64 = (await page.screenshot({
+    captureBeyondViewport: false,
+    encoding: "base64",
+    type: "png",
+  })) as string;
   return (await page.evaluate(`__frogoeMapShot(${JSON.stringify(b64)})`)) as EyesFrame;
 };

@@ -30,6 +30,7 @@ IS data (difficulty pacing), not failure.
 | Command | Effect |
 | --- | --- |
 | `{"tap":[x,y]}` / `{"press":"Space"}` / `{"type":"cat"}` / `{"drag":[x1,y1,x2,y2]}` | contract input — each settles ~10 frames (override `--settle`), then a frame comes out |
+| `{"click":"[data-block-retry]"}` | selector click — buttons by NAME, never by guessed pixels (a card's stacked layout moves targets) |
 | `{"step":30}` | advance exactly N frames (paused between in step mode) |
 | `{"resize":[960,640]}` | change the viewport (free-size window doctrine) |
 | `{"quit":true}` or stdin EOF | clean exit |

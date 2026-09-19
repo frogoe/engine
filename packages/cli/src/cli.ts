@@ -121,6 +121,7 @@ const KNOWN_FLAGS = new Set([
   "--update",
   "--verbose",
   "--headed",
+  "--fps",
   "--cols",
   "--mode",
   "--record",

@@ -14,7 +14,7 @@ import { parseBrief } from "@frogoe/lint";
 
 import { launchBrowser } from "../browser/launch.ts";
 import { legacyCacheDir } from "../browser/manager.ts";
-import { captureFrame, mapShotInstaller } from "../eyes-frame.ts";
+import { mapShotInstaller } from "../eyes-frame.ts";
 
 import {
   charFor,
@@ -129,6 +129,8 @@ interface MapView {
   plain: string;
   pretty: string;
   metrics: { coverage: number; deadRows: number; rows: number };
+  gate?: string;
+  score?: string | null;
 }
 
 interface VisionReport {
@@ -206,10 +208,21 @@ export const command = defineCommand({
       report = (await page.evaluate(PAGE_SCRIPT(palette, compact ? 48 : 96))) as VisionReport;
 
       // GAMEPLAY — full-page frames (canvas + DOM HUD): the HUD is half
-      // the composition and canvas-only capture was blind to it
+      // the composition and canvas-only capture was blind to it. Vision
+      // wants the FULL PAGE photo, so it bypasses the canvas grab and
+      // goes straight to the screenshot-backed map.
       const frame = async (label: string): Promise<void> => {
         await page.evaluate(mapShotInstaller(palette, compact ? 48 : 96));
-        report.gameplay.push({ label, ...(await captureFrame(page)) });
+        const b64 = (await page.screenshot({
+          captureBeyondViewport: false,
+          encoding: "base64",
+          type: "png",
+        })) as string;
+        const view = (await page.evaluate(`__frogoeMapShot(${JSON.stringify(b64)})`)) as Omit<
+          MapView,
+          "label"
+        >;
+        report.gameplay.push({ label, ...view });
       };
       await new Promise((resolve) => setTimeout(resolve, 1200));
       await frame("ready");
