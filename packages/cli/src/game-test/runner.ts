@@ -26,9 +26,12 @@ export const runGameTests = (dir: string, options?: { timeoutMs?: number }): Uni
     return {
       findings: [
         finding({
-          code: "test/stub-conflict",
+          code: stubbed.code,
           fix: stubbed.error,
-          message: "the frogoe test stub could not be installed",
+          message:
+            stubbed.code === "test/deps"
+              ? "test dependencies could not be installed"
+              : "the frogoe test stub could not be installed",
           severity: "error",
         }),
       ],

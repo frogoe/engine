@@ -142,6 +142,7 @@ const installEnvironment = () => {
       documentElement: fakeElement("<html>"),
       querySelector: (sel) => fakeElement(sel),
       querySelectorAll: () => [],
+      getElementById: (id) => fakeElement(`#${id}`),
       createElement: () => fakeElement(`<created-${fakeElements.size}>`),
       addEventListener() {},
       removeEventListener() {},
@@ -248,8 +249,12 @@ export const defineGame = (game) => {
 
 // ── bootForTest: load a game fresh and return the drive API ────────────────
 
+// install at stub load: a static `import { TUNE } from "./game.js"` in a
+// test file evaluates game.js BEFORE bootForTest runs — module-level DOM
+// access (document.addEventListener for audio unlock) must already work
+installEnvironment();
+
 export const bootForTest = async (moduleUrl) => {
-  installEnvironment();
   fakeElements.clear();
   resetCaptured();
   // fresh module per boot: bun IGNORES query strings on dynamic file

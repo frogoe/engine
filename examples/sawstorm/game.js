@@ -19,8 +19,9 @@ export const C = {
   cloudFar: "#1e162c",
 };
 
-/* ---------- tuning ---------- */
-const TUNE = {
+/* ---------- tuning — exported: game.test.js derives physics invariants
+ * (jump apex, arena crossing bounds) from these constants ---------- */
+export const TUNE = {
   runSpeed: 340,
   jumpV: -880,
   flipV: -800,

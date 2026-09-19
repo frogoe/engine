@@ -109,6 +109,15 @@ mechanics (collision, resolution, scoring math, ramps) from game.js and
 test them directly — games already export sprites for identity art; the
 seam exists.
 
+**Tier 1.5 — property-based (fast-check).** When a mechanic carries a
+numeric invariant (a ramp, a clamp, a remap), don't hand-pick cases —
+`import fc from "fast-check"` and let a thousand generated inputs hunt
+the break, auto-shrunk to the minimal counterexample. Test-time only:
+the materializer installs the dependency on sight (`bun add`, cached,
+never inside the artifact). The reference: typefall's difficulty ramp —
+`nextSpawnInterval(kills)` is exported PURE and property-tested for
+bounds + monotonicity (`examples/typefall/game.test.js`).
+
 **Tier 2 — whole-closure behavior.** `bootForTest` from `"frogoe"` boots
 the REAL game.js headless (fake DOM, recording canvas, deterministic dt)
 and returns a drive API. Closure state stays private — assert on BEHAVIOR:

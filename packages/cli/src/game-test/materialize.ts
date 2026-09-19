@@ -4,6 +4,7 @@
  *  the standard node_modules walk; the browser and bundler keep using the
  *  import map (enforced: the artifact must not change when the stub is
  *  present). The stub file is shipped VERBATIM, like injected-runtime. */
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -17,8 +18,11 @@ export const STUB_MARKER = "__frogoeAnyNode"; // a string unique to the stub
 export const hasGameTests = (dir: string): boolean => existsSync(path.join(dir, TEST_FILE));
 
 /** Write node_modules/frogoe (two small files) unless a foreign package
- *  already owns the name — never clobber, always teach. */
-export const ensureTestStub = (dir: string): { ok: true } | { error: string } => {
+ *  already owns the name — never clobber, always teach. Also wires the
+ *  property-testing dependency when a test file asks for it. */
+export const ensureTestStub = (
+  dir: string,
+): { ok: true } | { code: "test/deps" | "test/stub-conflict"; error: string } => {
   const pkgDir = path.join(dir, "node_modules", "frogoe");
   const pkgMarker = path.join(pkgDir, "package.json");
   const ours = (source: string): boolean =>
@@ -27,6 +31,7 @@ export const ensureTestStub = (dir: string): { ok: true } | { error: string } =>
     const current = readFileSync(pkgMarker, "utf-8");
     if (!ours(current)) {
       return {
+        code: "test/stub-conflict",
         error: `node_modules/frogoe exists but is not the frogoe test stub — remove it (a foreign package shadowing the contract name will break tests)`,
       };
     }
@@ -47,8 +52,25 @@ export const ensureTestStub = (dir: string): { ok: true } | { error: string } =>
     writeFileSync(gamePkg, `${JSON.stringify({ private: true }, null, 2)}\n`, "utf-8");
   } else if (/"workspaces"/u.test(readFileSync(gamePkg, "utf-8"))) {
     return {
+      code: "test/stub-conflict",
       error: `game package.json declares workspaces — a game folder is a leaf, not a workspace root; remove the workspaces field so the test stub resolves`,
     };
+  }
+  // property testing: a test file importing fast-check gets the dependency
+  // wired (pinned caret, bun-resolved, cached after first install). Proven:
+  // bun add does NOT prune the stub beside it.
+  const testSource = readFileSync(path.join(dir, TEST_FILE), "utf-8");
+  if (/from\s+"fast-check"/u.test(testSource)) {
+    const installed = existsSync(path.join(dir, "node_modules", "fast-check"));
+    if (!installed) {
+      const add = spawnSync("bun", ["add", "fast-check@^4.10.1"], { cwd: dir, encoding: "utf-8" });
+      if (add.status !== 0 || !existsSync(path.join(dir, "node_modules", "fast-check"))) {
+        return {
+          code: "test/deps",
+          error: `bun add fast-check failed (${(add.stderr || add.stdout || "").slice(0, 120).trim()}) — fix your network and re-run frogoe check`,
+        };
+      }
+    }
   }
   // keep the materialized bits out of the creator's tree
   const gitignore = path.join(dir, ".gitignore");
@@ -56,6 +78,7 @@ export const ensureTestStub = (dir: string): { ok: true } | { error: string } =>
   let next = current;
   if (!/^node_modules\/$/mu.test(next)) next = `${next.trimEnd()}\nnode_modules/\n`;
   if (!/^package\.json$/mu.test(next)) next = `${next.trimEnd()}\npackage.json\n`;
+  if (!/^bun\.lock$/mu.test(next)) next = `${next.trimEnd()}\nbun.lock\n`;
   if (next !== current) {
     writeFileSync(gitignore, next.replace(/^\n/u, ""), "utf-8");
   }

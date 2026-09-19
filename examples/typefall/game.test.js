@@ -4,9 +4,32 @@
  *  the resize remap (aliens keep their spread inside the play column).
  *  Deterministic by construction: seeded rng, fixed-dt steps. */
 import { test, expect } from "bun:test";
+import fc from "fast-check";
 import { bootForTest } from "frogoe";
 
+import { TUNE, nextSpawnInterval } from "./game.js";
+
 const boot = () => bootForTest(new URL("./game.js", import.meta.url));
+
+test("property: the difficulty ramp never inverts or escapes its bounds", () => {
+  // for EVERY kill count the spawn interval stays inside [min, base] and
+  // never rises as difficulty grows — 1000 random kills, auto-shrunk to
+  // the minimal counterexample the moment the invariant breaks
+  fc.assert(
+    fc.property(fc.integer({ max: 10_000, min: 0 }), (kills) => {
+      const t = nextSpawnInterval(kills);
+      return t >= TUNE.spawnIntervalMin && t <= TUNE.spawnIntervalBase;
+    }),
+    { numRuns: 1000 },
+  );
+  // and the ramp is monotone non-increasing — harder never means slower
+  fc.assert(
+    fc.property(fc.integer({ max: 9_999, min: 0 }), (kills) => {
+      return nextSpawnInterval(kills + 1) <= nextSpawnInterval(kills);
+    }),
+    { numRuns: 1000 },
+  );
+});
 
 test("boots, a tap opens the run (keyboard tray docks)", async () => {
   const game = await boot();

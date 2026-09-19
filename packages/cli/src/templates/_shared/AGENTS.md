@@ -79,7 +79,7 @@ bundle`. Use `--json` for machine-readable findings that can be fixed programmat
 - `.frogoe/` — tool-owned, gitignored (the contract runtime — never edit)
 - `blocks/` — HUD blocks copied from the registry (themed via `.hud` CSS custom properties)
 - `dist/` — `frogoe bundle` output (single self-contained HTML)
-- `game.test.js` — optional, REQUIRED for logic verbs (type/swap/place) and round sessions: headless tests via `bootForTest` from "frogoe" (frogoe-core → testable seam); `frogoe check` runs it
+- `game.test.js` — optional, REQUIRED for logic verbs (type/swap/place) and round sessions: headless tests via `bootForTest` from "frogoe" (frogoe-core → testable seam); `frogoe check` runs it. Numeric invariants → property-based: `import fc from "fast-check"` (auto-installed, test-time only)
 - `export/` — `frogoe export` output (native app project; gitignored, tool-owned — see frogoe-cli → references/export.md)
 
 ## Check — ALWAYS RUN AFTER CHANGES

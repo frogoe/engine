@@ -53,6 +53,11 @@ export const TUNE = {
   shipH: 64,
 };
 
+/* difficulty ramp: kills shrink the spawn interval to a floor — exported
+ * pure so game.test.js can property-test the invariant */
+export const nextSpawnInterval = (kills) =>
+  Math.max(TUNE.spawnIntervalMin, TUNE.spawnIntervalBase - kills * TUNE.spawnIntervalShrink);
+
 /* ---------- words: common English, 4–8 letters. The starter pool carries
  * short words (and the sandbox ladder's words — "glow", "game" — land as
  * honest early kills); later waves draw longer. "frogoe" is a rare guest. ---------- */
@@ -337,7 +342,7 @@ defineGame(({ stage, input, loop, finish }) => {
     lasers.push({ fromX: shipX, fromY: layout().shipY - 20, toX: a.x, toY: a.y + TUNE.glyphH + 4, born: now() });
     if (target === a) target = null;
     setScore();
-    spawnTimer = Math.max(TUNE.spawnIntervalMin, TUNE.spawnIntervalBase - kills * TUNE.spawnIntervalShrink);
+    spawnTimer = nextSpawnInterval(kills);
   };
 
   const loseLife = (a) => {
@@ -472,7 +477,7 @@ defineGame(({ stage, input, loop, finish }) => {
       spawnTimer -= dt;
       if (spawnTimer <= 0 && aliens.length < TUNE.maxAliens) {
         spawnAlien();
-        spawnTimer = Math.max(TUNE.spawnIntervalMin, TUNE.spawnIntervalBase - kills * TUNE.spawnIntervalShrink);
+        spawnTimer = nextSpawnInterval(kills);
       }
     }
 

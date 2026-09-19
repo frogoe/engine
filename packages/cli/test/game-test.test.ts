@@ -83,6 +83,25 @@ describe("game-test materialization", () => {
     expect(readFileSync(path.join(gameDir, ".gitignore"), "utf-8")).toContain("node_modules/");
   });
 
+  test("fast-check import wires the dependency (installed, pinned, gitignored)", () => {
+    writeGame(
+      FIXTURE_GAME,
+      `import { test, expect } from "bun:test";
+import fc from "fast-check";
+test("prop", () => { fc.assert(fc.property(fc.integer(), (n) => n === n)); });`,
+    );
+    const result = runGameTests(gameDir);
+    expect(result.findings).toEqual([]);
+    const pkg = JSON.parse(readFileSync(path.join(gameDir, "package.json"), "utf-8")) as {
+      dependencies?: Record<string, string>;
+    };
+    expect(pkg.dependencies?.["fast-check"]).toBeDefined();
+    expect(readFileSync(path.join(gameDir, ".gitignore"), "utf-8")).toContain("bun.lock");
+    // idempotent: a second pass adds nothing, breaks nothing
+    const again = runGameTests(gameDir);
+    expect(again.findings).toEqual([]);
+  }, 120_000);
+
   test("a foreign frogoe package is never clobbered — teaching error", () => {
     writeGame(FIXTURE_GAME, FIXTURE_TEST);
     const foreign = path.join(gameDir, "node_modules", "frogoe");
