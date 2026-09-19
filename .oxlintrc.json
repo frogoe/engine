@@ -13,7 +13,8 @@
     ".frogoe",
     "registry",
     "examples",
-    "packages/cli/src/injected-runtime.js"
+    "packages/cli/src/injected-runtime.js",
+    "packages/cli/src/game-test/frogoe-stub.js"
   ],
   "overrides": [
     {

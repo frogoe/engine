@@ -85,6 +85,9 @@ export interface LiveDriver {
   /** Type real keyboard text — the `type` verb ladder (word games and
    *  any keydown-driven surface). Touch-first games ignore it safely. */
   type(text: string): Promise<void>;
+  /** Press one key by code (Space, ArrowLeft…) — down+up edge. The play
+   *  loop's hands: agent decisions arrive as single semantic keys. */
+  press(code: string): Promise<void>;
   /** The materialized contract's version marker — proves the runtime
    *  the sandbox judged is the one the pin promised. */
   contractVersion(): Promise<string>;
@@ -229,6 +232,10 @@ export const createPuppeteerDriver = ({ page, size }: PuppeteerDriverOptions): L
     },
     async type(text: string) {
       await page.keyboard.type(text, { delay: 30 });
+    },
+    async press(code: string) {
+      // boundary cast — the evaluate seam casts the same way (read<T>)
+      await page.keyboard.press(code as Parameters<typeof page.keyboard.press>[0]);
     },
     async contractVersion() {
       return await read<string>(`window.__frogoe?.version ?? "(none)"`);

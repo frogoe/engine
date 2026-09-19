@@ -59,6 +59,7 @@ frogoe add <block>          # copy a HUD block into blocks/ (score, hearts, fuel
 frogoe lint                 # fast static contract lint (stable finding codes; --json for CI)
 frogoe check                # full gate: lint + headless Chrome — FPS, playability, HUD outline, screenshots
 frogoe vision               # eyes: your draw code as ASCII maps (objects, frames, identity art)
+frogoe play                 # agent hands+eyes: JSONL frames out, input in (step mode freezes the world)
 frogoe bundle               # one self-contained HTML (externals dissolved) — only after check passes
 frogoe export desktop|ios|android  # native app project in export/ (appId defaults to com.frogoe.* for dev)
 frogoe embed                # the card: poster loading state + sandboxed game + manifest — after bundle
@@ -79,7 +80,7 @@ bundle`. Use `--json` for machine-readable findings that can be fixed programmat
 - `.frogoe/` — tool-owned, gitignored (the contract runtime — never edit)
 - `blocks/` — HUD blocks copied from the registry (themed via `.hud` CSS custom properties)
 - `dist/` — `frogoe bundle` output (single self-contained HTML)
-- `game.test.js` — optional, REQUIRED for logic verbs (type/swap/place) and round sessions: headless tests via `bootForTest` from "frogoe" (frogoe-core → testable seam); `frogoe check` runs it. Numeric invariants → property-based: `import fc from "fast-check"` (auto-installed, test-time only)
+- `game.test.js` — optional, REQUIRED for logic verbs (type/swap/place) and round sessions: headless tests via `bootForTest` from "frogoe" (frogoe-core → testable seam); `frogoe check` runs it. Numeric invariants → property-based: `import fc from "fast-check"` (auto-installed, test-time only). Reactive tests read `game.view()` — the frame as ASCII — and act on what they see
 - `export/` — `frogoe export` output (native app project; gitignored, tool-owned — see frogoe-cli → references/export.md)
 
 ## Check — ALWAYS RUN AFTER CHANGES

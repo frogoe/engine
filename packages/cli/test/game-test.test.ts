@@ -83,6 +83,90 @@ describe("game-test materialization", () => {
     expect(readFileSync(path.join(gameDir, ".gitignore"), "utf-8")).toContain("node_modules/");
   });
 
+  test("view() replays draws onto a readable grid: rect, text, transforms", () => {
+    writeGame(
+      `import { defineGame } from "frogoe";
+defineGame(({ stage, loop }) => {
+  loop.update = () => {};
+  loop.render = (ctx) => {
+    ctx.fillStyle = "#130e1d"; ctx.fillRect(0, 0, stage.width, stage.height);
+    ctx.fillStyle = "#ff3b3b"; ctx.fillRect(100, 200, 60, 40);   // accent block
+    ctx.fillStyle = "#ffffff";
+    ctx.save(); ctx.translate(300, 500); ctx.fillRect(0, 0, 30, 30); ctx.restore();
+    ctx.fillText("CAT", 40, 700);
+  };
+});
+`,
+      `import { test, expect } from "bun:test";
+import { bootForTest } from "frogoe";
+test("view", async () => {
+  const game = await bootForTest(new URL("./game.js", import.meta.url));
+  game.step();
+  const frame = game.view();
+  const lines = frame.split("\\n");
+  expect(lines.length).toBeGreaterThan(10);
+  // bg flood normalized to '.': most cells are dots, content is not
+  const dots = frame.split("").filter((c) => c === ".").length;
+  expect(dots).toBeGreaterThan(frame.length * 0.5);
+  // the accent block sits mid-canvas; the translated square further down;
+  // the word renders as its ACTUAL characters
+  expect(frame.includes("CAT")).toBeTrue();
+  const blockRow = lines[Math.round((220 / 844) * lines.length)] ?? "";
+  expect(blockRow.trim().length).toBeGreaterThan(0);
+});
+`,
+    );
+    const result = runGameTests(gameDir);
+    expect(result.findings).toEqual([]);
+  }, 60_000);
+
+  test("agent eyes dodge: a reactive test reads view() and survives a closing hazard", () => {
+    writeGame(
+      `import { defineGame } from "frogoe";
+defineGame(({ stage, input, loop, finish }) => {
+  let heroX = 50, alive = true, t = 0;
+  input.on("key", (k) => { if (k.key === "ArrowLeft") heroX = Math.max(4, heroX - 23); });
+  loop.update = (dt) => {
+    t += dt;
+    if (!alive) return;
+    // the block reaches the hero's lane at t=2.3 — standing ground is fatal
+    if (t >= 2.3 && heroX > 27) { alive = false; finish(0); }
+  };
+  loop.render = (ctx) => {
+    ctx.fillStyle = "#101418"; ctx.fillRect(0, 0, stage.width, stage.height);
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(heroX, 400, 24, 24);        // hero
+    ctx.fillStyle = "#ff3b3b";
+    const blockX = 350 - t * 130;                                        // '+' block
+    ctx.fillRect(Math.max(-60, blockX), 360, 60, 100);
+    ctx.fillText(t >= 2.3 ? "CLEARED" : "OK", 40, 60);
+  };
+});
+`,
+      `import { test, expect } from "bun:test";
+import { bootForTest } from "frogoe";
+test("dodge", async () => {
+  const game = await bootForTest(new URL("./game.js", import.meta.url));
+  const rowOf = (frame, y) => frame.split("\\n")[Math.round((y / 844) * (frame.split("\\n").length - 1))] ?? "";
+  // each frame: read the wall's edge; step left BEFORE it reaches the hero
+  for (let i = 0; i < 200; i += 1) {
+    game.step(1 / 60);
+    if (i % 6 === 0) {
+      const row = rowOf(game.view(), 410);
+      // the block rides the accent ramp as '+': react as it closes on the hero
+      const blockCol = row.indexOf("+");
+      if (blockCol !== -1 && blockCol < Math.round((80 / 390) * row.length)) {
+        game.key("ArrowLeft");
+      }
+    }
+  }
+  expect(game.state()).toBe("playing"); // dodged — the sweep passed harmlessly
+});
+`,
+    );
+    const result = runGameTests(gameDir);
+    expect(result.findings).toEqual([]);
+  }, 60_000);
+
   test("fast-check import wires the dependency (installed, pinned, gitignored)", () => {
     writeGame(
       FIXTURE_GAME,

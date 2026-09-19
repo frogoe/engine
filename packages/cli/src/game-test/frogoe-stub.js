@@ -353,6 +353,172 @@ export const bootForTest = async (moduleUrl) => {
     state() {
       return api.state;
     },
+    /** AGENT EYES — the recorded draw calls replayed onto a character
+     *  grid (default 80 cols). Fidelity is semantic, not aesthetic: exact
+     *  positions of rects/circles/text (fillText plots its ACTUAL
+     *  characters), transforms honored, paths approximated by their
+     *  bounding box. Enough to READ a frame and decide; beauty stays
+     *  with pixel-based `frogoe vision`. */
+    view(cols = 80) {
+      const rows = Math.max(8, Math.round((cols * stage.height) / stage.width / 2));
+      const grid = Array.from({ length: rows }, () => Array(cols).fill(" "));
+      const sx = cols / stage.width;
+      const sy = rows / stage.height;
+      const plot = (x, y, ch) => {
+        const c = Math.floor(x * sx);
+        const r = Math.floor(y * sy);
+        if (r >= 0 && r < rows && c >= 0 && c < cols) grid[r][c] = ch;
+      };
+      // ramp dark→light (same family as art-eyes, palette-free here:
+      // glyphs derive from the ACTUAL fillStyle colors the game used)
+      const RAMP = "@%&*8=+~;:,-^`'";
+      const glyphFor = (color) => {
+        if (typeof color !== "string") return "O";
+        const m = /^#([0-9a-f]{6})$/iu.exec(color.trim());
+        if (!m) return "O";
+        const n = Number.parseInt(m[1] ?? "", 16);
+        const lum = 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+        return RAMP[Math.min(RAMP.length - 1, Math.floor((lum / 256) * RAMP.length))] ?? "O";
+      };
+      // canvas-style transform [a,b,c,d,e,f], composed per call
+      let m = [1, 0, 0, 1, 0, 0];
+      const stack = [];
+      const apply = (x, y) => ({
+        x: m[0] * x + m[2] * y + m[4],
+        y: m[1] * x + m[3] * y + m[5],
+      });
+      let fill = "#ffffff";
+      let pathBox = null; // [minX, minY, maxX, maxY] — crude path memory
+      const boxPoint = (x, y) => {
+        const p = apply(x, y);
+        pathBox = pathBox
+          ? [
+              Math.min(pathBox[0], p.x),
+              Math.min(pathBox[1], p.y),
+              Math.max(pathBox[2], p.x),
+              Math.max(pathBox[3], p.y),
+            ]
+          : [p.x, p.y, p.x, p.y];
+      };
+      const boxFill = () => {
+        if (pathBox === null) return;
+        const ch = glyphFor(fill);
+        for (let r = Math.floor(pathBox[1] * sy); r <= Math.floor(pathBox[3] * sy); r += 1) {
+          for (let c = Math.floor(pathBox[0] * sx); c <= Math.floor(pathBox[2] * sx); c += 1) {
+            if (r >= 0 && r < rows && c >= 0 && c < cols) grid[r][c] = ch;
+          }
+        }
+        pathBox = null;
+      };
+      for (const call of ctx.__frogoeCalls) {
+        const a = call.args;
+        switch (call.name) {
+          case "save":
+            stack.push([...m]);
+            break;
+          case "restore":
+            m = stack.pop() ?? m;
+            break;
+          case "translate": {
+            const [tx, ty] = [a[0] ?? 0, a[1] ?? 0];
+            m = [
+              m[0],
+              m[1],
+              m[2],
+              m[3],
+              m[0] * tx + m[2] * ty + m[4],
+              m[1] * tx + m[3] * ty + m[5],
+            ];
+            break;
+          }
+          case "scale": {
+            const [kx, ky] = [a[0] ?? 1, a[1] ?? a[0] ?? 1];
+            m = [m[0] * kx, m[1] * kx, m[2] * ky, m[3] * ky, m[4], m[5]];
+            break;
+          }
+          case "rotate": {
+            const th = a[0] ?? 0;
+            const cos = Math.cos(th);
+            const sin = Math.sin(th);
+            m = [
+              m[0] * cos + m[2] * sin,
+              m[1] * cos + m[3] * sin,
+              -m[0] * sin + m[2] * cos,
+              -m[1] * sin + m[3] * cos,
+              m[4],
+              m[5],
+            ];
+            break;
+          }
+          case "fillStyle":
+          case "strokeStyle":
+            if (call.set) fill = a[0];
+            break;
+          case "fillRect":
+          case "strokeRect": {
+            const p = apply(a[0] ?? 0, a[1] ?? 0);
+            const w = (a[2] ?? 0) * Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2]));
+            const h = (a[3] ?? 0) * Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2]));
+            const ch = glyphFor(fill);
+            for (let r = Math.floor(p.y * sy); r <= Math.floor((p.y + h) * sy); r += 1) {
+              for (let c = Math.floor(p.x * sx); c <= Math.floor((p.x + w) * sx); c += 1) {
+                if (r >= 0 && r < rows && c >= 0 && c < cols) grid[r][c] = ch;
+              }
+            }
+            break;
+          }
+          case "fillText": {
+            const text = String(a[0] ?? "");
+            const p = apply(a[1] ?? 0, a[2] ?? 0);
+            // one grid column per character, adjacent — words read as
+            // CONTIGUOUS substrings (frame.includes("CAT"), regex-able)
+            const startCol = Math.floor(p.x * sx);
+            const row = Math.floor(p.y * sy);
+            for (let i = 0; i < text.length; i += 1) {
+              const c = startCol + i;
+              if (row >= 0 && row < rows && c >= 0 && c < cols) grid[row][c] = text[i];
+            }
+            break;
+          }
+          case "arc":
+          case "ellipse": {
+            const p = apply(a[0] ?? 0, a[1] ?? 0);
+            const rx = (a[call.name === "arc" ? 2 : 3] ?? 1) * Math.abs(m[0]);
+            const ry = (a[call.name === "arc" ? 2 : 4] ?? 1) * Math.abs(m[3]);
+            boxPoint(p.x - rx, p.y - ry);
+            boxPoint(p.x + rx, p.y + ry);
+            // circles draw immediately (arc→fill is the dominant sprite
+            // shape in these games); a later fill() would double-draw the
+            // same box harmlessly
+            boxFill();
+            break;
+          }
+          case "moveTo":
+          case "lineTo":
+            boxPoint(a[0] ?? 0, a[1] ?? 0);
+            break;
+          case "fill":
+          case "stroke":
+            boxFill();
+            break;
+          default:
+            break;
+        }
+      }
+      // self-calibrating background: the most common glyph becomes '.'
+      // (palette-free — content pops on any palette)
+      const counts = new Map();
+      for (const row of grid) for (const ch of row) counts.set(ch, (counts.get(ch) ?? 0) + 1);
+      let bg = " ";
+      let best = -1;
+      for (const [ch, n] of counts) {
+        if (ch !== " " && n > best) {
+          best = n;
+          bg = ch;
+        }
+      }
+      return grid.map((row) => row.map((ch) => (ch === bg ? "." : ch)).join("")).join("\n");
+    },
     /** the finish noun, for direct lifecycle assertions (rare) */
     __finish: finish,
   };

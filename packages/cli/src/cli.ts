@@ -50,6 +50,8 @@ Commands:
   bundle [dir]             dissolve externals → one self-contained HTML
   embed [dir]              wrap the bundle in a card (poster + manifest)
   export [desktop|ios|android]  native app project in export/ (buildable, signable)
+  play [dir]               agent eyes + hands: JSONL frames out, input in
+                           step mode (default) freezes the world between commands
   vision [dir]             see the game: objects, frames, art as ASCII maps
                            --poster/--icon/--gameplay/--objects: one window only
                            --full: all windows (default is poster + gameplay)
@@ -118,6 +120,10 @@ const KNOWN_FLAGS = new Set([
   "--check",
   "--update",
   "--verbose",
+  "--cols",
+  "--mode",
+  "--record",
+  "--settle",
 ]);
 
 const UNKNOWN_FLAG = /^--[a-z][a-z0-9-]*$/u;
@@ -151,6 +157,7 @@ const main = defineCommand({
     vision: () => import("./commands/vision.ts").then((m) => m.command),
     init: () => import("./commands/init.ts").then((m) => m.command),
     lint: () => import("./commands/lint.ts").then((m) => m.command),
+    play: () => import("./commands/play.ts").then((m) => m.command),
     report: () => import("./commands/report.ts").then((m) => m.command),
     run: () => import("./commands/run.ts").then((m) => m.command),
     skills: () => import("./commands/skills.ts").then((m) => m.command),

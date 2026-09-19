@@ -25,6 +25,7 @@ Run commands as `bun packages/cli/src/bin.ts <cmd>` from the repo (published:
 | `references/embed.md` | the card, the frogoe-card protocol, and dist/manifest.json |
 | `references/export.md` | native app projects (export/run desktop) and the agent-completes signing flow |
 | `references/vision.md` | `frogoe vision` — ASCII eyes for draw code (objects, frames, art) |
+| `references/play.md` | `frogoe play` — agent eyes + hands: JSONL frames out, contract input in, step mode freezes the world |
 
 ## Development loop
 

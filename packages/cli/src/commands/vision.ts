@@ -14,6 +14,7 @@ import { parseBrief } from "@frogoe/lint";
 
 import { launchBrowser } from "../browser/launch.ts";
 import { legacyCacheDir } from "../browser/manager.ts";
+import { captureFrame, mapShotInstaller } from "../eyes-frame.ts";
 
 import {
   charFor,
@@ -78,17 +79,6 @@ const PAGE_SCRIPT = (palette: EyePalette, cols = 96): string => `(async () => {
   const out = { objects: null, gameplay: [], identity: {} };
   // gameplay frames come from Node-side page.screenshot (full page:
   // canvas + DOM HUD — the HUD is half the composition); this maps them
-  window.__frogoeMapShot = async (b64) => {
-    const img = new Image();
-    img.src = "data:image/png;base64," + b64;
-    await img.decode();
-    const c = document.createElement("canvas");
-    c.width = img.naturalWidth; c.height = img.naturalHeight;
-    const ctx = c.getContext("2d", { willReadFrequently: true });
-    ctx.drawImage(img, 0, 0);
-    const d = ctx.getImageData(0, 0, c.width, c.height).data;
-    return map(d, c.width, c.height, 96);
-  };
 
   // ── OBJECTS — every SPRITES entry, isolated on the palette ground ─
   try {
@@ -218,9 +208,8 @@ export const command = defineCommand({
       // GAMEPLAY — full-page frames (canvas + DOM HUD): the HUD is half
       // the composition and canvas-only capture was blind to it
       const frame = async (label: string): Promise<void> => {
-        const b64 = (await page.screenshot({ encoding: "base64", type: "png" })) as string;
-        const view = (await page.evaluate(`__frogoeMapShot(${JSON.stringify(b64)})`)) as MapView;
-        report.gameplay.push({ label, ...view });
+        await page.evaluate(mapShotInstaller(palette, compact ? 48 : 96));
+        report.gameplay.push({ label, ...(await captureFrame(page)) });
       };
       await new Promise((resolve) => setTimeout(resolve, 1200));
       await frame("ready");

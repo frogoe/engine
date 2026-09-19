@@ -120,7 +120,11 @@ bounds + monotonicity (`examples/typefall/game.test.js`).
 
 **Tier 2 — whole-closure behavior.** `bootForTest` from `"frogoe"` boots
 the REAL game.js headless (fake DOM, recording canvas, deterministic dt)
-and returns a drive API. Closure state stays private — assert on BEHAVIOR:
+and returns a drive API — including **agent eyes**: `game.view()` replays
+the recorded draws onto a character grid (fillText renders its ACTUAL
+characters, transforms honored), so a test can READ a frame and react —
+dodge a closing hazard, read a falling word. Semantic fidelity, not
+beauty; pixel-beauty stays with `frogoe vision`. Closure state stays private — assert on BEHAVIOR:
 `finishes()`, recorded `draws()` (positions live in the args), DOM element
 bindings. The reference: `examples/typefall/game.test.js` pins this
 month's two real bugs (keyboard-bounded floor, resize remap).

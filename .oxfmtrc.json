@@ -9,6 +9,7 @@
     "docs/**",
     "packages/cli/src/export-templates/**",
     "packages/cli/src/ci-templates/**",
+    "packages/cli/src/game-test/frogoe-stub.js",
     "**/CHANGELOG.md",
     "**/.release-please-manifest.json"
   ]

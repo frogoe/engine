@@ -220,6 +220,12 @@ export class FakeDriver implements LiveDriver {
     this.types.push(text);
   }
 
+  presses: string[] = [];
+
+  async press(code: string): Promise<void> {
+    this.presses.push(code);
+  }
+
   async contractVersion(): Promise<string> {
     return "0.2.0";
   }
