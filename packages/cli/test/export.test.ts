@@ -18,6 +18,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { ensureMobileInit, generateShell, type IconRunner } from "../src/commands/export.ts";
+import { ciTemplatesFor } from "../src/export.ts";
 import { materializeBundle } from "../src/bundle.ts";
 import { GEN_DIR } from "../src/export.ts";
 import { injectDevUrl } from "../src/export.ts";
@@ -109,6 +110,27 @@ describe("template integrity (the shipped templates)", () => {
     }
     return out;
   };
+
+  test("ci templates stay raw-YAML-valid: every token is quoted", () => {
+    // an unquoted {{TOKEN}} is a YAML flow mapping — editors and GitHub's
+    // parser reject the template before fill ever runs. Quoted scalars are
+    // valid raw AND after fill, whatever characters the app name carries.
+    const root = ciTemplatesFor(path.join(import.meta.dir, "../src"));
+    for (const file of readdirSync(root)) {
+      if (!file.endsWith(".yml") && !file.endsWith(".yaml")) continue;
+      const source = readFileSync(path.join(root, file), "utf-8");
+      for (const line of source.split("\n")) {
+        // the token sits INSIDE a double-quoted scalar (opening quote
+        // before it, closing quote after, nothing unquoted in between)
+        const enclosed = /"[^"]*\{\{FROGOE_[A-Z_]+\}\}[^"]*"/u.test(line);
+        const bare = /(^|[^"])\{\{FROGOE_[A-Z_]+\}\}/u.test(line);
+        if (/\{\{FROGOE_/u.test(line)) {
+          expect(enclosed).toBeTrue();
+          expect(bare).toBeFalse();
+        }
+      }
+    }
+  });
 
   test("the template tree carries only known tokens, and fills cleanly", () => {
     const files = walk(templateRoot);
