@@ -438,7 +438,14 @@ defineGame(({ stage, input, loop, finish }) => {
   loop.update = (dt) => {
     const t = now();
     if (fieldBottom === 0) fieldBottom = stage.height;
-    const wantBottom = stage.height - Math.max(keyboardEl?.offsetHeight ?? 0, 64);
+    /* the keyboard's TRUE top edge — the tray is not flush to the
+     * viewport bottom (gap + safe-area live below it), so height-minus-
+     * offsetHeight math buried the ship behind the top key row on
+     * notch phones. Hidden keyboard → plain 64px floor margin. */
+    const wantBottom =
+      keyboardEl && keyboardEl.offsetHeight > 0
+        ? keyboardEl.getBoundingClientRect().top
+        : stage.height - 64;
     fieldBottom += (wantBottom - fieldBottom) * Math.min(1, dt * 8);
     const L = layout();
     if (shipX === 0) shipX = stage.play.center;
