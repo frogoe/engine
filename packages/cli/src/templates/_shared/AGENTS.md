@@ -59,7 +59,7 @@ frogoe add <block>          # copy a HUD block into blocks/ (score, hearts, fuel
 frogoe lint                 # fast static contract lint (stable finding codes; --json for CI)
 frogoe check                # full gate: lint + headless Chrome — FPS, playability, HUD outline, screenshots
 frogoe vision               # eyes: your draw code as ASCII maps (objects, frames, identity art)
-frogoe play                 # agent hands+eyes: JSONL frames out, input in (step mode freezes the world)
+frogoe play                 # agent eyes+hands: JSONL frames out (gate/score ground truth), input in — step mode freezes the world
 frogoe bundle               # one self-contained HTML (externals dissolved) — only after check passes
 frogoe export desktop|ios|android  # native app project in export/ (appId defaults to com.frogoe.* for dev)
 frogoe embed                # the card: poster loading state + sandboxed game + manifest — after bundle

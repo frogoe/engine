@@ -2,11 +2,11 @@
   "source": "frogoe/engine",
   "skills": {
     "frogoe": {
-      "hash": "877d433704bc1073",
+      "hash": "b3e06128be0b3b8f",
       "files": 5
     },
     "frogoe-cli": {
-      "hash": "d79dd83c490f7f3a",
+      "hash": "14fdbbc79f31ef82",
       "files": 8
     },
     "frogoe-core": {
