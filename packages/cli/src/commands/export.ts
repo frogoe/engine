@@ -10,7 +10,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { parseBrief } from "@frogoe/lint";
-import { bundle } from "../bundle.ts";
+import { materializeBundle } from "../bundle.ts";
 import {
   ExportConfigError,
   GEN_DIR,
@@ -250,7 +250,11 @@ export const command = defineCommand({
 
     if (args.noBundle !== true) {
       console.log("  bundling first — export always carries the freshest verified artifact");
-      await bundle({ dir });
+      // materialize writes dist/ itself: the shell must embed the
+      // artifact computed from CURRENT source, never a stale dist left
+      // by the last manual bundle (and a fresh checkout has no dist at
+      // all — the CI path rides this too)
+      await materializeBundle({ dir });
     }
 
     const config = deriveExportConfig({

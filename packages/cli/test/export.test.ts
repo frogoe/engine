@@ -8,6 +8,7 @@ import {
   validateAppId,
 } from "../src/export.ts";
 import {
+  cpSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -17,6 +18,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { ensureMobileInit, generateShell, type IconRunner } from "../src/commands/export.ts";
+import { materializeBundle } from "../src/bundle.ts";
 import { GEN_DIR } from "../src/export.ts";
 import { injectDevUrl } from "../src/export.ts";
 import path from "node:path";
@@ -185,6 +187,39 @@ describe("export shell generation (command-level, toolchain mocked)", () => {
     expect(readFileSync(path.join(tmp, ".gitignore"), "utf-8")).toContain("export/");
     expect(existsSync(path.join(tmp, "export", "frogoe-export.json"))).toBeTrue();
   });
+
+  test("materializeBundle never leaves a stale dist (the shipped-twice-stale bug)", async () => {
+    // export once called the pure bundle(), DISCARDED the artifact, and
+    // copied whatever old dist/ sat on disk into the native shell. The
+    // write path is shared now — what was computed is what ships. A real
+    // game (flappy, copied) so every downstream gate runs for true.
+    const game = path.join(tmp, "game-copy");
+    cpSync(path.join(import.meta.dir, "../../../examples/flappy"), game, {
+      recursive: true,
+      filter: (src) => {
+        const rel = path.relative(path.join(import.meta.dir, "../../../examples/flappy"), src);
+        return !/^(dist|snapshots|node_modules|export)/u.test(rel);
+      },
+    });
+    // stale artifact from a previous manual bundle of OLD source:
+    mkdirSync(path.join(game, "dist"), { recursive: true });
+    writeFileSync(path.join(game, "dist", "index.html"), "<!doctype html><title>OLD</title>");
+
+    const first = await materializeBundle({ dir: game });
+    const dist = readFileSync(path.join(game, "dist", "index.html"), "utf-8");
+    expect(dist).not.toContain("OLD");
+    expect(dist).toBe(first.report.artifact);
+
+    // and it tracks source: edit → rematerialize → dist changes (an
+    // HTML comment — minified JS comments would not move the sha)
+    const ih = readFileSync(path.join(game, "index.html"), "utf-8");
+    writeFileSync(path.join(game, "index.html"), `<!-- fresh -->\n${ih}`);
+    const second = await materializeBundle({ dir: game });
+    expect(second.report.sha256).not.toBe(first.report.sha256);
+    expect(readFileSync(path.join(game, "dist", "index.html"), "utf-8")).toBe(
+      second.report.artifact,
+    );
+  }, 60_000);
 
   test("re-export is idempotent; creator edits to tool files are kept", () => {
     freshGame(true);

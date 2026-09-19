@@ -1,8 +1,7 @@
 import { defineCommand } from "citty";
 
-import { bundle } from "../bundle.ts";
-import { rasterizeArt } from "../raster.ts";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { materializeBundle } from "../bundle.ts";
+import { writeFileSync } from "node:fs";
 import path from "node:path";
 
 export const command = defineCommand({
@@ -13,14 +12,13 @@ export const command = defineCommand({
   },
   async run({ args }) {
     const dir = args.dir ? String(args.dir) : process.cwd();
-    const report = await bundle({ dir });
-    const outPath = args.out
-      ? path.resolve(String(args.out))
-      : path.join(dir, "dist", "index.html");
-    mkdirSync(path.dirname(outPath), { recursive: true });
-    writeFileSync(outPath, report.artifact, "utf-8");
-    // identity art: authored SVG → dist PNG (poster 1080×1920, icon 1024)
-    const art = await rasterizeArt({ dir });
+    const { art, report } = await materializeBundle({ dir });
+    if (args.out) {
+      const outPath = path.resolve(String(args.out));
+      // dist/ stays materialized (the canonical copy); --out adds a copy
+      // where the caller wants it (the embed pipeline, e2e fixtures)
+      writeFileSync(outPath, report.artifact, "utf-8");
+    }
     for (const warning of [...report.warnings, ...art.warnings]) {
       console.log(`  ⚠ ${warning}`);
     }
@@ -29,7 +27,7 @@ export const command = defineCommand({
         JSON.stringify(
           {
             art: art.files,
-            artifact: outPath,
+            artifact: path.join(dir, "dist", "index.html"),
             assets: report.assets,
             bytes: report.bytes,
             sha256: report.sha256,
@@ -40,7 +38,10 @@ export const command = defineCommand({
         ),
       );
     } else {
-      console.log(`  frogoe bundle → ${outPath}`);
+      console.log(`  frogoe bundle → ${path.join(dir, "dist", "index.html")}`);
+      if (args.out) {
+        console.log(`  copy → ${path.resolve(String(args.out))}`);
+      }
       console.log(
         `  ${report.bytes} bytes · ${report.assets.length} dissolved asset(s) · sha256 ${report.sha256.slice(0, 12)}`,
       );

@@ -5,12 +5,13 @@
  *  final self-scan. Provenance banner carries the contract pin + sha256.
  */
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import type { Plugin } from "esbuild";
 
 import { fetchBufferWithPolicy, fetchWithPolicy, type FetchImpl } from "./fetch-policy.ts";
+import type { RasterReport } from "./raster.ts";
 import { CONTRACT_VERSION } from "./templates.ts";
 import {
   decodeProxyToken,
@@ -369,4 +370,25 @@ export const bundle = async (options: BundleOptions): Promise<BundleReport> => {
     sha256: sha256(artifact),
     warnings,
   };
+};
+
+/** Materialize the bundle to dist/ — the ONE write path shared by the
+ *  `frogoe bundle` command and `frogoe export`. Export must ship the
+ *  artifact it just computed from CURRENT source, never whatever a
+ *  previous manual bundle left on disk (the stale-dist bug: export
+ *  called the pure bundle(), discarded the artifact, and copied a
+ *  weeks-old dist/ into the native shell). Also writes the identity
+ *  art PNGs the export icon step depends on — a fresh checkout with no
+ *  dist/ exports cleanly (the CI path rides this too). */
+export const materializeBundle = async (
+  options: BundleOptions,
+): Promise<{ art: RasterReport; artifactPath: string; report: BundleReport }> => {
+  const dir = path.resolve(options.dir);
+  const report = await bundle(options);
+  const artifactPath = path.join(dir, "dist", "index.html");
+  mkdirSync(path.dirname(artifactPath), { recursive: true });
+  writeFileSync(artifactPath, report.artifact, "utf-8");
+  const { rasterizeArt } = await import("./raster.ts");
+  const art = await rasterizeArt({ dir });
+  return { art, artifactPath, report };
 };
