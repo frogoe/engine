@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.10.0](https://github.com/frogoe/engine/compare/v0.9.0...v0.10.0) (2026-09-19)
+
+
+### Features
+
+* **cli:** agent eyes — game.view() + frogoe play (L2 realized) ([08a9931](https://github.com/frogoe/engine/commit/08a9931c628906c3fffa0ea31471a3cbf4d9b760))
+* **cli:** frogoe play --headed + holdKey — watch the agent play, for real ([6d713ac](https://github.com/frogoe/engine/commit/6d713acb6a707c8d66690a515c08f4a97f4ca55e))
+* **cli:** game.test.js — the semantic gate (two tiers, check-wired) ([57b9871](https://github.com/frogoe/engine/commit/57b9871ffc50e28e37b06528166ab2a22eae80f1))
+* **cli:** play becomes computer-use for real — screen-share, ground truth, and an agent that scores ([b4c2354](https://github.com/frogoe/engine/commit/b4c235403bd16af40dfecd14e93d5e8244bb6031))
+* **examples,cli:** the second reference test + property-based Tier 1.5 ([94f7cae](https://github.com/frogoe/engine/commit/94f7cae39bdcb66e44e69190c9c8f023877a5476))
+* **examples:** flappy game.test.js — the tap-verb reference completes the trilogy ([c4a30e0](https://github.com/frogoe/engine/commit/c4a30e0eb9fc74380c3c2184b1c71bad22a78bc4))
+
+
+### Bug Fixes
+
+* **cli:** --headed never reached the launcher — the wire was cut ([3efe2b3](https://github.com/frogoe/engine/commit/3efe2b37310efd6e13d8710c17001e7fea85f8af))
+* **cli:** cross-stub global collision — one bun process, several games ([74629e0](https://github.com/frogoe/engine/commit/74629e0f16d88b9e3d0cd1cd2b3d71de73cd1722))
+
 ## [0.9.0](https://github.com/frogoe/engine/compare/v0.8.2...v0.9.0) (2026-09-19)
 
 
