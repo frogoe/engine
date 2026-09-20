@@ -11,7 +11,7 @@
  *
  *  `--record` logs every frame + input to snapshots/play-session.jsonl —
  *  diffable evidence, the seed of `frogoe certify`. */
-import { mkdirSync, readFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import path from "node:path";
 
@@ -145,17 +145,21 @@ const runSession = async (options: PlayOptions): Promise<void> => {
     });
     await emit("boot");
 
-    // SCREEN SHARE: frames flow at a steady cadence regardless of
-    // commands — observation and action decoupled (the per-command
-    // coupling deadlocked every time a command or its frame went
-    // missing: agents waited for frames that only commands produce)
-    const frameTimer = setInterval(
-      () => {
-        void emit("tick");
-        elapsed += 1 / options.fps;
-      },
-      Math.max(100, Math.round(1000 / options.fps)),
-    );
+    // SCREEN SHARE (realtime): frames flow at a steady cadence regardless
+    // of commands. STEP MODE: no timer at all — fps 0 once meant
+    // setInterval(fn, Infinity), which spammed thousands of frozen
+    // frames per second and starved the command loop; step mode now
+    // emits ONE frame per command (act, then see the frozen result).
+    const frameTimer =
+      options.fps > 0
+        ? setInterval(
+            () => {
+              void emit("tick");
+              elapsed += 1 / options.fps;
+            },
+            Math.max(100, Math.round(1000 / options.fps)),
+          )
+        : null;
 
     const commands = createInterface({ input: process.stdin });
     const done = new Promise<void>((resolve) => {
@@ -188,12 +192,13 @@ const runSession = async (options: PlayOptions): Promise<void> => {
         else {
           // actions belong to the evidence: recap correlates act → effect
           record?.write({ action: cmd, t: Math.round(elapsed * 100) / 100 });
+          if (frameTimer === null) await emit(String(Object.keys(cmd)[0] ?? "?"));
         }
       } catch (error) {
         line({ error: String(error).slice(0, 160) });
       }
     }
-    clearInterval(frameTimer);
+    if (frameTimer !== null) clearInterval(frameTimer);
     commands.close(); // quit must EXIT: a held-open stdin keeps node alive
     await done;
   } finally {
@@ -206,7 +211,6 @@ const runSession = async (options: PlayOptions): Promise<void> => {
 const createRecord = (dir: string, name: string) => {
   const file = path.join(dir, "snapshots", name.endsWith(".jsonl") ? name : `${name}.jsonl`);
   mkdirSync(path.dirname(file), { recursive: true });
-  const { appendFileSync } = require("node:fs") as typeof import("node:fs");
   return {
     close() {
       /* append-per-write: nothing to flush */

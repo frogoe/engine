@@ -549,7 +549,7 @@ defineGame(({ stage, input, loop, finish }) => {
     wingT = Math.max(0, wingT - dt * 5);
     shakeT = Math.max(0, shakeT - dt);
     liveSnap = {
-      player: { x: P.x, y: P.y },
+      player: { x: stage.play.center, y: P.y },  // P has no x — the bird parks at the column center
       entities: pipes.map((p) => ({ kind: "gap", x: p.x + T.pipeW / 2, y: p.gapY + T.gap / 2 })),
       state: { alive, dying, started },
     };
