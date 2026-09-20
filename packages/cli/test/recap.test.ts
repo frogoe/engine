@@ -31,7 +31,7 @@ describe("recap analysis", () => {
     expect(facts.retriedAfterDeath).toBeTrue();
     expect(facts.scoreTrail).toEqual(["0", "1", "0", "2"]);
     expect(facts.liveChannel).toBeTrue();
-    expect(verdictOf(facts)).toContain("YA — mulai");
+    expect(verdictOf(facts)).toContain("YES — started");
   });
 
   test("never started → TIDAK", () => {
@@ -40,7 +40,7 @@ describe("recap analysis", () => {
       row({ plain: "…", gate: "ready", state: "paused", score: "0", t: 2 }),
     ]);
     expect(facts.started).toBeFalse();
-    expect(verdictOf(facts)).toContain("TIDAK");
+    expect(verdictOf(facts)).toContain("NO —");
   });
 
   test("passive agent → UNKNOWN; errors surface", () => {
@@ -56,7 +56,7 @@ describe("recap analysis", () => {
       row({ error: "boom again" }),
     ]);
     expect(errored.errors).toHaveLength(2);
-    expect(verdictOf(errored)).toContain("TIDAK — 2 error");
+    expect(verdictOf(errored)).toContain("NO — 2 session error(s)");
   });
 
   test("no evidence → NO-EVIDENCE; deaths accumulate across frames", () => {
@@ -74,6 +74,6 @@ describe("recap analysis", () => {
       row({ action: { step: 30 }, t: 1 }),
       row({ plain: "…", gate: "run", state: "playing", t: 60 }),
     ]);
-    expect(verdictOf(facts)).toContain("YA (hidup terus)");
+    expect(verdictOf(facts)).toContain("YES (endured)");
   });
 });

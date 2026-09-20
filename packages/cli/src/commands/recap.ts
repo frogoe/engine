@@ -70,13 +70,13 @@ export const analyzeSession = (rows: SessionRow[]): Facts => {
 
 export const verdictOf = (f: Facts): string => {
   if (f.frames === 0) return "NO-EVIDENCE";
-  if (!f.started) return "TIDAK — sesi tak pernah mulai (ready gate tak terlewati)";
-  if (f.actions === 0) return "UNKNOWN — tak ada aksi tercatat (agent pasif?)";
-  if (f.errors.length > 0) return `TIDAK — ${f.errors.length} error sesi`;
-  if (f.deaths === 0) return "YA (hidup terus) — tak ada kematian teramati";
+  if (!f.started) return "NO — the session never started (the ready gate was never passed)";
+  if (f.actions === 0) return "UNKNOWN — no recorded actions (a passive agent?)";
+  if (f.errors.length > 0) return `NO — ${f.errors.length} session error(s)`;
+  if (f.deaths === 0) return "YES (endured) — no death observed";
   return f.retriedAfterDeath
-    ? "YA — mulai, bermain, mati, dan mencoba lagi"
-    : "YA (sekali jalan) — mati tanpa retry teramati";
+    ? "YES — started, played, died, and retried"
+    : "YES (single run) — died without an observed retry";
 };
 
 const latestSession = (dir: string): string | null => {
@@ -122,23 +122,23 @@ export const command = defineCommand({
       .map((l) => JSON.parse(l) as SessionRow);
     const facts = analyzeSession(rows);
     const mark = (b: boolean) => (b ? "✓" : "✗");
-    console.log(`# rekap sesi — ${name}`);
-    console.log(`- mulai: ${mark(facts.started)}  ·  aksi tercatat: ${facts.actions}`);
+    console.log(`# session recap — ${name}`);
+    console.log(`- started: ${mark(facts.started)}  ·  recorded actions: ${facts.actions}`);
     console.log(
-      `- kematian: ${facts.deaths}  ·  retry setelah mati: ${mark(facts.retriedAfterDeath)}`,
+      `- deaths: ${facts.deaths}  ·  retried after death: ${mark(facts.retriedAfterDeath)}`,
     );
     console.log(
-      `- skor: ${facts.scoreTrail.length > 0 ? facts.scoreTrail.join(" → ") : "(tak teramati)"}`,
+      `- score: ${facts.scoreTrail.length > 0 ? facts.scoreTrail.join(" → ") : "(none observed)"}`,
     );
     console.log(
-      `- kanal mata: ASCII ✓  ·  koordinat live(): ${facts.liveChannel ? "✓" : "— (game tanpa live())"}`,
+      `- eye channels: ASCII ✓  ·  live() coordinates: ${facts.liveChannel ? "✓" : "— (game without live())"}`,
     );
     console.log(
-      `- ${facts.frames} frame · ${facts.gameSecs}s waktu-game · error: ${facts.errors.length}`,
+      `- ${facts.frames} frames · ${facts.gameSecs}s game-time · errors: ${facts.errors.length}`,
     );
     for (const e of facts.errors.slice(0, 3)) console.log(`    · ${e.slice(0, 100)}`);
     console.log(`\nverdict: ${verdictOf(facts)}`);
-    console.log("\n(anotasi AI: sebut anomali/keanehan di atas verdict — lalu jadikan test)");
+    console.log("\n(AI annotation: note anomalies above the verdict — then make them tests)");
   },
   meta: {
     description: "session evidence → machine facts + verdict skeleton (the AI annotates anomalies)",
