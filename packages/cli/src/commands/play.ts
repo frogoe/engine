@@ -92,6 +92,10 @@ const runSession = async (options: PlayOptions): Promise<void> => {
 
     if (options.record !== null) {
       record = createRecord(options.dir, options.record);
+      // session meta leads the evidence: detectors condition on it
+      record.write({
+        meta: { cols: options.cols, mode: options.mode, viewport: { h: 844, w: 390 } },
+      });
     }
 
     let elapsed = 0;

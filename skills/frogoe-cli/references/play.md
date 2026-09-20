@@ -26,10 +26,25 @@ frogoe play examples/flappy --cols 96 --fps 2 --record session
 
 `frogoe recap [dir] [--session name]` analyzes a recorded session
 (`snapshots/<name>.jsonl`) into machine facts — started? actions?
-deaths? retry? score trail? errors? — ending in a verdict skeleton.
-The AI that played (or reads the evidence) annotates the anomalies;
-anomalies get fixed and become tests. Recap is the AUTHOR'S input,
-never a check gate.
+deaths? retry? score trail? errors? — plus **anomaly detectors**:
+machine-checkable bug signals over the evidence. The AI that played
+(or reads it) examines each machine anomaly, adds the ones machines
+cannot see, and they become tests. Recap is the AUTHOR'S input, never
+a check gate.
+
+Detectors (conservative by design — they no-op when their channel is
+absent, so unknown games never produce false positives):
+
+| code | catches | needs |
+| --- | --- | --- |
+| `hazard-overlap-no-death` | player inside a hazard ≥2 frames with no death — collision that doesn't collide (the AABB class) | `live()` with `kind:"hazard"` entities |
+| `position-teleport` | >250px in one frame with no gate change or death | `live()` |
+| `player-out-of-bounds` | player outside the viewport (+40px sprite margin) | `live()` |
+| `world-frozen-despite-input` | "playing", position+score unchanged ≥4s while actions land | `live()` + actions |
+| `input-never-landed` | ≥3 actions, zero observable effect | `live()` or score |
+| `score-regression` | displayed score decreases mid-run (resets after death are legit) | score |
+| `game-over-without-finish` | state "over" but finish() never fired | ground truth |
+| `error-cluster` | the same session error ≥3 times | errors |
 
 ## Read the GROUND TRUTH first, the map second
 

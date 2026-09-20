@@ -10,74 +10,7 @@ import path from "node:path";
 
 import { defineCommand } from "citty";
 
-interface SessionRow {
-  action?: Record<string, unknown>;
-  error?: string;
-  finishes?: Array<number | null>;
-  gate?: string;
-  live?: unknown;
-  plain?: string;
-  reason?: string;
-  score?: string | null;
-  state?: string;
-  t?: number;
-}
-
-export interface Facts {
-  actions: number;
-  deaths: number;
-  errors: string[];
-  frames: number;
-  gameSecs: number;
-  liveChannel: boolean;
-  retriedAfterDeath: boolean;
-  scoreTrail: string[];
-  started: boolean;
-}
-
-export const analyzeSession = (rows: SessionRow[]): Facts => {
-  const frames = rows.filter((r) => r.plain !== undefined);
-  const actions = rows.filter((r) => r.action !== undefined);
-  const errors = rows.filter((r) => r.error !== undefined).map((r) => String(r.error));
-  let deaths = 0;
-  for (const f of frames) deaths += (f.finishes ?? []).length;
-  const started = frames.some((f) => f.gate === "run") || frames.some((f) => f.state === "playing");
-  let sawDeath = false;
-  let retried = false;
-  const scores: string[] = [];
-  for (const f of frames) {
-    if ((f.finishes ?? []).length > 0) sawDeath = true;
-    if (sawDeath && f.gate === "ready") {
-      retried = true;
-      sawDeath = false;
-    }
-    const s = f.score ?? null;
-    if (s !== null && s !== "" && scores[scores.length - 1] !== s) scores.push(s);
-  }
-  const times = frames.map((f) => f.t ?? 0);
-  return {
-    actions: actions.length,
-    deaths,
-    errors,
-    frames: frames.length,
-    gameSecs: times.length > 0 ? Math.round((times[times.length - 1] ?? 0) * 10) / 10 : 0,
-    liveChannel: frames.some((f) => f.live !== null && f.live !== undefined),
-    retriedAfterDeath: retried,
-    scoreTrail: scores.length > 0 ? scores.slice(0, 12) : [],
-    started,
-  };
-};
-
-export const verdictOf = (f: Facts): string => {
-  if (f.frames === 0) return "NO-EVIDENCE";
-  if (!f.started) return "NO — the session never started (the ready gate was never passed)";
-  if (f.actions === 0) return "UNKNOWN — no recorded actions (a passive agent?)";
-  if (f.errors.length > 0) return `NO — ${f.errors.length} session error(s)`;
-  if (f.deaths === 0) return "YES (endured) — no death observed";
-  return f.retriedAfterDeath
-    ? "YES — started, played, died, and retried"
-    : "YES (single run) — died without an observed retry";
-};
+import { analyzeFacts, detectAnomalies, verdictOf, type SessionRow } from "../recap-analysis.ts";
 
 const latestSession = (dir: string): string | null => {
   const snapDir = path.join(dir, "snapshots");
@@ -120,7 +53,8 @@ export const command = defineCommand({
       .split("\n")
       .filter((l) => l.trim().length > 0)
       .map((l) => JSON.parse(l) as SessionRow);
-    const facts = analyzeSession(rows);
+    const facts = analyzeFacts(rows);
+    const anomalies = detectAnomalies(rows);
     const mark = (b: boolean) => (b ? "✓" : "✗");
     console.log(`# session recap — ${name}`);
     console.log(`- started: ${mark(facts.started)}  ·  recorded actions: ${facts.actions}`);
@@ -137,8 +71,16 @@ export const command = defineCommand({
       `- ${facts.frames} frames · ${facts.gameSecs}s game-time · errors: ${facts.errors.length}`,
     );
     for (const e of facts.errors.slice(0, 3)) console.log(`    · ${e.slice(0, 100)}`);
-    console.log(`\nverdict: ${verdictOf(facts)}`);
-    console.log("\n(AI annotation: note anomalies above the verdict — then make them tests)");
+    if (anomalies.length > 0) {
+      console.log(`\nmachine anomalies (${anomalies.length}):`);
+      for (const a of anomalies) console.log(`  ⚠ ${a.code} @frame ${a.at} — ${a.detail}`);
+    } else {
+      console.log("\nmachine anomalies: none detected");
+    }
+    console.log(`\nverdict: ${verdictOf(facts, anomalies.length)}`);
+    console.log(
+      "\n(AI annotation: examine each anomaly above, add the ones machines cannot see — then make them tests)",
+    );
   },
   meta: {
     description: "session evidence → machine facts + verdict skeleton (the AI annotates anomalies)",

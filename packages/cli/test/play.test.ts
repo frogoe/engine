@@ -92,9 +92,12 @@ describe("frogoe play (agent eyes + hands)", () => {
     let actions = 0;
     for (const ln of log.split("\n")) {
       if (ln.trim().length === 0) continue;
-      const row = JSON.parse(ln) as { action?: unknown; reason?: unknown };
-      // evidence rows are frames (reason) or recorded actions (action)
-      expect(row.action !== undefined || row.reason !== undefined).toBeTrue();
+      const row = JSON.parse(ln) as { action?: unknown; meta?: unknown; reason?: unknown };
+      // evidence rows are frames (reason), recorded actions (action),
+      // or the leading session meta (meta)
+      expect(
+        row.action !== undefined || row.reason !== undefined || row.meta !== undefined,
+      ).toBeTrue();
       if (row.action !== undefined) actions += 1;
     }
     expect(actions).toBeGreaterThanOrEqual(3); // recap correlates act → effect
