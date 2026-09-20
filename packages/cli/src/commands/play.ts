@@ -22,6 +22,7 @@ import { parseBrief } from "@frogoe/lint";
 import { launchBrowser } from "../browser/launch.ts";
 import { legacyCacheDir } from "../browser/manager.ts";
 import { captureFrame, mapShotInstaller } from "../eyes-frame.ts";
+import { executeCommand } from "../play-commands.ts";
 import { createPuppeteerDriver, type LiveDriver } from "../live/driver.ts";
 
 interface PlayOptions {
@@ -104,6 +105,8 @@ const runSession = async (options: PlayOptions): Promise<void> => {
     const emit = async (why: string): Promise<void> => {
       if (capturing) return; // one capture at a time — never queue them
       capturing = true;
+      // self-contained: a tick racing browser.close() (quit during an
+      // in-flight capture) must resolve, never reject the event loop
       try {
         const frame = await captureFrame(page);
         const state = (await driver.gameState()) as string;
@@ -114,6 +117,7 @@ const runSession = async (options: PlayOptions): Promise<void> => {
           finishes: fresh.map((f) => f.score),
           frame: frame.plain,
           gate: frame.gate,
+          live: frame.live ?? null,
           reason: why,
           score: frame.score,
           state,
@@ -121,6 +125,8 @@ const runSession = async (options: PlayOptions): Promise<void> => {
         };
         line(payload);
         record?.write({ ...payload, frame: undefined, plain: frame.plain });
+      } catch {
+        /* page closed mid-capture — the session is over anyway */
       } finally {
         capturing = false;
       }
@@ -135,34 +141,13 @@ const runSession = async (options: PlayOptions): Promise<void> => {
     });
     await emit("boot");
 
-    const settle = async (): Promise<void> => {
-      // step mode: unpause for exactly `settle` frames, then freeze.
-      // realtime: a NO-OP — the world runs continuously, and padding
-      // commands with artificial sleeps adds lethal latency to actions
-      // that were timed against a live world
-      if (!paused) return;
-      await page.evaluate("window.__frogoe?.resume?.()");
-      await new Promise((resolve) => {
-        setTimeout(resolve, (options.settle * 1000) / 60);
-      });
-      await page.evaluate("window.__frogoe?.pause?.()");
-      elapsed += options.settle / 60;
-    };
-
     // SCREEN SHARE: frames flow at a steady cadence regardless of
     // commands — observation and action decoupled (the per-command
     // coupling deadlocked every time a command or its frame went
     // missing: agents waited for frames that only commands produce)
-    const dbg = (m: string) => {
-      if (process.env.FROGOE_DEBUG === "1") process.stderr.write(`[play] ${m}\n`);
-    };
     const frameTimer = setInterval(
       () => {
-        dbg(`tick@${elapsed.toFixed(1)}`);
-        void emit("tick").then(
-          () => dbg("tick-done"),
-          (e) => dbg(`tick-err ${String(e).slice(0, 80)}`),
-        );
+        void emit("tick");
         elapsed += 1 / options.fps;
       },
       Math.max(100, Math.round(1000 / options.fps)),
@@ -183,95 +168,23 @@ const runSession = async (options: PlayOptions): Promise<void> => {
         continue;
       }
       if (cmd.quit === true) break;
-      dbg(`cmd ${text.slice(0, 40)}`);
       try {
-        if (typeof cmd.step === "number" || Array.isArray(cmd.step)) {
-          const n = Math.max(
-            1,
-            Math.min(600, Number(Array.isArray(cmd.step) ? cmd.step[0] : cmd.step) || 1),
-          );
-          options.settle = n;
-          await settle();
-          options.settle = 10;
-        } else if (Array.isArray(cmd.tap)) {
-          await settle();
-          await driver.tap(Number(cmd.tap[0]), Number(cmd.tap[1]));
-        } else if (typeof cmd.click === "string") {
-          // selector click — buttons by NAME, never by guessed pixels
-          // (the retry-miss class: a card's stacked layout moves targets)
-          dbg("click: pre-settle");
-          await settle();
-          dbg("click: post-settle, calling page.click");
-          await page.click(cmd.click).then(
-            async () => {
-              const ready1 = (await page.evaluate(
-                'document.body.hasAttribute("data-ready")',
-              )) as boolean;
-              dbg(`click: RESOLVED, still-ready=${ready1}`);
-              if (ready1) {
-                // DOM click() as diagnostic: does the handler run at all?
-                await page.evaluate(
-                  `document.querySelector(${JSON.stringify(cmd.click)})?.click()`,
-                );
-                const ready2 = (await page.evaluate(
-                  'document.body.hasAttribute("data-ready")',
-                )) as boolean;
-                dbg(`dom-click(): still-ready=${ready2}`);
-              }
-            },
-            (e) => {
-              dbg(`click: REJECTED ${String(e).slice(0, 80)}`);
-              line({ error: `click: no match for ${cmd.click}` });
-            },
-          );
-        } else if (typeof cmd.press === "string") {
-          await settle();
-          await driver.press(cmd.press);
-        } else if (Array.isArray(cmd.hold)) {
-          // {"hold":["ArrowLeft",30]} — steer: key down, N frames, key up
-          const [code, frames] = [String(cmd.hold[0] ?? ""), Number(cmd.hold[1] ?? 20)];
-          if (paused) {
-            await page.evaluate("window.__frogoe?.resume?.()");
-          }
-          await driver.holdKey(code, frames);
-          elapsed += frames / 60;
-          if (paused) {
-            await page.evaluate("window.__frogoe?.pause?.()");
-          }
-        } else if (typeof cmd.type === "string") {
-          await settle();
-          await driver.type(cmd.type);
-        } else if (Array.isArray(cmd.drag) && cmd.drag.length === 4) {
-          await settle();
-          await driver.drag(
-            Number(cmd.drag[0]),
-            Number(cmd.drag[1]),
-            Number(cmd.drag[2]),
-            Number(cmd.drag[3]),
-          );
-        } else if (Array.isArray(cmd.resize) && cmd.resize.length === 2) {
-          await page.setViewport({
-            height: Number(cmd.resize[1]),
-            width: Number(cmd.resize[0]),
-          });
-        } else {
-          line({ error: "unknown command — tap|press|type|drag|step|resize|quit" });
-          continue;
+        const err = await executeCommand(cmd, {
+          driver,
+          page,
+          paused,
+          settle: options.settle,
+          elapsed: () => elapsed,
+          addElapsed: (sec) => {
+            elapsed += sec;
+          },
+        });
+        if (err === "__quit__") break;
+        if (err !== null) line({ error: err });
+        else {
+          // actions belong to the evidence: recap correlates act → effect
+          record?.write({ action: cmd, t: Math.round(elapsed * 100) / 100 });
         }
-        if (
-          typeof cmd.step !== "number" &&
-          !Array.isArray(cmd.step) &&
-          !Array.isArray(cmd.resize)
-        ) {
-          await new Promise((resolve) => {
-            setTimeout(resolve, 120);
-          });
-          if (paused) {
-            await page.evaluate("window.__frogoe?.pause?.()");
-          }
-        }
-        // no emit here — the frame timer owns the stream (computer-use:
-        // act, and the next scheduled frame shows the result)
       } catch (error) {
         line({ error: String(error).slice(0, 160) });
       }

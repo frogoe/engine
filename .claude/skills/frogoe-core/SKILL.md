@@ -96,6 +96,35 @@ defineGame(({ stage, input, loop, finish }) => {
   "suspended" — that ships the "sound randomly goes quiet" bug. Full
   recipe: `references/audio.md`.
 
+## live() — the coordinate channel (agent eyes v2)
+
+Games may export a per-frame coordinate snapshot; `frogoe play` ships it
+as `frame.live` BESIDE the ASCII map — agents decide from exact numbers,
+the map gives visual context. One wire, module-level truth:
+
+```js
+let liveSnap = null;
+export const live = () => liveSnap;
+defineGame(({ stage, loop }) => {
+  loop.update = (dt) => {
+    liveSnap = { player: { x: P.x, y: P.y },
+                 entities: pipes.map((p) => ({ kind: "gap", x: p.x, y: p.gapY })),
+                 state: { started } };
+  };
+});
+```
+
+- Wire it at the TOP of update, before any early return (death and
+  freeze frames still carry coordinates)
+- Schema convention `{ player, entities: [{kind,x,y,r?}] }` — recommended,
+  not enforced
+- It is game-authored DATA, not a platform API (the platform stays
+  zero-opinion); a lying live() only blinds the agent that trusts it —
+  scores still come from contract/DOM ground truth
+- After a session: `frogoe recap` turns the evidence into machine facts
+  (start/deaths/retry/score/errors); the AI annotates anomalies, fixes
+  them, and they become tests
+
 ## The testable seam — game.test.js (two tiers)
 
 The blind sandbox proves a game RUNS; only author-owned tests prove it is

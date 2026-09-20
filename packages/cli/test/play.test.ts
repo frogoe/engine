@@ -89,10 +89,15 @@ describe("frogoe play (agent eyes + hands)", () => {
     expect(errors).toEqual([]);
     const log = readFileSync(path.join(gameDir, "snapshots", "session.jsonl"), "utf-8");
     expect(log.split("\n").filter((l) => l.trim().length > 0).length).toBeGreaterThanOrEqual(3);
+    let actions = 0;
     for (const ln of log.split("\n")) {
       if (ln.trim().length === 0) continue;
-      expect(JSON.parse(ln)!.reason).toBeDefined(); // evidence rows carry why
+      const row = JSON.parse(ln) as { action?: unknown; reason?: unknown };
+      // evidence rows are frames (reason) or recorded actions (action)
+      expect(row.action !== undefined || row.reason !== undefined).toBeTrue();
+      if (row.action !== undefined) actions += 1;
     }
+    expect(actions).toBeGreaterThanOrEqual(3); // recap correlates act → effect
   }, 90_000);
 
   test("unknown commands are errors, never crashes; bad JSON is tolerated", async () => {

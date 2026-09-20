@@ -52,6 +52,7 @@ Commands:
   export [desktop|ios|android]  native app project in export/ (buildable, signable)
   play [dir]               agent eyes + hands: JSONL frames out, input in
                            step mode (default) freezes the world between commands
+  recap [dir]              session evidence → machine facts + verdict skeleton
   vision [dir]             see the game: objects, frames, art as ASCII maps
                            --poster/--icon/--gameplay/--objects: one window only
                            --full: all windows (default is poster + gameplay)
@@ -125,6 +126,7 @@ const KNOWN_FLAGS = new Set([
   "--cols",
   "--mode",
   "--record",
+  "--session",
   "--settle",
 ]);
 
@@ -160,6 +162,7 @@ const main = defineCommand({
     init: () => import("./commands/init.ts").then((m) => m.command),
     lint: () => import("./commands/lint.ts").then((m) => m.command),
     play: () => import("./commands/play.ts").then((m) => m.command),
+    recap: () => import("./commands/recap.ts").then((m) => m.command),
     report: () => import("./commands/report.ts").then((m) => m.command),
     run: () => import("./commands/run.ts").then((m) => m.command),
     skills: () => import("./commands/skills.ts").then((m) => m.command),

@@ -13,6 +13,11 @@ import { defineGame } from "frogoe";
  *  from these constants so the brand reads identical everywhere. */
 export const HERO_POSE = { rot: -12, wingPhase: 0.32 };
 
+/* agent eyes v2 — the coordinate channel: the closure writes one
+ * snapshot per frame, agents read exact numbers (frogoe-core → live()) */
+let liveSnap = null;
+export const live = () => liveSnap;
+
 export const C = {
   // universal outline — warm plum, not black, wraps EVERY foreground sprite
   outline: "#543847",
@@ -506,6 +511,7 @@ defineGame(({ stage, input, loop, finish }) => {
   input.on("down", () => {
     Sfx.init();
     if (!alive || dying) return;
+    if (!started) document.body.removeAttribute("data-ready"); // gate truth
     started = true;
     P.vy = T.flap;
     wingT = 1;
@@ -542,6 +548,11 @@ defineGame(({ stage, input, loop, finish }) => {
     t += dt;
     wingT = Math.max(0, wingT - dt * 5);
     shakeT = Math.max(0, shakeT - dt);
+    liveSnap = {
+      player: { x: P.x, y: P.y },
+      entities: pipes.map((p) => ({ kind: "gap", x: p.x + T.pipeW / 2, y: p.gapY + T.gap / 2 })),
+      state: { alive, dying, started },
+    };
 
     if (!alive) {
       stepParts(parts, dt);

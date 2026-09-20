@@ -14,6 +14,23 @@ frogoe play examples/flappy --cols 96 --fps 2 --record session
 → {"frame":"…","gate":"run","score":"1","finishes":[],"reason":"tick","t":1.0}
 ```
 
+## Three eye channels per frame
+
+| Channel | What | Use |
+| --- | --- | --- |
+| `live` | the game's `live()` coordinate snapshot (module export, frogoe-core → live()) | exact numbers — decide from these when present |
+| `frame` | the canvas ASCII map (+ HUD text first line) | visual context, universal floor |
+| `gate`/`score`/`state`/`finishes` | DOM/contract ground truth | facts, never infer them from glyphs |
+
+## Recap: the expedition's product
+
+`frogoe recap [dir] [--session name]` analyzes a recorded session
+(`snapshots/<name>.jsonl`) into machine facts — started? actions?
+deaths? retry? score trail? errors? — ending in a verdict skeleton.
+The AI that played (or reads the evidence) annotates the anomalies;
+anomalies get fixed and become tests. Recap is the AUTHOR'S input,
+never a check gate.
+
 ## Read the GROUND TRUTH first, the map second
 
 Every frame carries DOM facts as data — do NOT infer them from the ASCII

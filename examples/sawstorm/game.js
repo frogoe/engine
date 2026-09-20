@@ -21,6 +21,10 @@ export const C = {
 
 /* ---------- tuning — exported: game.test.js derives physics invariants
  * (jump apex, arena crossing bounds) from these constants ---------- */
+/* agent eyes v2 — the coordinate channel (frogoe-core → live()) */
+let liveSnap = null;
+export const live = () => liveSnap;
+
 export const TUNE = {
   runSpeed: 340,
   jumpV: -880,
@@ -446,6 +450,11 @@ defineGame(({ stage, input, loop, finish }) => {
 
   /* ---------- update ---------- */
   loop.update = (dt) => {
+    liveSnap = {
+      player: { x: player.x, y: player.y },
+      entities: saws.map((s) => ({ kind: "hazard", x: s.x, y: s.y, r: s.r })),
+      state: { phase, grounded: player.grounded },
+    };
     if (freezeT > 0) { freezeT -= dt; return; }
 
     /* resize carry: the world moved → move the actor by the same delta

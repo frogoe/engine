@@ -31,6 +31,10 @@ export interface EyesFrame {
   cols: number;
   gate?: string;
   hud?: string;
+  /** the game's live() coordinate snapshot — game-authored truth for
+   *  agents that prefer numbers over glyphs (null when the game ships
+   *  no live()). Schema convention: { player: {x,y}, entities: [...] }. */
+  live?: unknown;
   score?: string | null;
   metrics: { coverage: number; deadRows: number; rows: number };
   plain: string;
@@ -52,8 +56,22 @@ export const mapShotInstaller = (palette: EyePalette, cols = 96): string => `(as
       metrics: compositionMetrics(d, w, h, Math.max(4, Math.round(rws / 4)), PAL),
     };
   };
-  window.__frogoeFrame = () => {
+  let liveFn = null;
+  const loadLive = async () => {
+    // the module cache hands back the SAME instance the game runs —
+    // live() reads closure state as it is right now
     try {
+      const mod = await import("./game.js");
+      if (typeof mod.live === "function") liveFn = mod.live;
+    } catch {
+      /* games without live() are fine — coordinates are an opt-in */
+    }
+  };
+  void loadLive();
+  window.__frogoeFrame = async () => {
+    try {
+      await loadLive();
+      const live = typeof liveFn === "function" ? await liveFn() : null;
       const c = document.querySelector("#c");
       if (!c) return null;
       const ctx = c.getContext("2d", { willReadFrequently: true });
@@ -73,6 +91,7 @@ export const mapShotInstaller = (palette: EyePalette, cols = 96): string => `(as
         ...map(data, width, height),
         gate: ready ? "ready" : "run",
         hud: hud.slice(0, 6).join("  "),
+        live: live ?? null,
         score: score?.textContent ?? null,
       };
     } catch {
