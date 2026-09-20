@@ -19,6 +19,7 @@ import {
   type EyePalette,
 } from "./art-eyes.ts";
 import { contrastRatio, luminance } from "./art-verify.ts";
+import { analyzeDraws, type WorldEntity, type WorldSnap } from "./drawn-world.ts";
 
 /** The pure cartography, serialized into the page in dependency order —
  *  the tested code IS the shipped code (toString injection rules). */
@@ -35,6 +36,9 @@ export interface EyesFrame {
    *  agents that prefer numbers over glyphs (null when the game ships
    *  no live()). Schema convention: { player: {x,y}, entities: [...] }. */
   live?: unknown;
+  /** engine-measured entity geometry, derived from the REAL draw calls
+   *  of the REAL game (never fabricated; oracle-tested vs live()) */
+  world?: WorldSnap;
   score?: string | null;
   metrics: { coverage: number; deadRows: number; rows: number };
   plain: string;
@@ -59,7 +63,12 @@ export const mapShotInstaller = (palette: EyePalette, cols = 96): string => `(as
   let liveFn = null;
   const loadLive = async () => {
     // the module cache hands back the SAME instance the game runs —
-    // live() reads closure state as it is right now
+    // live() reads closure state as it is right now.
+    // NEVER called eagerly at document-start: a module load before the
+    // page's importmap is parsed KILLS the importmap for the whole
+    // document (spec: late maps are ignored) — the game's own
+    // from-frogoe import then fails and the contract never boots. Lazy
+    // only: the first __frogoeFrame call runs well after load.
     try {
       const mod = await import("./game.js");
       if (typeof mod.live === "function") liveFn = mod.live;
@@ -67,7 +76,6 @@ export const mapShotInstaller = (palette: EyePalette, cols = 96): string => `(as
       /* games without live() are fine — coordinates are an opt-in */
     }
   };
-  void loadLive();
   window.__frogoeFrame = async () => {
     try {
       await loadLive();
@@ -89,6 +97,9 @@ export const mapShotInstaller = (palette: EyePalette, cols = 96): string => `(as
       const score = document.querySelector("[data-block-score]");
       return {
         ...map(data, width, height),
+        cw: c.clientWidth || Math.round(width / 2),
+        ch: c.clientHeight || Math.round(height / 2),
+        draws: typeof window.__frogoeTakeDraws === "function" ? window.__frogoeTakeDraws() : [],
         gate: ready ? "ready" : "run",
         hud: hud.slice(0, 6).join("  "),
         live: live ?? null,
@@ -98,6 +109,150 @@ export const mapShotInstaller = (palette: EyePalette, cols = 96): string => `(as
       return null; // webgl or exotic canvas → screenshot fallback
     }
   };
+  // ── the draw tap: measure what the game ACTUALLY draws on #c ──────
+  // records are raw (post-transform bbox + color); analysis stays in
+  // Node (drawn-world.ts) so the pure module is the single source
+  window.__frogoeDraws = [];
+  window.__frogoeTakeDraws = () => {
+    const d = window.__frogoeDraws;
+    window.__frogoeDraws = [];
+    return d;
+  };
+  try {
+    const proto = CanvasRenderingContext2D.prototype;
+    const orig = new Map();
+    const keep = (n) => {
+      if (!orig.has(n)) orig.set(n, proto[n]);
+      return orig.get(n);
+    };
+    const ident = [1, 0, 0, 1, 0, 0];
+    const stacks = new WeakMap();
+    const stackOf = (c) => {
+      let s = stacks.get(c);
+      if (!s) {
+        s = [ident.slice()];
+        stacks.set(c, s);
+      }
+      return s;
+    };
+    const cur = (c) => stackOf(c)[stackOf(c).length - 1] || ident;
+    const mul = (m, n) => [
+      m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1],
+      m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3],
+      m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5],
+    ];
+    // cache the main canvas once — querySelector per commit is too hot
+    // for 60fps sprite storms (the tap must never cost the game frames)
+    let mainCv = null;
+    const mainOf = () => {
+      if (mainCv === null || !mainCv.isConnected) mainCv = document.querySelector("#c");
+      return mainCv;
+    };
+    const pending = new WeakMap(); // per-context path bbox accumulator
+    const commitPath = (c) => {
+      const p = pending.get(c);
+      pending.delete(c);
+      if (!p || mainOf() === null || c.canvas !== mainOf()) return;
+      if (window.__frogoeDraws.length > 4000) return;
+      window.__frogoeDraws.push({
+        color: String(c.fillStyle || ""), h: p.h, w: p.w, x: p.x, y: p.y,
+      });
+    };
+    const extendPath = (c, x0, y0, x1, y1) => {
+      const m = cur(c);
+      const pts = [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].map(([x, y]) => [
+        m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5],
+      ]);
+      const xs = pts.map((p) => p[0]);
+      const ys = pts.map((p) => p[1]);
+      const box = {
+        h: Math.max(...ys) - Math.min(...ys),
+        w: Math.max(...xs) - Math.min(...xs),
+        x: (Math.max(...xs) + Math.min(...xs)) / 2,
+        y: (Math.max(...ys) + Math.min(...ys)) / 2,
+      };
+      const p = pending.get(c);
+      if (!p) {
+        pending.set(c, box);
+        return;
+      }
+      const X0 = Math.min(p.x - p.w / 2, box.x - box.w / 2);
+      const X1 = Math.max(p.x + p.w / 2, box.x + box.w / 2);
+      const Y0 = Math.min(p.y - p.h / 2, box.y - box.h / 2);
+      const Y1 = Math.max(p.y + p.h / 2, box.y + box.h / 2);
+      pending.set(c, { h: Y1 - Y0, w: X1 - X0, x: (X0 + X1) / 2, y: (Y0 + Y1) / 2 });
+    };
+    const wrap = (name, before) => {
+      const o = keep(name);
+      proto[name] = function (...args) {
+        try {
+          if (before) before(this, args);
+        } catch (e) { /* measurement must never break the game */ }
+        return o.apply(this, args);
+      };
+    };
+    const vec = (a) => [a[0], a[1], a[2], a[3], a[4], a[5]];
+    wrap("save", (c) => { stackOf(c).push(cur(c).slice()); });
+    wrap("restore", (c) => { stackOf(c).pop(); });
+    wrap("translate", (c, a) => {
+      const s = stackOf(c);
+      s[s.length - 1] = mul(cur(c), [1, 0, 0, 1, a[0] || 0, a[1] || 0]);
+    });
+    wrap("scale", (c, a) => {
+      const s = stackOf(c);
+      s[s.length - 1] = mul(cur(c), [a[0] ?? 1, 0, 0, a[1] ?? a[0] ?? 1, 0, 0]);
+    });
+    wrap("rotate", (c, a) => {
+      const th = a[0] || 0;
+      const cos = Math.cos(th);
+      const sin = Math.sin(th);
+      const s = stackOf(c);
+      s[s.length - 1] = mul(cur(c), [cos, sin, -sin, cos, 0, 0]);
+    });
+    wrap("setTransform", (c, a) => {
+      const s = stackOf(c);
+      s[s.length - 1] = a.length >= 6 ? vec(a) : ident.slice();
+    });
+    wrap("resetTransform", (c) => {
+      const s = stackOf(c);
+      s[s.length - 1] = ident.slice();
+    });
+    wrap("beginPath", (c) => { pending.delete(c); });
+    wrap("moveTo", (c, a) => extendPath(c, a[0], a[1], a[0], a[1]));
+    wrap("lineTo", (c, a) => extendPath(c, a[0], a[1], a[0], a[1]));
+    wrap("rect", (c, a) => extendPath(c, a[0], a[1], (a[0] || 0) + (a[2] || 0), (a[1] || 0) + (a[3] || 0)));
+    wrap("roundRect", (c, a) => extendPath(c, a[0], a[1], (a[0] || 0) + (a[2] || 0), (a[1] || 0) + (a[3] || 0)));
+    wrap("arc", (c, a) => extendPath(c, (a[0] || 0) - (a[2] || 0), (a[1] || 0) - (a[2] || 0), (a[0] || 0) + (a[2] || 0), (a[1] || 0) + (a[2] || 0)));
+    wrap("ellipse", (c, a) => extendPath(c, (a[0] || 0) - (a[2] || 0), (a[1] || 0) - (a[3] || 0), (a[0] || 0) + (a[2] || 0), (a[1] || 0) + (a[3] || 0)));
+    wrap("fill", (c) => commitPath(c));
+    wrap("stroke", (c) => commitPath(c));
+    // fillRect/strokeRect draw IMMEDIATELY — accumulate then commit now
+    // (they never trigger fill()/stroke(); leaving them pending lost
+    // every rect the game ever drew)
+    wrap("fillRect", (c, a) => {
+      extendPath(c, a[0], a[1], (a[0] || 0) + (a[2] || 0), (a[1] || 0) + (a[3] || 0));
+      commitPath(c);
+    });
+    wrap("strokeRect", (c, a) => {
+      extendPath(c, a[0], a[1], (a[0] || 0) + (a[2] || 0), (a[1] || 0) + (a[3] || 0));
+      commitPath(c);
+    });
+    wrap("clearRect", (c) => { pending.delete(c); });
+    wrap("drawImage", (c, a) => {
+      if (a.length >= 5) extendPath(c, a[a.length - 4], a[a.length - 3], (a[a.length - 4] || 0) + (a[a.length - 2] || 0), (a[a.length - 3] || 0) + (a[a.length - 1] || 0));
+      else if (a.length >= 3) extendPath(c, a[1], a[2], (a[1] || 0) + (a[0]?.width || 0), (a[2] || 0) + (a[0]?.height || 0));
+      commitPath(c); // drawImage blits immediately
+    });
+    wrap("fillText", (c, a) => {
+      const text = String(a[0] ?? "");
+      let w = text.length * 8;
+      try { w = c.measureText(text).width; } catch (e) {}
+      const fs = parseFloat(String(c.font || "16px").match(/([0-9.]+)px/)?.[1] ?? "16");
+      extendPath(c, (a[1] || 0) - w / 2, (a[2] || 0) - fs, (a[1] || 0) + w / 2, (a[2] || 0) + fs);
+      commitPath(c);
+    });
+  } catch (e) { /* tap failure must never kill the game */ }
+
   window.__frogoeMapShot = async (b64) => {
     const img = new Image();
     img.src = "data:image/png;base64," + b64;
@@ -116,11 +271,27 @@ export const mapShotInstaller = (palette: EyePalette, cols = 96): string => `(as
  *  interference) with the screenshot path as fallback. The HUD text
  *  rides as the frame's first line — agents read crisp text, not
  *  ASCII-of-text. */
+/** per-page tracking state for the world analysis (motion/age) */
+const worldPrev = new WeakMap<Page, WorldEntity[]>();
+
 export const captureFrame = async (page: Page): Promise<EyesFrame> => {
-  const grabbed = (await page.evaluate("window.__frogoeFrame?.() ?? null")) as EyesFrame | null;
+  const grabbed = (await page.evaluate("window.__frogoeFrame?.() ?? null")) as
+    | (EyesFrame & {
+        ch?: number;
+        cw?: number;
+        draws?: Array<{ color: string; h: number; w: number; x: number; y: number }>;
+      })
+    | null;
   if (grabbed !== null && typeof grabbed.plain === "string") {
     const hud = grabbed.hud && grabbed.hud.length > 0 ? `HUD ${grabbed.hud}` : "";
-    return { ...grabbed, plain: `${hud}\n${grabbed.plain}` };
+    const { draws, ...frame } = grabbed;
+    let world: WorldSnap | undefined;
+    if (Array.isArray(draws) && draws.length > 0 && frame.cw && frame.ch) {
+      const prev = worldPrev.get(page) ?? [];
+      world = analyzeDraws(draws, prev, { h: frame.ch, w: frame.cw });
+      worldPrev.set(page, world.entities);
+    }
+    return { ...frame, plain: `${hud}\n${frame.plain}`, world };
   }
   const b64 = (await page.screenshot({
     captureBeyondViewport: false,

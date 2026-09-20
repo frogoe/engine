@@ -96,11 +96,17 @@ defineGame(({ stage, input, loop, finish }) => {
   "suspended" — that ships the "sound randomly goes quiet" bug. Full
   recipe: `references/audio.md`.
 
-## live() — the coordinate channel (agent eyes v2)
+## The coordinate channels — frame.world + live()
 
-Games may export a per-frame coordinate snapshot; `frogoe play` ships it
-as `frame.live` BESIDE the ASCII map — agents decide from exact numbers,
-the map gives visual context. One wire, module-level truth:
+Agents get TWO coordinate channels in every `frogoe play` frame:
+
+| Channel | Source | Coverage | Knows |
+| --- | --- | --- | --- |
+| `frame.world` | **engine-measured** (draw-call interception — recording what the game ACTUALLY draws, never fabricated; oracle-tested against live()) | EVERY game, zero code | geometry: entities, positions, sizes, colors, motion, playerHint |
+| `frame.live` | **game-declared** (the wire below) | games that export it | semantics: entity kinds (hazard/gap/target), internal state |
+
+Prefer `live()` when present (it carries meaning); fall back to `world`
+(the universal floor). One wire, module-level truth:
 
 ```js
 let liveSnap = null;

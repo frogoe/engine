@@ -14,12 +14,13 @@ frogoe play examples/flappy --cols 96 --fps 2 --record session
 → {"frame":"…","gate":"run","score":"1","finishes":[],"reason":"tick","t":1.0}
 ```
 
-## Three eye channels per frame
+## Four eye channels per frame
 
 | Channel | What | Use |
 | --- | --- | --- |
-| `live` | the game's `live()` coordinate snapshot (module export, frogoe-core → live()) | exact numbers — decide from these when present |
-| `frame` | the canvas ASCII map (+ HUD text first line) | visual context, universal floor |
+| `live` | the game's `live()` coordinate snapshot (module export, frogoe-core → live()) | exact numbers + semantics — decide from these when present |
+| `world` | **engine-measured entities** (draw-call interception — real geometry of what the game actually draws; oracle-tested vs live()) | the universal floor: every game, zero wiring, `{entities, playerHint}` |
+| `frame` | the canvas ASCII map (+ HUD text first line) | visual context |
 | `gate`/`score`/`state`/`finishes` | DOM/contract ground truth | facts, never infer them from glyphs |
 
 ## Recap: the expedition's product

@@ -84,6 +84,11 @@ bundle`. Use `--json` for machine-readable findings that can be fixed programmat
 - `game.test.js` — optional, REQUIRED for logic verbs (type/swap/place) and round sessions: headless tests via `bootForTest` from "frogoe" (frogoe-core → testable seam); `frogoe check` runs it. Numeric invariants → property-based: `import fc from "fast-check"` (auto-installed, test-time only). Reactive tests read `game.view()` — the frame as ASCII — and act on what they see
 - `export/` — `frogoe export` output (native app project; gitignored, tool-owned — see frogoe-cli → references/export.md)
 
+### The maker's two loops (ship discipline)
+
+- **Inner (authoring):** edit, then `frogoe lint` (fast), `frogoe vision` (composition), a short `frogoe play` session (feel it via world/live coords), edit again. Repeat freely.
+- **Outer (ship gate):** `frogoe check`, then a full `frogoe play --record` session (play your own game: start, die, retry), then `frogoe recap` — fix anomalies AND make each a test, then repeat until check green + recap clean + score observed. The recorded session is the evidence: a behavior claim without a session artifact is not a claim.
+
 ## Check — ALWAYS RUN AFTER CHANGES
 
 After creating or editing any file, **always** run:

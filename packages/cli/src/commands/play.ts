@@ -123,6 +123,7 @@ const runSession = async (options: PlayOptions): Promise<void> => {
           gate: frame.gate,
           live: frame.live ?? null,
           reason: why,
+          world: frame.world ?? null,
           score: frame.score,
           state,
           t: Math.round(elapsed * 100) / 100,

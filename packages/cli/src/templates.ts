@@ -98,6 +98,13 @@ export const SPRITES = {
   },
 };
 
+/** live() — the game's coordinate channel for agents (frogoe-core).
+ *  frogoe play ships frame.world (engine-measured geometry) for EVERY
+ *  game automatically; live() ADDS your semantics: exact entity roles,
+ *  internal state. One wire at the TOP of update, before any return. */
+let liveSnap = null;
+export const live = () => liveSnap;
+
 defineGame(({ stage, input, loop, finish }) => {
   let t = 0;
   let x = stage.play.center;
@@ -107,6 +114,11 @@ defineGame(({ stage, input, loop, finish }) => {
   });
 
   loop.update = (dt) => {
+    liveSnap = { // TODO: grow with your real entities
+      player: { x, y: stage.height / 2 },
+      entities: [],
+      state: { t },
+    };
     t += dt;
     x = stage.play.center + Math.sin(t * 2) * (stage.play.width * 0.3);
   };
