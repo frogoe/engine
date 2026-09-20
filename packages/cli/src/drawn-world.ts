@@ -33,6 +33,8 @@ export interface WorldEntity {
   dy: number;
   /** consecutive frames the cluster has been tracked */
   age: number;
+  /** consecutive drains the carried entity was not seen (permanence) */
+  misses?: number;
 }
 
 export interface WorldSnap {
@@ -109,10 +111,16 @@ export const analyzeDraws = (
   const bgArea = viewport.w * viewport.h * BACKGROUND_SHARE;
   const usable = records.filter((r) => r.w * r.h < bgArea);
 
+  // clusters beyond this share of the viewport are TERRAIN (ground
+  // strips, merged pipe-bodies): small shapes drawn over terrain must
+  // stay separate objects — an actor flying low over the ground is not
+  // part of the ground (the absorbed-bird bug)
+  const terrainArea = viewport.w * viewport.h * 0.2;
   const clusters: Cluster[] = [];
   for (const r of usable) {
     let target: Cluster | undefined;
     for (const c of clusters) {
+      if (c.w * c.h > terrainArea) continue; // terrain absorbs nothing
       if (bboxGap(c, r) <= LINK_DIST) {
         target = c;
         break;
@@ -156,6 +164,63 @@ export const analyzeDraws = (
       e.dy = e.y - best.y;
       e.age = best.age + 1;
     }
+  }
+
+  // dedupe overlaps: partial drains slice one object into near-ident
+  // ical clusters (ground strips, carried ghosts next to their real
+  // selves). Bboxes overlapping >60% are the same thing — union them.
+  for (let i = 0; i < entities.length; i += 1) {
+    for (let j = entities.length - 1; j > i; j -= 1) {
+      const a = entities[i]!;
+      const b = entities[j]!;
+      const ix = Math.max(
+        0,
+        Math.min(a.x + a.w / 2, b.x + b.w / 2) - Math.max(a.x - a.w / 2, b.x - b.w / 2),
+      );
+      const iy = Math.max(
+        0,
+        Math.min(a.y + a.h / 2, b.y + b.h / 2) - Math.max(a.y - a.h / 2, b.y - b.h / 2),
+      );
+      const inter = ix * iy;
+      const union = a.w * a.h + b.w * b.h - inter;
+      if (union > 0 && inter / union > 0.6) {
+        a.x = (a.x + b.x) / 2;
+        a.y = (a.y + b.y) / 2;
+        a.w = Math.max(a.w, b.w);
+        a.h = Math.max(a.h, b.h);
+        a.age = Math.max(a.age, b.age);
+        a.misses = 0; // the real one is present
+        entities.splice(j, 1);
+      }
+    }
+  }
+
+  // object permanence: a drained batch in STEP MODE can land mid-frame
+  // and miss late-rendered shapes (the actor often draws LAST). A
+  // persistent tracked entity absent from this drain is carried forward
+  // (position held, age continues, motion zeroed) for up to two
+  // consecutive misses — then it is gone for real. Ghost-guarded by
+  // the miss cap and the age requirement.
+  // a prev entity is SEEN only when a fresh entity is actually near it
+  // (bucket keys resurrected distant ghosts — nine age-26 copies of the
+  // bird scattered down the column, all "seen" by one real draw)
+  const near = (px: number, py: number): boolean =>
+    entities.some((e) => dist(e.x, e.y, px, py) <= 40);
+  for (const p of prev) {
+    if (p.age < 2) continue; // only proven entities persist
+    if (p.misses !== undefined && p.misses >= 2) continue; // really gone
+    if (near(p.x, p.y)) continue;
+    entities.push({
+      age: p.age + 1,
+      color: p.color,
+      dx: 0,
+      dy: 0,
+      h: p.h,
+      misses: (p.misses ?? 0) + 1,
+      w: p.w,
+      x: p.x,
+      y: p.y,
+    });
   }
 
   // player hint: smallest persistent cluster in the lower 2/3 — small

@@ -26,9 +26,10 @@
     "check:tracked-artifacts": "node scripts/check-tracked-artifacts.mjs",
     "lockstep:sync": "node scripts/sync-lockstep-versions.mjs",
     "lockstep:check": "node scripts/sync-lockstep-versions.mjs --check",
-    "verify": "bun run format:check && bun run lint && bun run check-types && bun test && bun run knip && bun run registry:check && node scripts/verify-games.mjs lint && bun run lint:skills && node scripts/check-skill-mirror.mjs && node scripts/verify-packed-manifests.mjs && node scripts/check-cli-process-ownership.mjs && node scripts/check-tracked-artifacts.mjs && node scripts/verify-npm.mjs",
+    "verify": "bun run format:check && bun run lint && bun run check-types && bun run --cwd packages/cli test:unit && bun run knip && bun run registry:check && node scripts/verify-games.mjs lint && bun run lint:skills && node scripts/check-skill-mirror.mjs && node scripts/verify-packed-manifests.mjs && node scripts/check-cli-process-ownership.mjs && node scripts/check-tracked-artifacts.mjs && node scripts/verify-npm.mjs",
     "verify:art": "node scripts/verify-games.mjs art",
-    "verify:npm": "node scripts/verify-npm.mjs"
+    "verify:npm": "node scripts/verify-npm.mjs",
+    "verify:full": "bun run format:check && bun run lint && bun run check-types && bun run --cwd packages/cli test:unit && bun run knip && bun run registry:check && node scripts/verify-games.mjs lint && bun run lint:skills && node scripts/check-skill-mirror.mjs && node scripts/verify-packed-manifests.mjs && node scripts/check-cli-process-ownership.mjs && node scripts/check-tracked-artifacts.mjs && node scripts/verify-npm.mjs && bun run --cwd packages/cli test:browser"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "^21.2.2",

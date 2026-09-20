@@ -113,6 +113,24 @@ export const mapShotInstaller = (palette: EyePalette, cols = 96): string => `(as
   // records are raw (post-transform bbox + color); analysis stays in
   // Node (drawn-world.ts) so the pure module is the single source
   window.__frogoeDraws = [];
+  // frame markers: rAF wraps push a boundary record; a drain spans
+  // MANY rendered frames and clustering them together fuses the bird's
+  // positions from different moments into one giant lie. Consumers cut
+  // at the LAST marker and analyze the final frame only.
+  window.__frogoeFRAME = { mark: "frame" };
+  {
+    const raf = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = (cb) =>
+      raf((t) => {
+        if (window.__frogoeDraws.length > 0) {
+          if (window.__frogoeDraws.length > 4000) {
+            window.__frogoeDraws.splice(0, 2000);
+          }
+          window.__frogoeDraws.push(window.__frogoeFRAME);
+        }
+        return cb(t);
+      });
+  }
   window.__frogoeTakeDraws = () => {
     const d = window.__frogoeDraws;
     window.__frogoeDraws = [];
@@ -153,7 +171,12 @@ export const mapShotInstaller = (palette: EyePalette, cols = 96): string => `(as
       const p = pending.get(c);
       pending.delete(c);
       if (!p || mainOf() === null || c.canvas !== mainOf()) return;
-      if (window.__frogoeDraws.length > 4000) return;
+      // cap as a RING: a hard stop froze the buffer at 4000 and every
+      // later drain returned the same stale archaeology. Drop the front
+      // half instead — recent frames stay measurable forever.
+      if (window.__frogoeDraws.length > 4000) {
+        window.__frogoeDraws.splice(0, 2000);
+      }
       window.__frogoeDraws.push({
         color: String(c.fillStyle || ""), h: p.h, w: p.w, x: p.x, y: p.y,
       });
@@ -284,8 +307,25 @@ export const captureFrame = async (page: Page): Promise<EyesFrame> => {
     | null;
   if (grabbed !== null && typeof grabbed.plain === "string") {
     const hud = grabbed.hud && grabbed.hud.length > 0 ? `HUD ${grabbed.hud}` : "";
-    const { draws, ...frame } = grabbed;
+    const { draws: rawDraws, ...frame } = grabbed; // rawDraws may be absent pre-marker
     let world: WorldSnap | undefined;
+    // only the last COMPLETE frame — the segment after the FINAL marker
+    // may be mid-render (drains land inside a frame; the actor often
+    // draws LAST and would be missing). Cut at the second-to-last marker.
+    const marks = Array.isArray(rawDraws)
+      ? rawDraws.reduce<number[]>((acc, d, i) => ("mark" in d ? [...acc, i] : acc), [])
+      : [];
+    // a COMPLETE frame needs a CLOSING marker: with fewer than 2 markers
+    // the buffer holds at most one frame whose end is unproven — using
+    // it all re-imports the multi-frame fusion bug (the suite-load flake).
+    // No complete frame → no measurement this tick.
+    // segment = between the second-to-last marker and the LAST marker:
+    // exactly one complete frame (upper bound was missing — the partial
+    // tail frame fused back in and stole the bird)
+    const draws =
+      marks.length >= 2
+        ? rawDraws!.slice(marks[marks.length - 2]! + 1, marks[marks.length - 1])
+        : [];
     if (Array.isArray(draws) && draws.length > 0 && frame.cw && frame.ch) {
       const prev = worldPrev.get(page) ?? [];
       world = analyzeDraws(draws, prev, { h: frame.ch, w: frame.cw });

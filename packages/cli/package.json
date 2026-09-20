@@ -28,7 +28,9 @@
     "test": "bun test",
     "check-types": "tsc --noEmit",
     "build": "tsup && bun scripts/build-copy.mjs",
-    "dev": "bun src/cli.ts"
+    "dev": "bun src/cli.ts",
+    "test:unit": "bun test test/*.test.ts",
+    "test:browser": "bun test test/browser"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",

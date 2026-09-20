@@ -13,10 +13,10 @@ afterAll(() => rmSync(tmp, { recursive: true, force: true }));
 
 const bootGame = (): void => {
   rmSync(tmp, { recursive: true, force: true });
-  cpSync(path.join(import.meta.dir, "../../../examples/flappy"), gameDir, {
+  cpSync(path.join(import.meta.dir, "../../../../examples/flappy"), gameDir, {
     recursive: true,
     filter: (src) => {
-      const rel = path.relative(path.join(import.meta.dir, "../../../examples/flappy"), src);
+      const rel = path.relative(path.join(import.meta.dir, "../../../../examples/flappy"), src);
       return !/^(dist|snapshots|node_modules|export)/u.test(rel);
     },
   });
@@ -32,7 +32,7 @@ interface Line {
 
 const session = async (inputs: string[], extra: string[] = []) => {
   const proc = Bun.spawn(
-    ["bun", path.join(import.meta.dir, "../src/cli.ts"), "play", gameDir, ...extra],
+    ["bun", path.join(import.meta.dir, "../../src/cli.ts"), "play", gameDir, ...extra],
     {
       env: { ...process.env, NO_COLOR: "1" },
       stderr: "pipe",
